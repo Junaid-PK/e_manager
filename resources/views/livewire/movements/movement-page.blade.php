@@ -156,6 +156,20 @@
                                 @endif
                             </span>
                         </th>
+                        <th wire:click="sortBy('category')" class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none group {{ $sortField === 'category' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400' }}">
+                            <span class="flex items-center space-x-1">
+                                <span>{{ __('app.category') }}</span>
+                                @if ($sortField === 'category')
+                                    @if ($sortDirection === 'asc')
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" /></svg>
+                                    @else
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                                    @endif
+                                @else
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5 opacity-0 group-hover:opacity-50"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" /></svg>
+                                @endif
+                            </span>
+                        </th>
                         <th wire:click="sortBy('concept')" class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none group {{ $sortField === 'concept' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400' }}">
                             <span class="flex items-center space-x-1">
                                 <span>{{ __('app.concept') }}</span>
@@ -226,20 +240,6 @@
                                 @endif
                             </span>
                         </th>
-                        <th wire:click="sortBy('category')" class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none group {{ $sortField === 'category' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400' }}">
-                            <span class="flex items-center space-x-1">
-                                <span>{{ __('app.category') }}</span>
-                                @if ($sortField === 'category')
-                                    @if ($sortDirection === 'asc')
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" /></svg>
-                                    @else
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
-                                    @endif
-                                @else
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5 opacity-0 group-hover:opacity-50"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" /></svg>
-                                @endif
-                            </span>
-                        </th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.actions') }}</th>
                     </tr>
                 </thead>
@@ -252,16 +252,22 @@
                             <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap">{{ $movement->date->format('d/m/Y') }}</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ $movement->bankAccount->bank_name ?? '—' }}</td>
                             <td class="px-4 py-3 text-sm whitespace-nowrap">
-                                @php
-                                    $typeBadge = match($movement->type) {
-                                        'transfer' => 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-                                        'commission' => 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-                                        'card_payment' => 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-                                        'direct_debit' => 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-                                        default => 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
-                                    };
-                                @endphp
-                                <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded {{ $typeBadge }}">{{ __('app.' . $movement->type) }}</span>
+                                <select wire:change="quickUpdateType({{ $movement->id }}, $event.target.value)"
+                                        class="text-xs border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded-lg bg-transparent hover:bg-white dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 pl-2 pr-6 focus:ring-emerald-500 focus:border-emerald-500 cursor-pointer appearance-auto transition-colors">
+                                    <option value="transfer" {{ $movement->type === 'transfer' ? 'selected' : '' }}>{{ __('app.transfer') }}</option>
+                                    <option value="commission" {{ $movement->type === 'commission' ? 'selected' : '' }}>{{ __('app.commission') }}</option>
+                                    <option value="card_payment" {{ $movement->type === 'card_payment' ? 'selected' : '' }}>{{ __('app.card_payment') }}</option>
+                                    <option value="direct_debit" {{ $movement->type === 'direct_debit' ? 'selected' : '' }}>{{ __('app.direct_debit') }}</option>
+                                    <option value="other" {{ $movement->type === 'other' ? 'selected' : '' }}>{{ __('app.other') }}</option>
+                                </select>
+                            </td>
+                            <td class="px-4 py-3 text-sm whitespace-nowrap">
+                                <input type="text"
+                                       value="{{ $movement->category ?? '' }}"
+                                       placeholder="—"
+                                       wire:blur="quickUpdateCategory({{ $movement->id }}, $event.target.value)"
+                                       wire:keydown.enter="quickUpdateCategory({{ $movement->id }}, $event.target.value)"
+                                       class="w-24 text-xs border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded-lg bg-transparent hover:bg-white dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-emerald-500 focus:border-emerald-500 placeholder-gray-400 dark:placeholder-gray-500 transition-colors">
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 max-w-[200px]">
                                 <span title="{{ $movement->concept }}">{{ \Illuminate\Support\Str::limit($movement->concept, 50) }}</span>
@@ -278,11 +284,6 @@
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-sm text-right whitespace-nowrap font-medium text-gray-900 dark:text-gray-100">{{ number_format((float) $movement->balance, 2) }} &euro;</td>
-                            <td class="px-4 py-3 text-sm whitespace-nowrap">
-                                @if ($movement->category)
-                                    <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ $movement->category }}</span>
-                                @endif
-                            </td>
                             <td class="px-4 py-3 text-right">
                                 <div class="relative" x-data="{ open: false }" @click.outside="open = false">
                                     <button @click="open = !open" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">

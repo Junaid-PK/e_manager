@@ -190,6 +190,18 @@ class MovementPage extends Component
         $this->dispatch('notify', type: 'success', message: __('app.deleted_successfully'));
     }
 
+    public function quickUpdateType(int $id, string $type): void
+    {
+        BankMovement::findOrFail($id)->update(['type' => $type]);
+        $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
+    }
+
+    public function quickUpdateCategory(int $id, string $category): void
+    {
+        BankMovement::findOrFail($id)->update(['category' => $category ?: null]);
+        $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
+    }
+
     public function openCategoryModal(): void
     {
         $this->bulkCategory = '';
