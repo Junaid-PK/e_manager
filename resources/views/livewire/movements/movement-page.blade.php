@@ -262,13 +262,13 @@
                                 </select>
                             </td>
                             <td class="px-4 py-3 text-sm whitespace-nowrap">
-                                <select wire:change="quickUpdateCategory({{ $movement->id }}, $event.target.value)"
-                                        class="text-xs border-0 border-b border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded bg-transparent text-gray-900 dark:text-gray-100 py-1 pl-1 pr-7 focus:ring-0 focus:border-emerald-500 cursor-pointer transition-colors">
-                                    <option value="">—</option>
-                                    @foreach ($categories as $cat)
-                                        <option value="{{ $cat }}" {{ ($movement->category ?? '') === $cat ? 'selected' : '' }}>{{ $cat }}</option>
-                                    @endforeach
-                                </select>
+                                <input type="text"
+                                       list="category-list"
+                                       value="{{ $movement->category ?? '' }}"
+                                       placeholder="—"
+                                       wire:blur="quickUpdateCategory({{ $movement->id }}, $event.target.value)"
+                                       wire:keydown.enter="quickUpdateCategory({{ $movement->id }}, $event.target.value)"
+                                       class="w-28 text-xs border-0 border-b border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded bg-transparent hover:bg-white dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-1 focus:ring-0 focus:border-emerald-500 placeholder-gray-400 dark:placeholder-gray-500 transition-colors">
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 max-w-[200px]">
                                 <span title="{{ $movement->concept }}">{{ \Illuminate\Support\Str::limit($movement->concept, 50) }}</span>
@@ -494,4 +494,10 @@
             </div>
         </div>
     @endif
+
+    <datalist id="category-list">
+        @foreach ($categories as $cat)
+            <option value="{{ $cat }}">
+        @endforeach
+    </datalist>
 </div>
