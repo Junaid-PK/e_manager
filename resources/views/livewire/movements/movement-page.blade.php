@@ -253,7 +253,7 @@
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ $movement->bankAccount->bank_name ?? '—' }}</td>
                             <td class="px-4 py-3 text-sm whitespace-nowrap">
                                 <select wire:change="quickUpdateType({{ $movement->id }}, $event.target.value)"
-                                        class="text-xs border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded-lg bg-transparent hover:bg-white dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 pl-2 pr-6 focus:ring-emerald-500 focus:border-emerald-500 cursor-pointer appearance-auto transition-colors">
+                                        class="text-xs border-0 border-b border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded bg-transparent text-gray-900 dark:text-gray-100 py-1 pl-1 pr-7 focus:ring-0 focus:border-emerald-500 cursor-pointer transition-colors">
                                     <option value="transfer" {{ $movement->type === 'transfer' ? 'selected' : '' }}>{{ __('app.transfer') }}</option>
                                     <option value="commission" {{ $movement->type === 'commission' ? 'selected' : '' }}>{{ __('app.commission') }}</option>
                                     <option value="card_payment" {{ $movement->type === 'card_payment' ? 'selected' : '' }}>{{ __('app.card_payment') }}</option>
@@ -262,12 +262,13 @@
                                 </select>
                             </td>
                             <td class="px-4 py-3 text-sm whitespace-nowrap">
-                                <input type="text"
-                                       value="{{ $movement->category ?? '' }}"
-                                       placeholder="—"
-                                       wire:blur="quickUpdateCategory({{ $movement->id }}, $event.target.value)"
-                                       wire:keydown.enter="quickUpdateCategory({{ $movement->id }}, $event.target.value)"
-                                       class="w-24 text-xs border border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded-lg bg-transparent hover:bg-white dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-emerald-500 focus:border-emerald-500 placeholder-gray-400 dark:placeholder-gray-500 transition-colors">
+                                <select wire:change="quickUpdateCategory({{ $movement->id }}, $event.target.value)"
+                                        class="text-xs border-0 border-b border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded bg-transparent text-gray-900 dark:text-gray-100 py-1 pl-1 pr-7 focus:ring-0 focus:border-emerald-500 cursor-pointer transition-colors">
+                                    <option value="">—</option>
+                                    @foreach ($categories as $cat)
+                                        <option value="{{ $cat }}" {{ ($movement->category ?? '') === $cat ? 'selected' : '' }}>{{ $cat }}</option>
+                                    @endforeach
+                                </select>
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 max-w-[200px]">
                                 <span title="{{ $movement->concept }}">{{ \Illuminate\Support\Str::limit($movement->concept, 50) }}</span>

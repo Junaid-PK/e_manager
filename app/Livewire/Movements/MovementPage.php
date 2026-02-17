@@ -294,6 +294,7 @@ class MovementPage extends Component
         return view('livewire.movements.movement-page', [
             'movements' => $this->getMovements(),
             'bankAccounts' => BankAccount::orderBy('bank_name')->get(),
+            'categories' => BankMovement::whereNotNull('category')->where('category', '!=', '')->distinct()->orderBy('category')->pluck('category'),
         ])->layout('layouts.app');
     }
 }
