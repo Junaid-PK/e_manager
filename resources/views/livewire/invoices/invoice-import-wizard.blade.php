@@ -1,3 +1,4 @@
+<div>
 @if ($show)
     <div class="fixed inset-0 z-50 flex items-center justify-center" @keydown.escape.window="$wire.close()">
         <div class="absolute inset-0 bg-black/50" wire:click="close"></div>
@@ -121,3 +122,4 @@
         </div>
     </div>
 @endif
+</div>
