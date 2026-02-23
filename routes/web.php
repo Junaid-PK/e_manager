@@ -6,6 +6,7 @@ use App\Livewire\Dashboard\DashboardPage;
 use App\Livewire\Expenses\ExpensePage;
 use App\Livewire\Invoices\InvoicePage;
 use App\Livewire\Movements\MovementPage;
+use App\Livewire\CreditLines\CreditLinePage;
 use App\Livewire\Reminders\ReminderPage;
 use App\Livewire\Reports\ReportsPage;
 use App\Livewire\Settings\SettingsPage;
@@ -24,6 +25,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('movements', MovementPage::class)->name('movements');
     Route::get('expenses', ExpensePage::class)->name('expenses');
     Route::get('companies-clients', CompaniesClientsPage::class)->name('companies-clients');
+    Route::get('credit-lines', CreditLinePage::class)->name('credit-lines');
     Route::get('reminders', ReminderPage::class)->name('reminders');
     Route::get('reports', ReportsPage::class)->name('reports');
     Route::get('settings', SettingsPage::class)->name('settings');

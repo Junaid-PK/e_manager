@@ -1,38 +1,40 @@
 <x-slot name="header">
-    <div class="flex items-center justify-between">
-        <span>{{ __('app.invoices') }}</span>
-        <div class="flex items-center space-x-2">
-            <button class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
-                </svg>
-                {{ __('app.export') }}
-            </button>
-            <button wire:click="create" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
-                {{ __('app.new_invoice') }}
-            </button>
-        </div>
-    </div>
+    {{ __('app.invoices') }}
 </x-slot>
 
 <div>
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700 space-y-3">
             <div class="flex flex-col lg:flex-row lg:items-center gap-3">
-                <div class="relative flex-1 max-w-sm">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-gray-400">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-                        </svg>
+                <div class="flex items-center space-x-3 flex-1">
+                    <div class="relative flex-1 max-w-sm">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-gray-400">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                            </svg>
+                        </div>
+                        <input wire:model.live.debounce.300ms="search"
+                               type="text"
+                               placeholder="{{ __('app.search') }}"
+                               class="block w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-emerald-500 focus:border-emerald-500">
                     </div>
-                    <input wire:model.live.debounce.300ms="search"
-                           type="text"
-                           placeholder="{{ __('app.search') }}"
-                           class="block w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-emerald-500 focus:border-emerald-500">
                 </div>
+                <div class="flex items-center space-x-2">
+                    <button wire:click="$dispatch('openInvoiceImportWizard')" class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+                        </svg>
+                        {{ __('app.import') }}
+                    </button>
+                    <button wire:click="create" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                        </svg>
+                        {{ __('app.new_invoice') }}
+                    </button>
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
                 <select wire:model.live="filterStatus" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 pl-3 pr-8 focus:ring-emerald-500 focus:border-emerald-500">
                     <option value="">{{ __('app.all_statuses') }}</option>
                     <option value="pending">{{ __('app.pending') }}</option>
@@ -53,37 +55,37 @@
                         <option value="{{ $client->id }}">{{ $client->name }}</option>
                     @endforeach
                 </select>
-            </div>
-            <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+
+                <select wire:model.live="filterPaymentType" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 pl-3 pr-8 focus:ring-emerald-500 focus:border-emerald-500">
+                    <option value="">{{ __('app.all') }} {{ __('app.payment_type') }}</option>
+                    @foreach (\App\Models\Invoice::PAYMENT_TYPES as $pt)
+                        <option value="{{ $pt }}">{{ __('app.' . $pt) }}</option>
+                    @endforeach
+                </select>
+
                 <input wire:model.live.debounce.300ms="filterMonth"
                        type="text"
                        placeholder="{{ __('app.month') }}"
                        class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 px-3 focus:ring-emerald-500 focus:border-emerald-500 w-32">
-                <div class="flex items-center space-x-2">
-                    <input wire:model.live="dateFrom"
-                           type="date"
-                           class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 px-3 focus:ring-emerald-500 focus:border-emerald-500">
-                    <span class="text-sm text-gray-400">{{ __('app.to') }}</span>
-                    <input wire:model.live="dateTo"
-                           type="date"
-                           class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 px-3 focus:ring-emerald-500 focus:border-emerald-500">
-                </div>
-                @if ($search || $filterStatus || $filterCompanyId || $filterClientId || $filterMonth || $dateFrom || $dateTo)
-                    <button wire:click="clearFilters" class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1">
+
+                <input wire:model.live="dateFrom" type="date" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 px-3 focus:ring-emerald-500 focus:border-emerald-500">
+                <input wire:model.live="dateTo" type="date" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 px-3 focus:ring-emerald-500 focus:border-emerald-500">
+
+                @if ($search || $filterStatus || $filterCompanyId || $filterClientId || $filterPaymentType || $filterMonth || $dateFrom || $dateTo)
+                    <button wire:click="clearFilters" class="inline-flex items-center px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5 mr-1">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
                         </svg>
                         {{ __('app.clear_filters') }}
                     </button>
                 @endif
-                <div class="sm:ml-auto">
-                    <select wire:model.live="perPage" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 pl-3 pr-8 focus:ring-emerald-500 focus:border-emerald-500">
-                        <option value="10">10 {{ __('app.per_page') }}</option>
-                        <option value="25">25 {{ __('app.per_page') }}</option>
-                        <option value="50">50 {{ __('app.per_page') }}</option>
-                        <option value="100">100 {{ __('app.per_page') }}</option>
-                    </select>
-                </div>
+
+                <select wire:model.live="perPage" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 pl-3 pr-8 focus:ring-emerald-500 focus:border-emerald-500">
+                    <option value="10">10 {{ __('app.per_page') }}</option>
+                    <option value="25">25 {{ __('app.per_page') }}</option>
+                    <option value="50">50 {{ __('app.per_page') }}</option>
+                    <option value="100">100 {{ __('app.per_page') }}</option>
+                </select>
             </div>
         </div>
 
@@ -201,6 +203,22 @@
                             </span>
                         </th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.status') }}</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.payment_type') }}</th>
+                        <th wire:click="sortBy('amount_paid')" class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider cursor-pointer select-none group {{ $sortField === 'amount_paid' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400' }}">
+                            <span class="flex items-center justify-end space-x-1">
+                                <span>{{ __('app.cobrado') }}</span>
+                                @if ($sortField === 'amount_paid')
+                                    @if ($sortDirection === 'asc')
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" /></svg>
+                                    @else
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                                    @endif
+                                @else
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5 opacity-0 group-hover:opacity-50"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" /></svg>
+                                @endif
+                            </span>
+                        </th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.resto') }}</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.actions') }}</th>
                     </tr>
                 </thead>
@@ -251,6 +269,29 @@
                                     </div>
                                 </div>
                             </td>
+                            <td class="px-4 py-3 text-sm whitespace-nowrap">
+                                <select wire:change="quickUpdatePaymentType({{ $invoice->id }}, $event.target.value)"
+                                        class="text-xs border-0 border-b border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded bg-transparent text-gray-900 dark:text-gray-100 py-1 pl-1 pr-7 focus:ring-0 focus:border-emerald-500 cursor-pointer transition-colors">
+                                    <option value="" {{ !$invoice->payment_type ? 'selected' : '' }}>—</option>
+                                    @foreach (\App\Models\Invoice::PAYMENT_TYPES as $pt)
+                                        <option value="{{ $pt }}" {{ $invoice->payment_type === $pt ? 'selected' : '' }}>{{ __('app.' . $pt) }}</option>
+                                    @endforeach
+                                </select>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
+                                @if ((float) $invoice->amount_paid > 0)
+                                    <span class="text-green-600 dark:text-green-400 font-medium">{{ number_format($invoice->amount_paid, 2, ',', '.') }} &euro;</span>
+                                @else
+                                    <span class="text-gray-400">0,00 &euro;</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
+                                @if ((float) $invoice->amount_remaining > 0)
+                                    <span class="text-red-600 dark:text-red-400 font-medium">{{ number_format($invoice->amount_remaining, 2, ',', '.') }} &euro;</span>
+                                @else
+                                    <span class="text-gray-400">0,00 &euro;</span>
+                                @endif
+                            </td>
                             <td class="px-4 py-3 text-right">
                                 <div class="relative" x-data="{ open: false }" @click.outside="open = false">
                                     <button @click="open = !open" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
@@ -270,7 +311,7 @@
                                         <button wire:click="edit({{ $invoice->id }})" @click="open = false" class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">{{ __('app.edit') }}</button>
                                         <button wire:click="duplicate({{ $invoice->id }})" @click="open = false" class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">{{ __('app.duplicate') }}</button>
                                         <button wire:click="quickStatusUpdate({{ $invoice->id }}, 'paid')" @click="open = false" class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">{{ __('app.mark_as_paid') }}</button>
-                                        <button @click="open = false" class="block w-full text-left px-4 py-2 text-sm text-gray-400 dark:text-gray-500 cursor-default">{{ __('app.set_reminder') }}</button>
+                                        <button wire:click="openReminderModal({{ $invoice->id }})" @click="open = false" class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">{{ __('app.set_reminder') }}</button>
                                         <button wire:click="confirmDelete({{ $invoice->id }})" @click="open = false" class="block w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">{{ __('app.delete') }}</button>
                                     </div>
                                 </div>
@@ -278,7 +319,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="13" class="px-4 py-12 text-center">
+                            <td colspan="16" class="px-4 py-12 text-center">
                                 <div class="flex flex-col items-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" class="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v7.5m2.25-6.466a9.016 9.016 0 0 0-3.461-.203c-.536.072-.974.478-1.021 1.017a4.559 4.559 0 0 0-.018.402c0 .464.336.844.775.994l2.49.849c.44.15.775.53.775.994 0 .136-.006.27-.018.402-.047.539-.485.945-1.021 1.017a9.077 9.077 0 0 1-3.461-.203M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
@@ -329,7 +370,10 @@
                     <div class="flex-1 overflow-y-auto p-6">
                         <form wire:submit="save" class="space-y-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.company') }} *</label>
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('app.company') }} *</label>
+                                    <button type="button" wire:click="openQuickCompanyForm" class="text-xs text-emerald-600 dark:text-emerald-400 hover:underline">+ {{ __('app.add') }}</button>
+                                </div>
                                 <select wire:model.live="formCompanyId" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
                                     <option value="">{{ __('app.select_company') }}</option>
                                     @foreach ($companies as $company)
@@ -341,7 +385,7 @@
                             <div>
                                 <div class="flex items-center justify-between mb-1">
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('app.client') }} *</label>
-                                    <button type="button" wire:click="$dispatch('openClientForm')" class="text-xs text-emerald-600 dark:text-emerald-400 hover:underline">+ {{ __('app.add') }}</button>
+                                    <button type="button" wire:click="openQuickClientForm" class="text-xs text-emerald-600 dark:text-emerald-400 hover:underline">+ {{ __('app.add') }}</button>
                                 </div>
                                 <select wire:model="formClientId" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
                                     <option value="">{{ __('app.select_client') }}</option>
@@ -415,6 +459,23 @@
                                     <span class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ number_format($computedTotal, 2, ',', '.') }} &euro;</span>
                                 </div>
                             </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.payment_type') }}</label>
+                                    <select wire:model="formPaymentType" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                        <option value="">{{ __('app.none') }}</option>
+                                        @foreach (\App\Models\Invoice::PAYMENT_TYPES as $pt)
+                                            <option value="{{ $pt }}">{{ __('app.' . $pt) }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('formPaymentType') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.cobrado') }}</label>
+                                    <input wire:model="formAmountPaid" type="number" step="0.01" min="0" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                    @error('formAmountPaid') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                                </div>
+                            </div>
                             @if ($editingId)
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.status') }}</label>
@@ -478,6 +539,8 @@
         </div>
     @endif
 
+    <livewire:invoices.invoice-import-wizard />
+
     @if ($showStatusModal)
         <div class="fixed inset-0 z-50 flex items-center justify-center" @keydown.escape.window="$set('showStatusModal', false)">
             <div class="absolute inset-0 bg-black/50" wire:click="$set('showStatusModal', false)"></div>
@@ -505,6 +568,97 @@
                     <button wire:click="$set('showStatusModal', false)" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">{{ __('app.cancel') }}</button>
                     <button wire:click="bulkStatusUpdate" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">{{ __('app.apply') }}</button>
                 </div>
+            </div>
+        </div>
+    @endif
+
+    @if ($showQuickClientModal)
+        <div class="fixed inset-0 z-[60] flex items-center justify-center" @keydown.escape.window="$set('showQuickClientModal', false)">
+            <div class="absolute inset-0 bg-black/50" wire:click="$set('showQuickClientModal', false)"></div>
+            <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 w-full max-w-md mx-4 p-6"
+                 x-data x-show="$wire.showQuickClientModal" x-transition>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{{ __('app.new_client') }}</h3>
+                <form wire:submit="saveQuickClient" class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.name') }} *</label>
+                        <input wire:model="quickClientName" type="text" autofocus class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        @error('quickClientName') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.tax_id') }}</label>
+                        <input wire:model="quickClientTaxId" type="text" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.email') }}</label>
+                            <input wire:model="quickClientEmail" type="email" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.phone') }}</label>
+                            <input wire:model="quickClientPhone" type="text" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-end space-x-3 pt-3">
+                        <button type="button" wire:click="$set('showQuickClientModal', false)" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">{{ __('app.cancel') }}</button>
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">{{ __('app.save') }}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
+
+    @if ($showQuickCompanyModal)
+        <div class="fixed inset-0 z-[60] flex items-center justify-center" @keydown.escape.window="$set('showQuickCompanyModal', false)">
+            <div class="absolute inset-0 bg-black/50" wire:click="$set('showQuickCompanyModal', false)"></div>
+            <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 w-full max-w-md mx-4 p-6"
+                 x-data x-show="$wire.showQuickCompanyModal" x-transition>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{{ __('app.new_company') }}</h3>
+                <form wire:submit="saveQuickCompany" class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.name') }} *</label>
+                        <input wire:model="quickCompanyName" type="text" autofocus class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        @error('quickCompanyName') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.tax_id') }}</label>
+                            <input wire:model="quickCompanyTaxId" type="text" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.email') }}</label>
+                            <input wire:model="quickCompanyEmail" type="email" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-end space-x-3 pt-3">
+                        <button type="button" wire:click="$set('showQuickCompanyModal', false)" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">{{ __('app.cancel') }}</button>
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">{{ __('app.save') }}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
+
+    @if ($showReminderModal)
+        <div class="fixed inset-0 z-[60] flex items-center justify-center" @keydown.escape.window="$set('showReminderModal', false)">
+            <div class="absolute inset-0 bg-black/50" wire:click="$set('showReminderModal', false)"></div>
+            <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 w-full max-w-md mx-4 p-6"
+                 x-data x-show="$wire.showReminderModal" x-transition>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{{ __('app.set_reminder') }}</h3>
+                <form wire:submit="saveReminder" class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.reminder_date') }} *</label>
+                        <input wire:model="reminderDate" type="date" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        @error('reminderDate') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.message') }}</label>
+                        <textarea wire:model="reminderMessage" rows="3" placeholder="{{ __('app.reminder_message_placeholder') }}" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500"></textarea>
+                    </div>
+                    <div class="flex items-center justify-end space-x-3 pt-3">
+                        <button type="button" wire:click="$set('showReminderModal', false)" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">{{ __('app.cancel') }}</button>
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">{{ __('app.save') }}</button>
+                    </div>
+                </form>
             </div>
         </div>
     @endif

@@ -8,6 +8,7 @@ use App\Livewire\Traits\WithSorting;
 use App\Models\Client;
 use App\Models\Company;
 use App\Models\Invoice;
+use App\Models\PaymentReminder;
 use App\Models\Project;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -19,12 +20,29 @@ class InvoicePage extends Component
     public bool $showFormModal = false;
     public bool $showDeleteModal = false;
     public bool $showStatusModal = false;
+    public bool $showQuickClientModal = false;
+    public bool $showQuickCompanyModal = false;
+    public bool $showReminderModal = false;
     public ?int $editingId = null;
+
+    public string $quickClientName = '';
+    public string $quickClientEmail = '';
+    public string $quickClientPhone = '';
+    public string $quickClientTaxId = '';
+
+    public string $quickCompanyName = '';
+    public string $quickCompanyTaxId = '';
+    public string $quickCompanyEmail = '';
+
+    public ?int $reminderInvoiceId = null;
+    public string $reminderDate = '';
+    public string $reminderMessage = '';
 
     public string $filterStatus = '';
     public string $filterCompanyId = '';
     public string $filterClientId = '';
     public string $filterMonth = '';
+    public string $filterPaymentType = '';
     public string $dateFrom = '';
     public string $dateTo = '';
 
@@ -38,6 +56,8 @@ class InvoicePage extends Component
     public string $formAmount = '0';
     public string $formIvaRate = '21';
     public string $formRetentionRate = '0';
+    public string $formPaymentType = '';
+    public string $formAmountPaid = '0';
     public string $formNotes = '';
     public string $formStatus = 'pending';
 
@@ -56,6 +76,8 @@ class InvoicePage extends Component
             'formAmount' => 'required|numeric|min:0',
             'formIvaRate' => 'required|numeric|min:0|max:100',
             'formRetentionRate' => 'required|numeric|min:0|max:100',
+            'formPaymentType' => 'nullable|in:confirming,cheque,transfer,cash,other',
+            'formAmountPaid' => 'nullable|numeric|min:0',
             'formNotes' => 'nullable|string|max:5000',
             'formStatus' => 'required|in:pending,paid,partial,overdue,cancelled',
         ];
@@ -77,6 +99,11 @@ class InvoicePage extends Component
     }
 
     public function updatedFilterMonth(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterPaymentType(): void
     {
         $this->resetPage();
     }
@@ -112,6 +139,8 @@ class InvoicePage extends Component
         $this->formAmount = (string) $invoice->amount;
         $this->formIvaRate = (string) $invoice->iva_rate;
         $this->formRetentionRate = (string) $invoice->retention_rate;
+        $this->formPaymentType = $invoice->payment_type ?? '';
+        $this->formAmountPaid = (string) ($invoice->amount_paid ?? 0);
         $this->formNotes = $invoice->notes ?? '';
         $this->formStatus = $invoice->status;
         $this->showFormModal = true;
@@ -128,6 +157,9 @@ class InvoicePage extends Component
         $retentionAmount = round($amount * $retentionRate / 100, 2);
         $total = round($amount + $ivaAmount - $retentionAmount, 2);
 
+        $amountPaid = (float) ($this->formAmountPaid ?: 0);
+        $amountRemaining = round($total - $amountPaid, 2);
+
         $data = [
             'company_id' => $this->formCompanyId,
             'client_id' => $this->formClientId,
@@ -142,6 +174,9 @@ class InvoicePage extends Component
             'retention_rate' => $retentionRate,
             'retention_amount' => $retentionAmount,
             'total' => $total,
+            'amount_paid' => $amountPaid,
+            'amount_remaining' => max(0, $amountRemaining),
+            'payment_type' => $this->formPaymentType ?: null,
             'notes' => $this->formNotes ?: null,
             'status' => $this->formStatus,
         ];
@@ -195,9 +230,17 @@ class InvoicePage extends Component
         $this->formAmount = (string) $invoice->amount;
         $this->formIvaRate = (string) $invoice->iva_rate;
         $this->formRetentionRate = (string) $invoice->retention_rate;
+        $this->formPaymentType = $invoice->payment_type ?? '';
+        $this->formAmountPaid = '0';
         $this->formNotes = $invoice->notes ?? '';
         $this->formStatus = 'pending';
         $this->showFormModal = true;
+    }
+
+    public function quickUpdatePaymentType(int $id, string $type): void
+    {
+        Invoice::findOrFail($id)->update(['payment_type' => $type ?: null]);
+        $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
 
     public function quickStatusUpdate(int $id, string $status): void
@@ -217,6 +260,94 @@ class InvoicePage extends Component
         }
     }
 
+    public function openQuickClientForm(): void
+    {
+        $this->quickClientName = '';
+        $this->quickClientEmail = '';
+        $this->quickClientPhone = '';
+        $this->quickClientTaxId = '';
+        $this->showQuickClientModal = true;
+    }
+
+    public function saveQuickClient(): void
+    {
+        $this->validate([
+            'quickClientName' => 'required|string|max:255',
+            'quickClientEmail' => 'nullable|email|max:255',
+            'quickClientPhone' => 'nullable|string|max:50',
+            'quickClientTaxId' => 'nullable|string|max:50',
+        ]);
+
+        $client = Client::create([
+            'name' => $this->quickClientName,
+            'email' => $this->quickClientEmail ?: null,
+            'phone' => $this->quickClientPhone ?: null,
+            'tax_id' => $this->quickClientTaxId ?: null,
+        ]);
+
+        $this->formClientId = (string) $client->id;
+        $this->showQuickClientModal = false;
+        $this->dispatch('notify', type: 'success', message: __('app.created_successfully'));
+    }
+
+    public function openQuickCompanyForm(): void
+    {
+        $this->quickCompanyName = '';
+        $this->quickCompanyTaxId = '';
+        $this->quickCompanyEmail = '';
+        $this->showQuickCompanyModal = true;
+    }
+
+    public function saveQuickCompany(): void
+    {
+        $this->validate([
+            'quickCompanyName' => 'required|string|max:255',
+            'quickCompanyTaxId' => 'nullable|string|max:50',
+            'quickCompanyEmail' => 'nullable|email|max:255',
+        ]);
+
+        $company = Company::create([
+            'name' => $this->quickCompanyName,
+            'tax_id' => $this->quickCompanyTaxId ?: null,
+            'email' => $this->quickCompanyEmail ?: null,
+        ]);
+
+        $this->formCompanyId = (string) $company->id;
+        $this->showQuickCompanyModal = false;
+        $this->dispatch('notify', type: 'success', message: __('app.created_successfully'));
+    }
+
+    public function openReminderModal(int $invoiceId): void
+    {
+        $this->reminderInvoiceId = $invoiceId;
+        $this->reminderDate = now()->addDays(3)->format('Y-m-d');
+        $this->reminderMessage = '';
+        $this->showReminderModal = true;
+    }
+
+    public function saveReminder(): void
+    {
+        $this->validate([
+            'reminderDate' => 'required|date|after_or_equal:today',
+            'reminderMessage' => 'nullable|string|max:1000',
+        ]);
+
+        $invoice = Invoice::findOrFail($this->reminderInvoiceId);
+
+        PaymentReminder::create([
+            'remindable_type' => Invoice::class,
+            'remindable_id' => $invoice->id,
+            'reminder_date' => $this->reminderDate,
+            'message' => $this->reminderMessage ?: __('app.payment_due_for') . ' ' . $invoice->invoice_number,
+            'is_sent' => false,
+            'is_dismissed' => false,
+        ]);
+
+        $this->showReminderModal = false;
+        $this->reminderInvoiceId = null;
+        $this->dispatch('notify', type: 'success', message: __('app.created_successfully'));
+    }
+
     public function clearFilters(): void
     {
         $this->search = '';
@@ -224,6 +355,7 @@ class InvoicePage extends Component
         $this->filterCompanyId = '';
         $this->filterClientId = '';
         $this->filterMonth = '';
+        $this->filterPaymentType = '';
         $this->dateFrom = '';
         $this->dateTo = '';
         $this->resetPage();
@@ -257,6 +389,10 @@ class InvoicePage extends Component
 
         if ($this->filterMonth) {
             $query->where('month', 'like', "%{$this->filterMonth}%");
+        }
+
+        if ($this->filterPaymentType) {
+            $query->where('payment_type', $this->filterPaymentType);
         }
 
         if ($this->dateFrom) {
@@ -297,6 +433,8 @@ class InvoicePage extends Component
         $this->formAmount = '0';
         $this->formIvaRate = '21';
         $this->formRetentionRate = '0';
+        $this->formPaymentType = '';
+        $this->formAmountPaid = '0';
         $this->formNotes = '';
         $this->formStatus = 'pending';
         $this->resetValidation();

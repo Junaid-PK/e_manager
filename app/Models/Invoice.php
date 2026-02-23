@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Invoice extends Model
 {
+    public const PAYMENT_TYPES = ['confirming', 'cheque', 'transfer', 'cash', 'other'];
+
     protected $fillable = [
         'company_id',
         'client_id',
@@ -23,7 +25,10 @@ class Invoice extends Model
         'retention_amount',
         'retention_rate',
         'total',
+        'amount_paid',
+        'amount_remaining',
         'status',
+        'payment_type',
         'notes',
     ];
 
@@ -36,7 +41,14 @@ class Invoice extends Model
             'iva_amount' => 'decimal:2',
             'retention_amount' => 'decimal:2',
             'total' => 'decimal:2',
+            'amount_paid' => 'decimal:2',
+            'amount_remaining' => 'decimal:2',
         ];
+    }
+
+    public function computeRemaining(): void
+    {
+        $this->amount_remaining = round((float) $this->total - (float) $this->amount_paid, 2);
     }
 
     public function company(): BelongsTo
