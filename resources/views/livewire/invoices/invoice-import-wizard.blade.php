@@ -25,7 +25,7 @@
                     <div class="space-y-4">
                         <p class="text-sm text-gray-600 dark:text-gray-400">{{ __('app.upload_excel_file') }}</p>
                         <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center">
-                            <input type="file" wire:model="file" accept=".csv,.xlsx,.xls,.txt" class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-emerald-50 file:text-emerald-700 dark:file:bg-emerald-900/30 dark:file:text-emerald-400 hover:file:bg-emerald-100 dark:hover:file:bg-emerald-900/50">
+                            <input type="file" wire:model="file" accept=".csv,.xlsx,.xls,.txt,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-emerald-50 file:text-emerald-700 dark:file:bg-emerald-900/30 dark:file:text-emerald-400 hover:file:bg-emerald-100 dark:hover:file:bg-emerald-900/50">
                             @error('file') <p class="mt-2 text-xs text-red-500">{{ $message }}</p> @enderror
                             <div wire:loading wire:target="file" class="mt-2 text-sm text-gray-500">{{ __('app.loading') }}...</div>
                         </div>

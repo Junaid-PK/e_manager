@@ -65,7 +65,7 @@ class InvoiceImportWizard extends Component
 
     public function upload(): void
     {
-        $this->validate(['file' => 'required|file|mimes:csv,xlsx,xls,txt']);
+        $this->validate(['file' => 'required|file|mimetypes:text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream']);
 
         $path = $this->file->getRealPath();
         $service = new InvoiceImportService();
