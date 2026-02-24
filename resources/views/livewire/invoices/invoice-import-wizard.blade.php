@@ -30,7 +30,7 @@
                             <div wire:loading wire:target="file" class="mt-2 text-sm text-gray-500">{{ __('app.loading') }}...</div>
                         </div>
                         <div class="flex justify-end">
-                            <button wire:click="upload" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50" {{ !$file ? 'disabled' : '' }}>
+                            <button wire:click="processUpload" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50" {{ !$file ? 'disabled' : '' }}>
                                 {{ __('app.next') }}
                             </button>
                         </div>

@@ -63,7 +63,7 @@ class InvoiceImportWizard extends Component
         $this->resetValidation();
     }
 
-    public function upload(): void
+    public function processUpload(): void
     {
         $this->validate(['file' => 'required|file|mimetypes:text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream']);
 
