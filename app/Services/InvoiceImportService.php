@@ -44,35 +44,49 @@ class InvoiceImportService
             try {
                 $mapped = $this->mapRow($row, $columnMap);
 
-                $companyId = $this->resolveCompany($mapped['company'] ?? null);
-                $clientId = $this->resolveClient($mapped['client'] ?? null);
+                $invoiceNumber = trim($mapped['invoice_number'] ?? '');
+                if (empty($invoiceNumber)) {
+                    continue;
+                }
+
+                $companyName = trim($mapped['company'] ?? '');
+                $clientName = trim($mapped['client'] ?? '');
+
+                if (empty($companyName) && empty($clientName)) {
+                    continue;
+                }
+
+                $companyId = $this->resolveOrCreateCompany($companyName);
+                $clientId = $this->resolveOrCreateClient($clientName);
 
                 if (!$companyId || !$clientId) {
-                    $errors[] = __('app.row') . ' ' . ($index + 2) . ': ' . __('app.company') . '/' . __('app.client') . ' not found';
+                    $errors[] = __('app.row') . ' ' . ($index + 2) . ': ' . __('app.company') . '/' . __('app.client') . ' ' . __('app.required');
                     continue;
                 }
 
                 $amount = $this->parseAmount($mapped['amount'] ?? null) ?? 0;
                 $ivaAmount = $this->parseAmount($mapped['iva_amount'] ?? null) ?? 0;
                 $retentionAmount = $this->parseAmount($mapped['retention_amount'] ?? null) ?? 0;
-                $total = $this->parseAmount($mapped['total'] ?? null) ?? round($amount + $ivaAmount - $retentionAmount, 2);
+
+                $totalRaw = $mapped['total'] ?? null;
+                $total = $this->isFormula($totalRaw)
+                    ? round($amount + $ivaAmount - $retentionAmount, 2)
+                    : ($this->parseAmount($totalRaw) ?? round($amount + $ivaAmount - $retentionAmount, 2));
+
                 $amountPaid = $this->parseAmount($mapped['amount_paid'] ?? null) ?? 0;
                 $amountRemaining = $this->parseAmount($mapped['amount_remaining'] ?? null) ?? max(0, round($total - $amountPaid, 2));
 
                 $status = $this->resolveStatus($mapped['status'] ?? null);
                 $paymentType = $this->resolvePaymentType($mapped['payment_type'] ?? null);
 
-                $invoiceNumber = trim($mapped['invoice_number'] ?? '');
-                if (empty($invoiceNumber)) {
-                    continue;
-                }
+                $monthValue = $this->parseMonth($mapped['month'] ?? null);
 
                 Invoice::create([
                     'company_id' => $companyId,
                     'client_id' => $clientId,
                     'invoice_number' => $invoiceNumber,
-                    'month' => trim($mapped['month'] ?? '') ?: null,
-                    'date_issued' => $this->parseDate($mapped['date_issued'] ?? null) ?? now()->format('Y-m-d'),
+                    'month' => $monthValue,
+                    'date_issued' => $this->parseDate($mapped['date_issued'] ?? null) ?? $this->parseDate($mapped['month'] ?? null) ?? now()->format('Y-m-d'),
                     'date_due' => $this->parseDate($mapped['date_due'] ?? null),
                     'amount' => $amount,
                     'iva_amount' => $ivaAmount,
@@ -105,18 +119,56 @@ class InvoiceImportService
         return $mapped;
     }
 
-    private function resolveCompany(?string $name): ?int
+    private function resolveOrCreateCompany(?string $name): ?int
     {
         if (!$name) return null;
-        $company = Company::where('name', 'like', "%{$name}%")->first();
-        return $company?->id;
+
+        $company = Company::where('name', $name)->first()
+            ?? Company::where('name', 'like', "%{$name}%")->first()
+            ?? Company::whereRaw('? LIKE CONCAT(\'%\', name, \'%\')', [$name])->first();
+
+        if (!$company) {
+            $company = Company::create(['name' => $name]);
+        }
+
+        return $company->id;
     }
 
-    private function resolveClient(?string $name): ?int
+    private function resolveOrCreateClient(?string $name): ?int
     {
         if (!$name) return null;
-        $client = Client::where('name', 'like', "%{$name}%")->first();
-        return $client?->id;
+
+        $client = Client::where('name', $name)->first()
+            ?? Client::where('name', 'like', "%{$name}%")->first()
+            ?? Client::whereRaw('? LIKE CONCAT(\'%\', name, \'%\')', [$name])->first();
+
+        if (!$client) {
+            $client = Client::create(['name' => $name]);
+        }
+
+        return $client->id;
+    }
+
+    private function isFormula(?string $value): bool
+    {
+        if ($value === null) return false;
+        return str_starts_with(trim($value), '=');
+    }
+
+    private function parseMonth(?string $value): ?string
+    {
+        if (!$value) return null;
+
+        if (is_numeric($value)) {
+            try {
+                $date = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((int) $value);
+                return $date->format('M-Y');
+            } catch (\Exception) {
+                return $value;
+            }
+        }
+
+        return $value;
     }
 
     private function resolveStatus(?string $value): string
