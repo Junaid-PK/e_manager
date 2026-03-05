@@ -6,15 +6,15 @@
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.total_credit') }}</p>
-            <p class="mt-1 text-xl font-bold text-gray-900 dark:text-gray-100">{{ number_format((float) ($totals->total ?? 0), 2, ',', '.') }} &euro;</p>
+            <p class="mt-1 text-xl font-bold text-gray-900 dark:text-gray-100">{{ fmt_number((float) ($totals->total ?? 0)) }} &euro;</p>
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.total_paid') }}</p>
-            <p class="mt-1 text-xl font-bold text-green-600 dark:text-green-400">{{ number_format((float) ($totals->paid ?? 0), 2, ',', '.') }} &euro;</p>
+            <p class="mt-1 text-xl font-bold text-green-600 dark:text-green-400">{{ fmt_number((float) ($totals->paid ?? 0)) }} &euro;</p>
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.total_remaining') }}</p>
-            <p class="mt-1 text-xl font-bold text-red-600 dark:text-red-400">{{ number_format((float) ($totals->remaining ?? 0), 2, ',', '.') }} &euro;</p>
+            <p class="mt-1 text-xl font-bold text-red-600 dark:text-red-400">{{ fmt_number((float) ($totals->remaining ?? 0)) }} &euro;</p>
         </div>
     </div>
 
@@ -119,10 +119,10 @@
                                 <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded {{ $cl->entity_type === 'bank' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' }}">{{ __('app.' . $cl->entity_type) }}</span>
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $cl->year ?? '—' }}</td>
-                            <td class="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-gray-100">{{ number_format($cl->total_amount, 2, ',', '.') }} &euro;</td>
-                            <td class="px-4 py-3 text-sm text-right text-green-600 dark:text-green-400">{{ number_format($cl->amount_paid, 2, ',', '.') }} &euro;</td>
-                            <td class="px-4 py-3 text-sm text-right font-medium {{ (float) $cl->amount_remaining > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400' }}">{{ number_format($cl->amount_remaining, 2, ',', '.') }} &euro;</td>
-                            <td class="px-4 py-3 text-sm text-right text-gray-500 dark:text-gray-400">{{ $cl->interest_rate > 0 ? number_format($cl->interest_rate, 2) . '%' : '—' }}</td>
+                            <td class="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-gray-100">{{ fmt_number($cl->total_amount) }} &euro;</td>
+                            <td class="px-4 py-3 text-sm text-right text-green-600 dark:text-green-400">{{ fmt_number($cl->amount_paid) }} &euro;</td>
+                            <td class="px-4 py-3 text-sm text-right font-medium {{ (float) $cl->amount_remaining > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400' }}">{{ fmt_number($cl->amount_remaining) }} &euro;</td>
+                            <td class="px-4 py-3 text-sm text-right text-gray-500 dark:text-gray-400">{{ $cl->interest_rate > 0 ? fmt_number($cl->interest_rate) . '%' : '—' }}</td>
                             <td class="px-4 py-3 text-sm whitespace-nowrap">
                                 @php
                                     $statusBadge = match($cl->status) {

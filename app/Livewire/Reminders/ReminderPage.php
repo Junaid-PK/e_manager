@@ -197,13 +197,13 @@ class ReminderPage extends Component
         if ($this->formRemindableType === 'invoice') {
             return Invoice::orderBy('invoice_number')->get()->map(fn ($i) => [
                 'id' => $i->id,
-                'label' => $i->invoice_number . ' — ' . number_format($i->total, 2, ',', '.') . ' €',
+                'label' => $i->invoice_number . ' — ' . fmt_number($i->total) . ' €',
             ]);
         }
 
         return Expense::orderBy('description')->get()->map(fn ($e) => [
             'id' => $e->id,
-            'label' => $e->description . ' — ' . number_format($e->amount, 2, ',', '.') . ' €',
+            'label' => $e->description . ' — ' . fmt_number($e->amount) . ' €',
         ]);
     }
 

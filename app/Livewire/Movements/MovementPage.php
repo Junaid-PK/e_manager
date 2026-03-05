@@ -7,6 +7,8 @@ use App\Livewire\Traits\WithFiltering;
 use App\Livewire\Traits\WithSorting;
 use App\Models\BankAccount;
 use App\Models\BankMovement;
+use App\Models\MovementCategory;
+use App\Models\MovementType;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -47,7 +49,7 @@ class MovementPage extends Component
             'formBankAccountId' => 'required|exists:bank_accounts,id',
             'formDate' => 'required|date',
             'formValueDate' => 'nullable|date',
-            'formType' => 'required|in:transfer,commission,card_payment,direct_debit,other',
+            'formType' => 'required|string|max:100',
             'formConcept' => 'required|string|max:500',
             'formBeneficiary' => 'nullable|string|max:255',
             'formReference' => 'nullable|string|max:255',
@@ -294,7 +296,8 @@ class MovementPage extends Component
         return view('livewire.movements.movement-page', [
             'movements' => $this->getMovements(),
             'bankAccounts' => BankAccount::orderBy('bank_name')->get(),
-            'categories' => BankMovement::whereNotNull('category')->where('category', '!=', '')->distinct()->orderBy('category')->pluck('category'),
+            'movementTypes' => MovementType::orderBy('sort_order')->orderBy('name')->get(),
+            'movementCategories' => MovementCategory::orderBy('sort_order')->orderBy('name')->get(),
         ])->layout('layouts.app');
     }
 }

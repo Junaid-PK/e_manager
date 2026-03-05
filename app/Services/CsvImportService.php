@@ -98,7 +98,23 @@ class CsvImportService
     private function parseAmount(?string $value): ?float
     {
         if ($value === null || $value === '') return null;
-        $value = str_replace(['.', ',', ' '], ['', '.', ''], $value);
+
+        if (is_numeric($value)) {
+            $amount = (float) $value;
+            return $amount != 0 ? abs($amount) : null;
+        }
+
+        $value = str_replace([' ', '€', '$', "\xC2\xA0"], '', $value);
+
+        if (preg_match('/^-?\d{1,3}(\.\d{3})*(,\d{1,2})?$/', $value)) {
+            $value = str_replace('.', '', $value);
+            $value = str_replace(',', '.', $value);
+        } elseif (preg_match('/^-?\d{1,3}(,\d{3})*(\.\d{1,2})?$/', $value)) {
+            $value = str_replace(',', '', $value);
+        } else {
+            $value = str_replace(',', '', $value);
+        }
+
         $amount = (float) $value;
         return $amount != 0 ? abs($amount) : null;
     }

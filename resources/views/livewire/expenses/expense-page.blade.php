@@ -16,7 +16,7 @@
             <div class="flex items-center gap-2 pb-1">
                 @foreach ($categorySummary as $cat => $total)
                     <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                        {{ strtoupper($cat) }}: {{ number_format($total, 2, ',', '.') }} &euro;
+                        {{ strtoupper($cat) }}: {{ fmt_number($total) }} &euro;
                     </span>
                 @endforeach
             </div>
@@ -204,7 +204,7 @@
                                 </span>
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100" title="{{ $expense->description }}">{{ Str::limit($expense->description, 50) }}</td>
-                            <td class="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-gray-100 text-right whitespace-nowrap">{{ number_format($expense->amount, 2, ',', '.') }} &euro;</td>
+                            <td class="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-gray-100 text-right whitespace-nowrap">{{ fmt_number($expense->amount) }} &euro;</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $expense->vendor ?? '—' }}</td>
                             <td class="px-4 py-3">
                                 @switch($expense->payment_method)

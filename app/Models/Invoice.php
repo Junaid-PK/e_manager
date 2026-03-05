@@ -19,6 +19,8 @@ class Invoice extends Model
         'month',
         'date_issued',
         'date_due',
+        'bank_date',
+        'bank_name',
         'amount',
         'iva_amount',
         'iva_rate',
@@ -37,6 +39,7 @@ class Invoice extends Model
         return [
             'date_issued' => 'date',
             'date_due' => 'date',
+            'bank_date' => 'date',
             'amount' => 'decimal:2',
             'iva_amount' => 'decimal:2',
             'retention_amount' => 'decimal:2',

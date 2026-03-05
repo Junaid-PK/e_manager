@@ -30,7 +30,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('app.total_receivable') }}</p>
-                    <p class="mt-2 text-2xl font-bold text-emerald-600">€{{ number_format($totalReceivable, 2) }}</p>
+                    <p class="mt-2 text-2xl font-bold text-emerald-600">€{{ fmt_number($totalReceivable) }}</p>
                 </div>
                 <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-emerald-50 dark:bg-emerald-900/30">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-emerald-600">
@@ -44,7 +44,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('app.total_payable') }}</p>
-                    <p class="mt-2 text-2xl font-bold text-amber-500">€{{ number_format($totalPayable, 2) }}</p>
+                    <p class="mt-2 text-2xl font-bold text-amber-500">€{{ fmt_number($totalPayable) }}</p>
                 </div>
                 <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-amber-50 dark:bg-amber-900/30">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-amber-500">
@@ -72,7 +72,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('app.total_bank_balance') }}</p>
-                    <p class="mt-2 text-2xl font-bold text-blue-500">€{{ number_format($totalBankBalance, 2) }}</p>
+                    <p class="mt-2 text-2xl font-bold text-blue-500">€{{ fmt_number($totalBankBalance) }}</p>
                 </div>
                 <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-blue-50 dark:bg-blue-900/30">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-blue-500">
@@ -184,7 +184,7 @@
                                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                                     <td class="px-6 py-3 text-gray-800 dark:text-gray-200">{{ $invoice->client?->name ?? '—' }}</td>
                                     <td class="px-6 py-3 text-gray-600 dark:text-gray-400">{{ $invoice->invoice_number }}</td>
-                                    <td class="px-6 py-3 text-right text-gray-800 dark:text-gray-200 font-medium">€{{ number_format($invoice->total, 2) }}</td>
+                                    <td class="px-6 py-3 text-right text-gray-800 dark:text-gray-200 font-medium">€{{ fmt_number($invoice->total) }}</td>
                                     <td class="px-6 py-3 text-right">
                                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400">
                                             {{ now()->diffInDays($invoice->date_due) }} {{ __('app.days_overdue') }}

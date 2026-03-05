@@ -5,6 +5,7 @@ namespace App\Livewire\Invoices;
 use App\Livewire\Traits\WithBulkActions;
 use App\Livewire\Traits\WithFiltering;
 use App\Livewire\Traits\WithSorting;
+use App\Models\BankAccount;
 use App\Models\Client;
 use App\Models\Company;
 use App\Models\Invoice;
@@ -58,6 +59,8 @@ class InvoicePage extends Component
     public string $formRetentionRate = '0';
     public string $formPaymentType = '';
     public string $formAmountPaid = '0';
+    public string $formBankDate = '';
+    public string $formBankName = '';
     public string $formNotes = '';
     public string $formStatus = 'pending';
 
@@ -78,6 +81,8 @@ class InvoicePage extends Component
             'formRetentionRate' => 'required|numeric|min:0|max:100',
             'formPaymentType' => 'nullable|in:confirming,cheque,transfer,cash,other',
             'formAmountPaid' => 'nullable|numeric|min:0',
+            'formBankDate' => 'nullable|date',
+            'formBankName' => 'nullable|string|max:255',
             'formNotes' => 'nullable|string|max:5000',
             'formStatus' => 'required|in:pending,paid,partial,overdue,cancelled',
         ];
@@ -141,6 +146,8 @@ class InvoicePage extends Component
         $this->formRetentionRate = (string) $invoice->retention_rate;
         $this->formPaymentType = $invoice->payment_type ?? '';
         $this->formAmountPaid = (string) ($invoice->amount_paid ?? 0);
+        $this->formBankDate = $invoice->bank_date?->format('Y-m-d') ?? '';
+        $this->formBankName = $invoice->bank_name ?? '';
         $this->formNotes = $invoice->notes ?? '';
         $this->formStatus = $invoice->status;
         $this->showFormModal = true;
@@ -177,6 +184,8 @@ class InvoicePage extends Component
             'amount_paid' => $amountPaid,
             'amount_remaining' => max(0, $amountRemaining),
             'payment_type' => $this->formPaymentType ?: null,
+            'bank_date' => $this->formBankDate ?: null,
+            'bank_name' => $this->formBankName ?: null,
             'notes' => $this->formNotes ?: null,
             'status' => $this->formStatus,
         ];
@@ -232,6 +241,8 @@ class InvoicePage extends Component
         $this->formRetentionRate = (string) $invoice->retention_rate;
         $this->formPaymentType = $invoice->payment_type ?? '';
         $this->formAmountPaid = '0';
+        $this->formBankDate = '';
+        $this->formBankName = $invoice->bank_name ?? '';
         $this->formNotes = $invoice->notes ?? '';
         $this->formStatus = 'pending';
         $this->showFormModal = true;
@@ -363,7 +374,7 @@ class InvoicePage extends Component
 
     protected function buildQuery()
     {
-        $query = Invoice::query()->with(['company', 'client']);
+        $query = Invoice::query()->with(['company', 'client', 'project']);
 
         if ($this->search) {
             $search = $this->search;
@@ -435,6 +446,8 @@ class InvoicePage extends Component
         $this->formRetentionRate = '0';
         $this->formPaymentType = '';
         $this->formAmountPaid = '0';
+        $this->formBankDate = '';
+        $this->formBankName = '';
         $this->formNotes = '';
         $this->formStatus = 'pending';
         $this->resetValidation();
@@ -449,6 +462,7 @@ class InvoicePage extends Component
             'projects' => $this->formCompanyId
                 ? Project::where('company_id', $this->formCompanyId)->orderBy('name')->get()
                 : collect(),
+            'bankAccounts' => BankAccount::orderBy('bank_name')->get(),
         ])->layout('layouts.app');
     }
 }

@@ -33,6 +33,8 @@ class InvoiceImportWizard extends Component
         'payment_type' => '',
         'amount_paid' => '',
         'amount_remaining' => '',
+        'bank_date' => '',
+        'bank_name' => '',
     ];
 
     public int $importedCount = 0;
@@ -94,6 +96,8 @@ class InvoiceImportWizard extends Component
             'payment_type' => ['type', 'tipo', 'pago'],
             'amount_paid' => ['cobrado', 'paid', 'pagado'],
             'amount_remaining' => ['resto', 'remaining', 'pendiente'],
+            'bank_date' => ['fecha banco', 'bank date', 'fecha cobro'],
+            'bank_name' => ['banco', 'bank'],
         ];
 
         foreach ($this->headers as $index => $header) {

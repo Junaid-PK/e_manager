@@ -100,7 +100,7 @@
                     @foreach ($cards as $card)
                         <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg p-5">
                             <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ $card['label'] }}</p>
-                            <p class="mt-2 text-xl font-bold {{ $card['color'] }}">{{ number_format($card['value'], 2) }} &euro;</p>
+                            <p class="mt-2 text-xl font-bold {{ $card['color'] }}">{{ fmt_number($card['value']) }} &euro;</p>
                         </div>
                     @endforeach
                 </div>
@@ -143,20 +143,20 @@
                                 @foreach ($months as $m)
                                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                                         <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">{{ $m['label'] }}</td>
-                                        <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{{ number_format($m['invoiced'], 2) }} &euro;</td>
-                                        <td class="px-4 py-3 text-sm text-right text-emerald-600 dark:text-emerald-400">{{ number_format($m['paid'], 2) }} &euro;</td>
-                                        <td class="px-4 py-3 text-sm text-right text-red-500">{{ number_format($m['expenses'], 2) }} &euro;</td>
-                                        <td class="px-4 py-3 text-sm text-right font-semibold {{ ($m['paid'] - $m['expenses']) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500' }}">{{ number_format($m['paid'] - $m['expenses'], 2) }} &euro;</td>
+                                        <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{{ fmt_number($m['invoiced']) }} &euro;</td>
+                                        <td class="px-4 py-3 text-sm text-right text-emerald-600 dark:text-emerald-400">{{ fmt_number($m['paid']) }} &euro;</td>
+                                        <td class="px-4 py-3 text-sm text-right text-red-500">{{ fmt_number($m['expenses']) }} &euro;</td>
+                                        <td class="px-4 py-3 text-sm text-right font-semibold {{ ($m['paid'] - $m['expenses']) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500' }}">{{ fmt_number($m['paid'] - $m['expenses']) }} &euro;</td>
                                     </tr>
                                 @endforeach
                             </tbody>
                             <tfoot class="bg-gray-50 dark:bg-gray-700/50">
                                 <tr class="font-semibold">
                                     <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{{ __('app.total') }}</td>
-                                    <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{{ number_format($totInvoiced, 2) }} &euro;</td>
-                                    <td class="px-4 py-3 text-sm text-right text-emerald-600 dark:text-emerald-400">{{ number_format($totPaid, 2) }} &euro;</td>
-                                    <td class="px-4 py-3 text-sm text-right text-red-500">{{ number_format($totExpenses, 2) }} &euro;</td>
-                                    <td class="px-4 py-3 text-sm text-right {{ ($totPaid - $totExpenses) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500' }}">{{ number_format($totPaid - $totExpenses, 2) }} &euro;</td>
+                                    <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{{ fmt_number($totInvoiced) }} &euro;</td>
+                                    <td class="px-4 py-3 text-sm text-right text-emerald-600 dark:text-emerald-400">{{ fmt_number($totPaid) }} &euro;</td>
+                                    <td class="px-4 py-3 text-sm text-right text-red-500">{{ fmt_number($totExpenses) }} &euro;</td>
+                                    <td class="px-4 py-3 text-sm text-right {{ ($totPaid - $totExpenses) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500' }}">{{ fmt_number($totPaid - $totExpenses) }} &euro;</td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -169,8 +169,8 @@
                         @foreach ($months as $m)
                             <div class="flex-1 flex flex-col items-center h-full justify-end">
                                 <div class="flex items-end space-x-0.5 w-full justify-center flex-1">
-                                    <div class="w-3 bg-emerald-500 rounded-t transition-all duration-300" style="height: {{ $maxVal > 0 ? max(($m['paid'] / $maxVal) * 100, ($m['paid'] > 0 ? 4 : 0)) : 0 }}%" title="{{ number_format($m['paid'], 2) }} €"></div>
-                                    <div class="w-3 bg-red-400 rounded-t transition-all duration-300" style="height: {{ $maxVal > 0 ? max(($m['expenses'] / $maxVal) * 100, ($m['expenses'] > 0 ? 4 : 0)) : 0 }}%" title="{{ number_format($m['expenses'], 2) }} €"></div>
+                                    <div class="w-3 bg-emerald-500 rounded-t transition-all duration-300" style="height: {{ $maxVal > 0 ? max(($m['paid'] / $maxVal) * 100, ($m['paid'] > 0 ? 4 : 0)) : 0 }}%" title="{{ fmt_number($m['paid']) }} €"></div>
+                                    <div class="w-3 bg-red-400 rounded-t transition-all duration-300" style="height: {{ $maxVal > 0 ? max(($m['expenses'] / $maxVal) * 100, ($m['expenses'] > 0 ? 4 : 0)) : 0 }}%" title="{{ fmt_number($m['expenses']) }} €"></div>
                                 </div>
                                 <span class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ $m['label'] }}</span>
                             </div>
@@ -193,15 +193,15 @@
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg p-6">
                         <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.total_income') }}</p>
-                        <p class="mt-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ number_format($reportData['total_income'] ?? 0, 2) }} &euro;</p>
+                        <p class="mt-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ fmt_number($reportData['total_income'] ?? 0) }} &euro;</p>
                     </div>
                     <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg p-6">
                         <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.total_expenses') }}</p>
-                        <p class="mt-2 text-2xl font-bold text-red-500">{{ number_format($reportData['total_expenses'] ?? 0, 2) }} &euro;</p>
+                        <p class="mt-2 text-2xl font-bold text-red-500">{{ fmt_number($reportData['total_expenses'] ?? 0) }} &euro;</p>
                     </div>
                     <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg p-6">
                         <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.net') }}</p>
-                        <p class="mt-2 text-2xl font-bold {{ ($reportData['net'] ?? 0) >= 0 ? 'text-blue-500' : 'text-red-500' }}">{{ number_format($reportData['net'] ?? 0, 2) }} &euro;</p>
+                        <p class="mt-2 text-2xl font-bold {{ ($reportData['net'] ?? 0) >= 0 ? 'text-blue-500' : 'text-red-500' }}">{{ fmt_number($reportData['net'] ?? 0) }} &euro;</p>
                     </div>
                 </div>
 
@@ -229,7 +229,7 @@
                                         @php $pct = $totalExp > 0 ? round(($cat['total'] / $totalExp) * 100, 1) : 0; @endphp
                                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                                             <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">{{ $cat['category'] }}</td>
-                                            <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{{ number_format($cat['total'], 2) }} &euro;</td>
+                                            <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{{ fmt_number($cat['total']) }} &euro;</td>
                                             <td class="px-4 py-3 text-sm text-right text-gray-500 dark:text-gray-400">{{ $pct }}%</td>
                                             <td class="px-4 py-3">
                                                 <div class="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -272,9 +272,9 @@
                                 @forelse ($clients as $client)
                                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                                         <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">{{ $client['client_name'] }}</td>
-                                        <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{{ number_format($client['total_invoiced'], 2) }} &euro;</td>
-                                        <td class="px-4 py-3 text-sm text-right text-emerald-600 dark:text-emerald-400">{{ number_format($client['total_paid'], 2) }} &euro;</td>
-                                        <td class="px-4 py-3 text-sm text-right text-amber-500">{{ number_format($client['total_pending'], 2) }} &euro;</td>
+                                        <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{{ fmt_number($client['total_invoiced']) }} &euro;</td>
+                                        <td class="px-4 py-3 text-sm text-right text-emerald-600 dark:text-emerald-400">{{ fmt_number($client['total_paid']) }} &euro;</td>
+                                        <td class="px-4 py-3 text-sm text-right text-amber-500">{{ fmt_number($client['total_pending']) }} &euro;</td>
                                         <td class="px-4 py-3 text-sm text-right text-gray-500 dark:text-gray-400">{{ $client['invoice_count'] }}</td>
                                     </tr>
                                 @empty
@@ -287,9 +287,9 @@
                                 <tfoot class="bg-gray-50 dark:bg-gray-700/50">
                                     <tr class="font-semibold">
                                         <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{{ __('app.total') }}</td>
-                                        <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{{ number_format($totClientInvoiced, 2) }} &euro;</td>
-                                        <td class="px-4 py-3 text-sm text-right text-emerald-600 dark:text-emerald-400">{{ number_format($totClientPaid, 2) }} &euro;</td>
-                                        <td class="px-4 py-3 text-sm text-right text-amber-500">{{ number_format($totClientPending, 2) }} &euro;</td>
+                                        <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{{ fmt_number($totClientInvoiced) }} &euro;</td>
+                                        <td class="px-4 py-3 text-sm text-right text-emerald-600 dark:text-emerald-400">{{ fmt_number($totClientPaid) }} &euro;</td>
+                                        <td class="px-4 py-3 text-sm text-right text-amber-500">{{ fmt_number($totClientPending) }} &euro;</td>
                                         <td class="px-4 py-3 text-sm text-right text-gray-500 dark:text-gray-400">{{ $totClientCount }}</td>
                                     </tr>
                                 </tfoot>
@@ -330,10 +330,10 @@
                                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                                         <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">{{ $account['bank_name'] }}</td>
                                         <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 font-mono">{{ $account['account_number'] }}</td>
-                                        <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{{ number_format($account['initial_balance'], 2) }} &euro;</td>
-                                        <td class="px-4 py-3 text-sm text-right text-emerald-600 dark:text-emerald-400">{{ number_format($account['total_deposits'], 2) }} &euro;</td>
-                                        <td class="px-4 py-3 text-sm text-right text-red-500">{{ number_format($account['total_withdrawals'], 2) }} &euro;</td>
-                                        <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900 dark:text-gray-100">{{ number_format($account['current_balance'], 2) }} &euro;</td>
+                                        <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{{ fmt_number($account['initial_balance']) }} &euro;</td>
+                                        <td class="px-4 py-3 text-sm text-right text-emerald-600 dark:text-emerald-400">{{ fmt_number($account['total_deposits']) }} &euro;</td>
+                                        <td class="px-4 py-3 text-sm text-right text-red-500">{{ fmt_number($account['total_withdrawals']) }} &euro;</td>
+                                        <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900 dark:text-gray-100">{{ fmt_number($account['current_balance']) }} &euro;</td>
                                         <td class="px-4 py-3 text-sm text-right text-gray-500 dark:text-gray-400">{{ $account['movement_count'] }}</td>
                                     </tr>
                                 @empty
@@ -346,10 +346,10 @@
                                 <tfoot class="bg-gray-50 dark:bg-gray-700/50">
                                     <tr class="font-semibold">
                                         <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100" colspan="2">{{ __('app.total') }}</td>
-                                        <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{{ number_format($totInitial, 2) }} &euro;</td>
-                                        <td class="px-4 py-3 text-sm text-right text-emerald-600 dark:text-emerald-400">{{ number_format($totDeposits, 2) }} &euro;</td>
-                                        <td class="px-4 py-3 text-sm text-right text-red-500">{{ number_format($totWithdrawals, 2) }} &euro;</td>
-                                        <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{{ number_format($totCurrent, 2) }} &euro;</td>
+                                        <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{{ fmt_number($totInitial) }} &euro;</td>
+                                        <td class="px-4 py-3 text-sm text-right text-emerald-600 dark:text-emerald-400">{{ fmt_number($totDeposits) }} &euro;</td>
+                                        <td class="px-4 py-3 text-sm text-right text-red-500">{{ fmt_number($totWithdrawals) }} &euro;</td>
+                                        <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100">{{ fmt_number($totCurrent) }} &euro;</td>
                                         <td class="px-4 py-3 text-sm text-right text-gray-500 dark:text-gray-400">{{ $totMovements }}</td>
                                     </tr>
                                 </tfoot>

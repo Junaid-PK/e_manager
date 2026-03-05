@@ -37,7 +37,7 @@
                         </div>
                         <div class="mb-3">
                             <p class="text-2xl font-bold {{ (float) $account->current_balance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' }}">
-                                {{ number_format((float) $account->current_balance, 2) }} &euro;
+                                {{ fmt_number($account->current_balance) }} &euro;
                             </p>
                         </div>
                         <p class="text-xs text-gray-400 dark:text-gray-500">{{ $account->holder_name }}</p>

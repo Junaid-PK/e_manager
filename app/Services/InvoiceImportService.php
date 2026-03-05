@@ -88,6 +88,8 @@ class InvoiceImportService
                     'month' => $monthValue,
                     'date_issued' => $this->parseDate($mapped['date_issued'] ?? null) ?? $this->parseDate($mapped['month'] ?? null) ?? now()->format('Y-m-d'),
                     'date_due' => $this->parseDate($mapped['date_due'] ?? null),
+                    'bank_date' => $this->parseDate($mapped['bank_date'] ?? null),
+                    'bank_name' => trim($mapped['bank_name'] ?? '') ?: null,
                     'amount' => $amount,
                     'iva_amount' => $ivaAmount,
                     'iva_rate' => $amount > 0 && $ivaAmount > 0 ? round($ivaAmount / $amount * 100, 2) : 21,
@@ -222,13 +224,20 @@ class InvoiceImportService
     private function parseAmount(?string $value): ?float
     {
         if ($value === null || $value === '') return null;
-        $value = str_replace([' ', '€', '\u{a0}'], '', $value);
 
-        if (preg_match('/^\d{1,3}(\.\d{3})*(,\d{1,2})?$/', $value)) {
+        if (is_numeric($value)) {
+            return abs((float) $value);
+        }
+
+        $value = str_replace([' ', '€', '$', "\xC2\xA0"], '', $value);
+
+        if (preg_match('/^-?\d{1,3}(\.\d{3})*(,\d{1,2})?$/', $value)) {
             $value = str_replace('.', '', $value);
             $value = str_replace(',', '.', $value);
+        } elseif (preg_match('/^-?\d{1,3}(,\d{3})*(\.\d{1,2})?$/', $value)) {
+            $value = str_replace(',', '', $value);
         } else {
-            $value = str_replace(',', '.', $value);
+            $value = str_replace(',', '', $value);
         }
 
         $amount = (float) $value;

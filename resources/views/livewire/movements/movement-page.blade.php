@@ -45,11 +45,9 @@
 
                 <select wire:model.live="filterType" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 pl-3 pr-8 focus:ring-emerald-500 focus:border-emerald-500">
                     <option value="">{{ __('app.all') }} {{ __('app.type') }}</option>
-                    <option value="transfer">{{ __('app.transfer') }}</option>
-                    <option value="commission">{{ __('app.commission') }}</option>
-                    <option value="card_payment">{{ __('app.card_payment') }}</option>
-                    <option value="direct_debit">{{ __('app.direct_debit') }}</option>
-                    <option value="other">{{ __('app.other') }}</option>
+                    @foreach ($movementTypes as $mt)
+                        <option value="{{ $mt->slug }}">{{ $mt->name }}</option>
+                    @endforeach
                 </select>
 
                 <div class="inline-flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden">
@@ -254,11 +252,9 @@
                             <td class="px-4 py-3 text-sm whitespace-nowrap">
                                 <select wire:change="quickUpdateType({{ $movement->id }}, $event.target.value)"
                                         class="text-xs border-0 border-b border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded bg-transparent text-gray-900 dark:text-gray-100 py-1 pl-1 pr-7 focus:ring-0 focus:border-emerald-500 cursor-pointer transition-colors">
-                                    <option value="transfer" {{ $movement->type === 'transfer' ? 'selected' : '' }}>{{ __('app.transfer') }}</option>
-                                    <option value="commission" {{ $movement->type === 'commission' ? 'selected' : '' }}>{{ __('app.commission') }}</option>
-                                    <option value="card_payment" {{ $movement->type === 'card_payment' ? 'selected' : '' }}>{{ __('app.card_payment') }}</option>
-                                    <option value="direct_debit" {{ $movement->type === 'direct_debit' ? 'selected' : '' }}>{{ __('app.direct_debit') }}</option>
-                                    <option value="other" {{ $movement->type === 'other' ? 'selected' : '' }}>{{ __('app.other') }}</option>
+                                    @foreach ($movementTypes as $mt)
+                                        <option value="{{ $mt->slug }}" {{ $movement->type === $mt->slug ? 'selected' : '' }}>{{ $mt->name }}</option>
+                                    @endforeach
                                 </select>
                             </td>
                             <td class="px-4 py-3 text-sm whitespace-nowrap">
@@ -276,15 +272,15 @@
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ $movement->beneficiary ?? '—' }}</td>
                             <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
                                 @if ($movement->deposit && (float) $movement->deposit > 0)
-                                    <span class="text-green-600 dark:text-green-400 font-medium">{{ number_format((float) $movement->deposit, 2) }} &euro;</span>
+                                    <span class="text-green-600 dark:text-green-400 font-medium">{{ fmt_number($movement->deposit) }} &euro;</span>
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
                                 @if ($movement->withdrawal && (float) $movement->withdrawal > 0)
-                                    <span class="text-red-600 dark:text-red-400 font-medium">{{ number_format((float) $movement->withdrawal, 2) }} &euro;</span>
+                                    <span class="text-red-600 dark:text-red-400 font-medium">{{ fmt_number($movement->withdrawal) }} &euro;</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-3 text-sm text-right whitespace-nowrap font-medium text-gray-900 dark:text-gray-100">{{ number_format((float) $movement->balance, 2) }} &euro;</td>
+                            <td class="px-4 py-3 text-sm text-right whitespace-nowrap font-medium text-gray-900 dark:text-gray-100">{{ fmt_number($movement->balance) }} &euro;</td>
                             <td class="px-4 py-3 text-right">
                                 <div class="relative" x-data="{ open: false }" @click.outside="open = false">
                                     <button @click="open = !open" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
@@ -378,11 +374,9 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.type') }} *</label>
                                 <select wire:model="formType" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
-                                    <option value="transfer">{{ __('app.transfer') }}</option>
-                                    <option value="commission">{{ __('app.commission') }}</option>
-                                    <option value="card_payment">{{ __('app.card_payment') }}</option>
-                                    <option value="direct_debit">{{ __('app.direct_debit') }}</option>
-                                    <option value="other">{{ __('app.other') }}</option>
+                                    @foreach ($movementTypes as $mt)
+                                        <option value="{{ $mt->slug }}">{{ $mt->name }}</option>
+                                    @endforeach
                                 </select>
                                 @error('formType') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                             </div>
@@ -415,7 +409,7 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.category') }}</label>
-                                <input wire:model="formCategory" type="text" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                <input wire:model="formCategory" type="text" list="category-list" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
                                 @error('formCategory') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                             </div>
                             <div>
@@ -496,8 +490,8 @@
     @endif
 
     <datalist id="category-list">
-        @foreach ($categories as $cat)
-            <option value="{{ $cat }}">
+        @foreach ($movementCategories as $mc)
+            <option value="{{ $mc->name }}">
         @endforeach
     </datalist>
 </div>

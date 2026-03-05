@@ -240,15 +240,15 @@
                                                         <td class="px-3 py-1.5 text-gray-900 dark:text-gray-100 max-w-[200px] truncate" title="{{ $m['concept'] }}">{{ $m['concept'] }}</td>
                                                         <td class="px-3 py-1.5 text-right whitespace-nowrap">
                                                             @if ($m['deposit'])
-                                                                <span class="text-green-600 dark:text-green-400">{{ number_format($m['deposit'], 2) }}</span>
+                                                                <span class="text-green-600 dark:text-green-400">{{ fmt_number($m['deposit']) }}</span>
                                                             @endif
                                                         </td>
                                                         <td class="px-3 py-1.5 text-right whitespace-nowrap">
                                                             @if ($m['withdrawal'])
-                                                                <span class="text-red-600 dark:text-red-400">{{ number_format($m['withdrawal'], 2) }}</span>
+                                                                <span class="text-red-600 dark:text-red-400">{{ fmt_number($m['withdrawal']) }}</span>
                                                             @endif
                                                         </td>
-                                                        <td class="px-3 py-1.5 text-right whitespace-nowrap text-gray-900 dark:text-gray-100">{{ $m['balance'] !== null ? number_format($m['balance'], 2) : '' }}</td>
+                                                        <td class="px-3 py-1.5 text-right whitespace-nowrap text-gray-900 dark:text-gray-100">{{ $m['balance'] !== null ? fmt_number($m['balance']) : '' }}</td>
                                                     </tr>
                                                 @endforeach
                                             </tbody>

@@ -172,6 +172,22 @@
                                 @endif
                             </span>
                         </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.project') }}</th>
+                        <th wire:click="sortBy('bank_date')" class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none group {{ $sortField === 'bank_date' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400' }}">
+                            <span class="flex items-center space-x-1">
+                                <span>{{ __('app.bank_date') }}</span>
+                                @if ($sortField === 'bank_date')
+                                    @if ($sortDirection === 'asc')
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" /></svg>
+                                    @else
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                                    @endif
+                                @else
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5 opacity-0 group-hover:opacity-50"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" /></svg>
+                                @endif
+                            </span>
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.bank_name') }}</th>
                         <th wire:click="sortBy('amount')" class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider cursor-pointer select-none group {{ $sortField === 'amount' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400' }}">
                             <span class="flex items-center justify-end space-x-1">
                                 <span>{{ __('app.amount') }}</span>
@@ -234,10 +250,13 @@
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->month ?? '—' }}</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->date_issued?->format('d/m/Y') ?? '—' }}</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->date_due?->format('d/m/Y') ?? '—' }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-right">{{ number_format($invoice->amount, 2, ',', '.') }} &euro;</td>
-                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-right">{{ number_format($invoice->iva_amount, 2, ',', '.') }} &euro;</td>
-                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-right">{{ number_format($invoice->retention_amount, 2, ',', '.') }} &euro;</td>
-                            <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900 dark:text-gray-100">{{ number_format($invoice->total, 2, ',', '.') }} &euro;</td>
+                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->project?->name ?? '—' }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->bank_date?->format('d/m/Y') ?? '—' }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->bank_name ?? '—' }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-right">{{ fmt_number($invoice->amount) }} &euro;</td>
+                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-right">{{ fmt_number($invoice->iva_amount) }} &euro;</td>
+                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-right">{{ fmt_number($invoice->retention_amount) }} &euro;</td>
+                            <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900 dark:text-gray-100">{{ fmt_number($invoice->total) }} &euro;</td>
                             <td class="px-4 py-3" x-data="{ statusOpen: false }" @click.outside="statusOpen = false">
                                 <div class="relative">
                                     <button @click="statusOpen = !statusOpen" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
@@ -280,14 +299,14 @@
                             </td>
                             <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
                                 @if ((float) $invoice->amount_paid > 0)
-                                    <span class="text-green-600 dark:text-green-400 font-medium">{{ number_format($invoice->amount_paid, 2, ',', '.') }} &euro;</span>
+                                    <span class="text-green-600 dark:text-green-400 font-medium">{{ fmt_number($invoice->amount_paid) }} &euro;</span>
                                 @else
                                     <span class="text-gray-400">0,00 &euro;</span>
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
                                 @if ((float) $invoice->amount_remaining > 0)
-                                    <span class="text-red-600 dark:text-red-400 font-medium">{{ number_format($invoice->amount_remaining, 2, ',', '.') }} &euro;</span>
+                                    <span class="text-red-600 dark:text-red-400 font-medium">{{ fmt_number($invoice->amount_remaining) }} &euro;</span>
                                 @else
                                     <span class="text-gray-400">0,00 &euro;</span>
                                 @endif
@@ -319,7 +338,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="16" class="px-4 py-12 text-center">
+                            <td colspan="19" class="px-4 py-12 text-center">
                                 <div class="flex flex-col items-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" class="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v7.5m2.25-6.466a9.016 9.016 0 0 0-3.461-.203c-.536.072-.974.478-1.021 1.017a4.559 4.559 0 0 0-.018.402c0 .464.336.844.775.994l2.49.849c.44.15.775.53.775.994 0 .136-.006.27-.018.402-.047.539-.485.945-1.021 1.017a9.077 9.077 0 0 1-3.461-.203M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
@@ -429,6 +448,18 @@
                                     @error('formDateDue') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                                 </div>
                             </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.bank_date') }}</label>
+                                    <input wire:model="formBankDate" type="date" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                    @error('formBankDate') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.bank_name') }}</label>
+                                    <input wire:model="formBankName" type="text" list="bank-name-list" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                    @error('formBankName') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                                </div>
+                            </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.amount') }} *</label>
                                 <input wire:model.live="formAmount" type="number" step="0.01" min="0" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
@@ -439,13 +470,13 @@
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.iva_rate') }} (%)</label>
                                     <input wire:model.live="formIvaRate" type="number" step="0.01" min="0" max="100" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
                                     @error('formIvaRate') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
-                                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('app.iva') }}: {{ number_format((float)$formAmount * (float)$formIvaRate / 100, 2, ',', '.') }} &euro;</p>
+                                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('app.iva') }}: {{ fmt_number((float)$formAmount * (float)$formIvaRate / 100) }} &euro;</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.retention_rate') }} (%)</label>
                                     <input wire:model.live="formRetentionRate" type="number" step="0.01" min="0" max="100" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
                                     @error('formRetentionRate') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
-                                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('app.retention') }}: {{ number_format((float)$formAmount * (float)$formRetentionRate / 100, 2, ',', '.') }} &euro;</p>
+                                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('app.retention') }}: {{ fmt_number((float)$formAmount * (float)$formRetentionRate / 100) }} &euro;</p>
                                 </div>
                             </div>
                             @php
@@ -456,7 +487,7 @@
                             <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('app.total') }}</span>
-                                    <span class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ number_format($computedTotal, 2, ',', '.') }} &euro;</span>
+                                    <span class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ fmt_number($computedTotal) }} &euro;</span>
                                 </div>
                             </div>
                             <div class="grid grid-cols-2 gap-4">
@@ -637,6 +668,12 @@
             </div>
         </div>
     @endif
+
+    <datalist id="bank-name-list">
+        @foreach ($bankAccounts as $ba)
+            <option value="{{ $ba->bank_name }}">
+        @endforeach
+    </datalist>
 
     @if ($showReminderModal)
         <div class="fixed inset-0 z-[60] flex items-center justify-center" @keydown.escape.window="$set('showReminderModal', false)">
