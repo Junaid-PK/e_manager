@@ -20,6 +20,7 @@ return [
     'settings' => 'Settings',
     'projects' => 'Projects',
     'project' => 'Project',
+    'project_id' => 'Project (ID)',
 
     'create' => 'Create',
     'edit' => 'Edit',
@@ -79,6 +80,7 @@ return [
     'category' => 'Category',
     'type' => 'Type',
     'balance' => 'Balance',
+    'amount_signed' => 'Amount (+/-)',
 
     'invoice_number' => 'Invoice #',
     'date_issued' => 'Date Issued',
@@ -159,6 +161,7 @@ return [
     'to' => 'To',
     'date_range' => 'Date Range',
     'clear_filters' => 'Clear Filters',
+    'total_records_shown' => 'Total records shown',
     'apply' => 'Apply',
     'reset' => 'Reset',
     'companies_clients' => 'Companies & Clients',

@@ -26,6 +26,12 @@
                         </svg>
                         {{ __('app.import') }}
                     </button>
+                    <button wire:click="exportToExcel" class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                        </svg>
+                        {{ __('app.export_excel') }}
+                    </button>
                     <button wire:click="create" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -76,6 +82,12 @@
                 </select>
             </div>
         </div>
+
+        @if ($search || $filterBankAccountId || $filterType || $filterDirection !== 'all' || $filterCategory || $dateFrom || $dateTo)
+            <div class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                {{ __('app.total_records_shown') }}: {{ $movements->total() }}
+            </div>
+        @endif
 
         @if (count($selected) > 0)
             <div class="px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 border-b border-emerald-200 dark:border-emerald-800">
@@ -224,20 +236,7 @@
                                 @endif
                             </span>
                         </th>
-                        <th wire:click="sortBy('balance')" class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider cursor-pointer select-none group {{ $sortField === 'balance' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400' }}">
-                            <span class="flex items-center justify-end space-x-1">
-                                <span>{{ __('app.balance') }}</span>
-                                @if ($sortField === 'balance')
-                                    @if ($sortDirection === 'asc')
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" /></svg>
-                                    @else
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
-                                    @endif
-                                @else
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5 opacity-0 group-hover:opacity-50"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" /></svg>
-                                @endif
-                            </span>
-                        </th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.balance') }}</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.actions') }}</th>
                     </tr>
                 </thead>
@@ -280,7 +279,7 @@
                                     <span class="text-red-600 dark:text-red-400 font-medium">{{ fmt_number($movement->withdrawal) }} &euro;</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-3 text-sm text-right whitespace-nowrap font-medium text-gray-900 dark:text-gray-100">{{ fmt_number($movement->balance) }} &euro;</td>
+                            <td class="px-4 py-3 text-sm text-right whitespace-nowrap font-medium text-gray-900 dark:text-gray-100">{{ fmt_number($movement->running_balance ?? $movement->balance ?? 0) }} &euro;</td>
                             <td class="px-4 py-3 text-right">
                                 <div class="relative" x-data="{ open: false }" @click.outside="open = false">
                                     <button @click="open = !open" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
@@ -479,7 +478,7 @@
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{{ __('app.categorize_selected') }}</h3>
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.category') }}</label>
-                    <input wire:model="bulkCategory" type="text" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500" autofocus>
+                    <input wire:model="bulkCategory" type="text" list="category-list" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="—" autofocus>
                 </div>
                 <div class="flex items-center justify-end space-x-3">
                     <button wire:click="$set('showCategoryModal', false)" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">{{ __('app.cancel') }}</button>

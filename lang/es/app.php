@@ -20,6 +20,7 @@ return [
     'settings' => 'Configuración',
     'projects' => 'Proyectos',
     'project' => 'Proyecto',
+    'project_id' => 'Proyecto (ID)',
 
     'create' => 'Crear',
     'edit' => 'Editar',
@@ -79,6 +80,7 @@ return [
     'category' => 'Categoría',
     'type' => 'Tipo',
     'balance' => 'Saldo',
+    'amount_signed' => 'Importe (+/-)',
 
     'invoice_number' => 'Nº Factura',
     'date_issued' => 'Fecha Emisión',
@@ -158,6 +160,7 @@ return [
     'from' => 'Desde',
     'to' => 'Hasta',
     'date_range' => 'Rango de Fechas',
+    'total_records_shown' => 'Total registros mostrados',
     'clear_filters' => 'Limpiar Filtros',
     'apply' => 'Aplicar',
     'reset' => 'Restablecer',

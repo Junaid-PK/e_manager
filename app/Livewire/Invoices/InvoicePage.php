@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Invoices;
 
+use App\Exports\InvoiceExport;
 use App\Livewire\Traits\WithBulkActions;
 use App\Livewire\Traits\WithFiltering;
 use App\Livewire\Traits\WithSorting;
@@ -11,8 +12,11 @@ use App\Models\Company;
 use App\Models\Invoice;
 use App\Models\PaymentReminder;
 use App\Models\Project;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Maatwebsite\Excel\Facades\Excel;
 
 class InvoicePage extends Component
 {
@@ -370,6 +374,15 @@ class InvoicePage extends Component
         $this->dateFrom = '';
         $this->dateTo = '';
         $this->resetPage();
+    }
+
+    public function exportToExcel()
+    {
+        $invoices = $this->buildQuery()->get();
+        $filename = 'invoices-' . date('Y-m-d-His') . '-' . uniqid() . '.xlsx';
+        Storage::disk('local')->makeDirectory('exports');
+        Excel::store(new InvoiceExport($invoices), 'exports/' . $filename, 'local');
+        return redirect(URL::temporarySignedRoute('export.download', now()->addMinutes(5), ['file' => $filename]));
     }
 
     protected function buildQuery()

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ExportDownloadController;
 use App\Livewire\BankAccounts\BankAccountPage;
 use App\Livewire\CompaniesClients\CompaniesClientsPage;
 use App\Livewire\Dashboard\DashboardPage;
@@ -20,6 +21,7 @@ Route::get('/', function () {
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('download/export/{file}', ExportDownloadController::class)->middleware('signed')->name('export.download');
     Route::get('dashboard', DashboardPage::class)->name('dashboard');
     Route::get('invoices', InvoicePage::class)->name('invoices');
     Route::get('bank-accounts', BankAccountPage::class)->name('bank-accounts');

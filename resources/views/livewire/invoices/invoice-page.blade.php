@@ -26,6 +26,12 @@
                         </svg>
                         {{ __('app.import') }}
                     </button>
+                    <button wire:click="exportToExcel" class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                        </svg>
+                        {{ __('app.export_excel') }}
+                    </button>
                     <button wire:click="create" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -89,6 +95,12 @@
             </div>
         </div>
 
+        @if ($search || $filterStatus || $filterCompanyId || $filterClientId || $filterPaymentType || $filterMonth || $dateFrom || $dateTo)
+            <div class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                {{ __('app.total_records_shown') }}: {{ $invoices->total() }}
+            </div>
+        @endif
+
         @if (count($selected) > 0)
             <div class="px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 border-b border-emerald-200 dark:border-emerald-800">
                 <div class="flex items-center justify-between">
@@ -143,7 +155,22 @@
                         </th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.company') }}</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.client') }}</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.month') }}</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.status') }}</th>
+                        <th wire:click="sortBy('total')" class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider cursor-pointer select-none group {{ $sortField === 'total' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400' }}">
+                            <span class="flex items-center justify-end space-x-1">
+                                <span>{{ __('app.total') }}</span>
+                                @if ($sortField === 'total')
+                                    @if ($sortDirection === 'asc')
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" /></svg>
+                                    @else
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                                    @endif
+                                @else
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5 opacity-0 group-hover:opacity-50"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" /></svg>
+                                @endif
+                            </span>
+                        </th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.resto') }}</th>
                         <th wire:click="sortBy('date_issued')" class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none group {{ $sortField === 'date_issued' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400' }}">
                             <span class="flex items-center space-x-1">
                                 <span>{{ __('app.date_issued') }}</span>
@@ -172,22 +199,6 @@
                                 @endif
                             </span>
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.project') }}</th>
-                        <th wire:click="sortBy('bank_date')" class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none group {{ $sortField === 'bank_date' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400' }}">
-                            <span class="flex items-center space-x-1">
-                                <span>{{ __('app.bank_date') }}</span>
-                                @if ($sortField === 'bank_date')
-                                    @if ($sortDirection === 'asc')
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" /></svg>
-                                    @else
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
-                                    @endif
-                                @else
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5 opacity-0 group-hover:opacity-50"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" /></svg>
-                                @endif
-                            </span>
-                        </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.bank_name') }}</th>
                         <th wire:click="sortBy('amount')" class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider cursor-pointer select-none group {{ $sortField === 'amount' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400' }}">
                             <span class="flex items-center justify-end space-x-1">
                                 <span>{{ __('app.amount') }}</span>
@@ -204,21 +215,7 @@
                         </th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.iva') }}</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.retention') }}</th>
-                        <th wire:click="sortBy('total')" class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider cursor-pointer select-none group {{ $sortField === 'total' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400' }}">
-                            <span class="flex items-center justify-end space-x-1">
-                                <span>{{ __('app.total') }}</span>
-                                @if ($sortField === 'total')
-                                    @if ($sortDirection === 'asc')
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" /></svg>
-                                    @else
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
-                                    @endif
-                                @else
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5 opacity-0 group-hover:opacity-50"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" /></svg>
-                                @endif
-                            </span>
-                        </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.status') }}</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.month') }}</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.payment_type') }}</th>
                         <th wire:click="sortBy('amount_paid')" class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider cursor-pointer select-none group {{ $sortField === 'amount_paid' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400' }}">
                             <span class="flex items-center justify-end space-x-1">
@@ -234,7 +231,22 @@
                                 @endif
                             </span>
                         </th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.resto') }}</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.project') }}</th>
+                        <th wire:click="sortBy('bank_date')" class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none group {{ $sortField === 'bank_date' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400' }}">
+                            <span class="flex items-center space-x-1">
+                                <span>{{ __('app.bank_date') }}</span>
+                                @if ($sortField === 'bank_date')
+                                    @if ($sortDirection === 'asc')
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" /></svg>
+                                    @else
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                                    @endif
+                                @else
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5 opacity-0 group-hover:opacity-50"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" /></svg>
+                                @endif
+                            </span>
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.bank_name') }}</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.actions') }}</th>
                     </tr>
                 </thead>
@@ -247,16 +259,6 @@
                             <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">{{ $invoice->invoice_number }}</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->company?->name ?? '—' }}</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->client?->name ?? '—' }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->month ?? '—' }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->date_issued?->format('d/m/Y') ?? '—' }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->date_due?->format('d/m/Y') ?? '—' }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->project?->name ?? '—' }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->bank_date?->format('d/m/Y') ?? '—' }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->bank_name ?? '—' }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-right">{{ fmt_number($invoice->amount) }} &euro;</td>
-                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-right">{{ fmt_number($invoice->iva_amount) }} &euro;</td>
-                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-right">{{ fmt_number($invoice->retention_amount) }} &euro;</td>
-                            <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900 dark:text-gray-100">{{ fmt_number($invoice->total) }} &euro;</td>
                             <td class="px-4 py-3" x-data="{ statusOpen: false }" @click.outside="statusOpen = false">
                                 <div class="relative">
                                     <button @click="statusOpen = !statusOpen" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
@@ -288,6 +290,20 @@
                                     </div>
                                 </div>
                             </td>
+                            <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900 dark:text-gray-100">{{ fmt_number($invoice->total) }} &euro;</td>
+                            <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
+                                @if ((float) $invoice->amount_remaining > 0)
+                                    <span class="text-red-600 dark:text-red-400 font-medium">{{ fmt_number($invoice->amount_remaining) }} &euro;</span>
+                                @else
+                                    <span class="text-gray-400">{{ fmt_number(0) }} &euro;</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->date_issued?->format('d/m/Y') ?? '—' }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->date_due?->format('d/m/Y') ?? '—' }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-right">{{ fmt_number($invoice->amount) }} &euro;</td>
+                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-right">{{ fmt_number($invoice->iva_amount) }} &euro;</td>
+                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-right">{{ fmt_number($invoice->retention_amount) }} &euro;</td>
+                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->month ?? '—' }}</td>
                             <td class="px-4 py-3 text-sm whitespace-nowrap">
                                 <select wire:change="quickUpdatePaymentType({{ $invoice->id }}, $event.target.value)"
                                         class="text-xs border-0 border-b border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded bg-transparent text-gray-900 dark:text-gray-100 py-1 pl-1 pr-7 focus:ring-0 focus:border-emerald-500 cursor-pointer transition-colors">
@@ -301,16 +317,12 @@
                                 @if ((float) $invoice->amount_paid > 0)
                                     <span class="text-green-600 dark:text-green-400 font-medium">{{ fmt_number($invoice->amount_paid) }} &euro;</span>
                                 @else
-                                    <span class="text-gray-400">0,00 &euro;</span>
+                                    <span class="text-gray-400">{{ fmt_number(0) }} &euro;</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
-                                @if ((float) $invoice->amount_remaining > 0)
-                                    <span class="text-red-600 dark:text-red-400 font-medium">{{ fmt_number($invoice->amount_remaining) }} &euro;</span>
-                                @else
-                                    <span class="text-gray-400">0,00 &euro;</span>
-                                @endif
-                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->project?->name ?? '—' }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->bank_date?->format('d/m/Y') ?? '—' }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->bank_name ?? '—' }}</td>
                             <td class="px-4 py-3 text-right">
                                 <div class="relative" x-data="{ open: false }" @click.outside="open = false">
                                     <button @click="open = !open" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">

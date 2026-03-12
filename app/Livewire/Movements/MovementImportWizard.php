@@ -30,9 +30,9 @@ class MovementImportWizard extends Component
         'concept' => '',
         'beneficiary' => '',
         'reference' => '',
+        'amount' => '',
         'deposit' => '',
         'withdrawal' => '',
-        'balance' => '',
     ];
 
     public array $pdfMovements = [];
@@ -79,7 +79,41 @@ class MovementImportWizard extends Component
 
         $this->csvHeaders = $result['headers'];
         $this->csvPreviewRows = array_slice($result['rows'], 0, 10);
+        $this->autoMapAmountColumn();
         $this->step = 2;
+    }
+
+    private function autoMapAmountColumn(): void
+    {
+        $keywords = ['importe', 'amount', 'cantidad', 'movimiento', 'saldo', 'valor', 'total', 'cargo', 'abono'];
+        foreach ($this->csvHeaders as $idx => $header) {
+            $h = strtolower(trim($header));
+            foreach ($keywords as $kw) {
+                if (str_contains($h, $kw)) {
+                    $sample = null;
+                    foreach (array_slice($this->csvPreviewRows, 0, 5) as $row) {
+                        $cell = trim((string) ($row[$idx] ?? ''));
+                        if ($cell !== '' && (preg_match('/^[+\-]\s*[\d,.]/', $cell) || preg_match('/^[\d,.]+\s*[+\-]?/', $cell) || preg_match('/^\([\d,.\s]+\)$/', $cell))) {
+                            $sample = $cell;
+                            break;
+                        }
+                    }
+                    if ($sample !== null) {
+                        $this->columnMap['amount'] = $header;
+                        return;
+                    }
+                }
+            }
+        }
+        foreach ($this->csvHeaders as $idx => $header) {
+            foreach (array_slice($this->csvPreviewRows, 0, 5) as $row) {
+                $cell = trim((string) ($row[$idx] ?? ''));
+                if ($cell !== '' && (preg_match('/^[+\-]\s*[\d,.]/', $cell) || preg_match('/^\([\d,.\s]+\)$/', $cell))) {
+                    $this->columnMap['amount'] = $header;
+                    return;
+                }
+            }
+        }
     }
 
     public function importCsv(): void
@@ -131,7 +165,7 @@ class MovementImportWizard extends Component
                 'concept' => $m['concept'],
                 'deposit' => $m['deposit'] ?? null,
                 'withdrawal' => $m['withdrawal'] ?? null,
-                'balance' => $m['balance'] ?? 0,
+                'balance' => null,
                 'import_source' => 'pdf',
             ]);
             $imported++;

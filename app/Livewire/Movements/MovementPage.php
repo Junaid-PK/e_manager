@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Movements;
 
+use App\Exports\MovementExport;
 use App\Livewire\Traits\WithBulkActions;
 use App\Livewire\Traits\WithFiltering;
 use App\Livewire\Traits\WithSorting;
@@ -9,9 +10,12 @@ use App\Models\BankAccount;
 use App\Models\BankMovement;
 use App\Models\MovementCategory;
 use App\Models\MovementType;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Maatwebsite\Excel\Facades\Excel;
 
 class MovementPage extends Component
 {
@@ -108,6 +112,15 @@ class MovementPage extends Component
         $this->resetPage();
     }
 
+    public function exportToExcel()
+    {
+        $movements = $this->buildQuery()->get();
+        $filename = 'movements-' . date('Y-m-d-His') . '-' . uniqid() . '.xlsx';
+        Storage::disk('local')->makeDirectory('exports');
+        Excel::store(new MovementExport($movements), 'exports/' . $filename, 'local');
+        return redirect(URL::temporarySignedRoute('export.download', now()->addMinutes(5), ['file' => $filename]));
+    }
+
     public function create(): void
     {
         $this->resetForm();
@@ -150,7 +163,7 @@ class MovementPage extends Component
             'reference' => $this->formReference ?: null,
             'deposit' => $this->formDeposit !== '' ? $this->formDeposit : null,
             'withdrawal' => $this->formWithdrawal !== '' ? $this->formWithdrawal : null,
-            'category' => $this->formCategory ?: null,
+            'category' => $this->resolveOrCreateCategory(trim($this->formCategory ?? '')) ?: null,
             'notes' => $this->formNotes ?: null,
         ];
 
@@ -159,7 +172,6 @@ class MovementPage extends Component
             $movement->update($data);
             $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
         } else {
-            $data['balance'] = 0;
             $data['import_source'] = 'manual';
             BankMovement::create($data);
             $this->dispatch('notify', type: 'success', message: __('app.created_successfully'));
@@ -200,7 +212,8 @@ class MovementPage extends Component
 
     public function quickUpdateCategory(int $id, string $category): void
     {
-        BankMovement::findOrFail($id)->update(['category' => $category ?: null]);
+        $resolved = $this->resolveOrCreateCategory(trim($category ?? ''));
+        BankMovement::findOrFail($id)->update(['category' => $resolved]);
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
 
@@ -212,7 +225,8 @@ class MovementPage extends Component
 
     public function applyCategoryToSelected(): void
     {
-        BankMovement::whereIn('id', $this->selected)->update(['category' => $this->bulkCategory ?: null]);
+        $resolved = $this->resolveOrCreateCategory(trim($this->bulkCategory ?? ''));
+        BankMovement::whereIn('id', $this->selected)->update(['category' => $resolved]);
         $this->showCategoryModal = false;
         $this->bulkCategory = '';
         $this->deselectAll();
@@ -231,7 +245,11 @@ class MovementPage extends Component
 
     protected function buildQuery()
     {
-        $query = BankMovement::with('bankAccount');
+        $query = BankMovement::with('bankAccount')->select('bank_movements.*')->selectRaw(
+            '(SELECT ba.initial_balance FROM bank_accounts ba WHERE ba.id = bank_movements.bank_account_id) + ' .
+            '(SELECT COALESCE(SUM(COALESCE(m2.deposit,0) - COALESCE(m2.withdrawal,0)), 0) FROM bank_movements m2 ' .
+            'WHERE m2.bank_account_id = bank_movements.bank_account_id AND (m2.date < bank_movements.date OR (m2.date = bank_movements.date AND m2.id <= bank_movements.id))) as running_balance'
+        );
 
         if ($this->search) {
             $query->where(function ($q) {
@@ -273,6 +291,16 @@ class MovementPage extends Component
     protected function getMovements()
     {
         return $this->buildQuery()->paginate($this->perPage);
+    }
+
+    private function resolveOrCreateCategory(string $value): ?string
+    {
+        if ($value === '') return null;
+        $existing = MovementCategory::where('name', $value)->first();
+        if ($existing) return $existing->name;
+        $maxOrder = (int) MovementCategory::max('sort_order');
+        MovementCategory::create(['name' => $value, 'sort_order' => $maxOrder + 1]);
+        return $value;
     }
 
     private function resetForm(): void

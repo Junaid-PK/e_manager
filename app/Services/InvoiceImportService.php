@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Client;
 use App\Models\Company;
 use App\Models\Invoice;
+use App\Models\Project;
 use Maatwebsite\Excel\Facades\Excel;
 
 class InvoiceImportService
@@ -80,10 +81,12 @@ class InvoiceImportService
                 $paymentType = $this->resolvePaymentType($mapped['payment_type'] ?? null);
 
                 $monthValue = $this->parseMonth($mapped['month'] ?? null);
+                $projectId = $this->resolveProjectId($mapped['project_id'] ?? null);
 
                 Invoice::create([
                     'company_id' => $companyId,
                     'client_id' => $clientId,
+                    'project_id' => $projectId,
                     'invoice_number' => $invoiceNumber,
                     'month' => $monthValue,
                     'date_issued' => $this->parseDate($mapped['date_issued'] ?? null) ?? $this->parseDate($mapped['month'] ?? null) ?? now()->format('Y-m-d'),
@@ -149,6 +152,17 @@ class InvoiceImportService
         }
 
         return $client->id;
+    }
+
+    private function resolveProjectId(?string $value): ?int
+    {
+        if ($value === null || trim($value) === '') return null;
+        $value = trim($value);
+        $project = Project::where('name', $value)->first()
+            ?? Project::where('code', $value)->first()
+            ?? Project::where('name', 'like', "%{$value}%")->first()
+            ?? Project::where('code', 'like', "%{$value}%")->first();
+        return $project?->id;
     }
 
     private function isFormula(?string $value): bool

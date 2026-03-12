@@ -46,6 +46,17 @@ class CsvImportService
                     continue;
                 }
 
+                $deposit = null;
+                $withdrawal = null;
+                if (isset($mapped['amount']) && $mapped['amount'] !== '') {
+                    $split = $this->parseSignedAmount($mapped['amount']);
+                    $deposit = $split['deposit'];
+                    $withdrawal = $split['withdrawal'];
+                } else {
+                    $deposit = $this->parseAmount($mapped['deposit'] ?? null);
+                    $withdrawal = $this->parseAmount($mapped['withdrawal'] ?? null);
+                }
+
                 \App\Models\BankMovement::create([
                     'bank_account_id' => $bankAccountId,
                     'date' => $this->parseDate($mapped['date']),
@@ -54,9 +65,9 @@ class CsvImportService
                     'concept' => $mapped['concept'],
                     'beneficiary' => $mapped['beneficiary'] ?? null,
                     'reference' => $mapped['reference'] ?? null,
-                    'deposit' => $this->parseAmount($mapped['deposit'] ?? null),
-                    'withdrawal' => $this->parseAmount($mapped['withdrawal'] ?? null),
-                    'balance' => $this->parseAmount($mapped['balance'] ?? null) ?? 0,
+                    'deposit' => $deposit,
+                    'withdrawal' => $withdrawal,
+                    'balance' => null,
                     'import_source' => 'csv',
                 ]);
                 $imported++;
@@ -77,6 +88,42 @@ class CsvImportService
             }
         }
         return $mapped;
+    }
+
+    public function parseSignedAmount(?string $value): array
+    {
+        $deposit = null;
+        $withdrawal = null;
+        if ($value === null || $value === '') {
+            return ['deposit' => null, 'withdrawal' => null];
+        }
+        $raw = trim($value);
+        $negative = preg_match('/^\-/', $raw) || preg_match('/^\(\s*[\d,.\s]+\s*\)$/', $raw);
+        $value = str_replace([' ', '€', '$', "\xC2\xA0"], '', $raw);
+        $value = preg_replace('/^[+\-]\s*/', '', $value);
+        $value = trim($value, " \t\n\r\0\x0B()");
+        if (preg_match('/^\d{1,3}(\.\d{3})*(,\d{1,2})?$/', $value)) {
+            $value = str_replace('.', '', $value);
+            $value = str_replace(',', '.', $value);
+        } elseif (preg_match('/^\d{1,3}(,\d{3})*(\.\d{1,2})?$/', $value)) {
+            $value = str_replace(',', '', $value);
+        } else {
+            $value = str_replace(',', '', $value);
+        }
+        $amount = (float) $value;
+        if ($amount == 0) {
+            return ['deposit' => null, 'withdrawal' => null];
+        }
+        if (is_numeric($raw) && (float) $raw < 0) {
+            $negative = true;
+        }
+        $abs = abs($amount);
+        if ($negative || $amount < 0) {
+            $withdrawal = round($abs, 2);
+        } else {
+            $deposit = round($abs, 2);
+        }
+        return ['deposit' => $deposit, 'withdrawal' => $withdrawal];
     }
 
     private function parseDate(?string $value): ?string

@@ -30,6 +30,12 @@
             </div>
         </div>
 
+        @if ($search)
+            <div class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                {{ __('app.total_records_shown') }}: {{ $companies->total() }}
+            </div>
+        @endif
+
         @if (count($selected) > 0)
             <div class="px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 border-b border-emerald-200 dark:border-emerald-800">
                 <div class="flex items-center justify-between">
