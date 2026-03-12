@@ -12,7 +12,6 @@ use App\Models\MovementCategory;
 use App\Models\MovementType;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
-use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Maatwebsite\Excel\Facades\Excel;
@@ -27,7 +26,7 @@ class MovementPage extends Component
     public bool $showCategoryModal = false;
     public string $bulkCategory = '';
 
-    #[Url(as: 'bank_account_id')]
+    #[\Livewire\Attributes\Url(as: 'bank_account_id')]
     public string $filterBankAccountId = '';
     public string $filterType = '';
     public string $filterDirection = 'all';
