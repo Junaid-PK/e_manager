@@ -153,6 +153,7 @@
                                 @endif
                             </span>
                         </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.project') }}</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.company') }}</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.client') }}</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.status') }}</th>
@@ -231,7 +232,6 @@
                                 @endif
                             </span>
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.project') }}</th>
                         <th wire:click="sortBy('bank_date')" class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none group {{ $sortField === 'bank_date' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400' }}">
                             <span class="flex items-center space-x-1">
                                 <span>{{ __('app.bank_date') }}</span>
@@ -257,6 +257,7 @@
                                 <input type="checkbox" wire:model.live="selected" value="{{ $invoice->id }}" class="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 dark:bg-gray-700">
                             </td>
                             <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">{{ $invoice->invoice_number }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->project?->name ?? '—' }}</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->company?->name ?? '—' }}</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->client?->name ?? '—' }}</td>
                             <td class="px-4 py-3" x-data="{ statusOpen: false }" @click.outside="statusOpen = false">
@@ -320,7 +321,6 @@
                                     <span class="text-gray-400">{{ fmt_number(0) }} &euro;</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->project?->name ?? '—' }}</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->bank_date?->format('d/m/Y') ?? '—' }}</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->bank_name ?? '—' }}</td>
                             <td class="px-4 py-3 text-right">
