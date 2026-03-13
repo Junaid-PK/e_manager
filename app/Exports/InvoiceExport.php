@@ -22,7 +22,6 @@ class InvoiceExport implements FromCollection, WithHeadings, WithMapping
     {
         return [
             __('app.invoice_number'),
-            __('app.company_id'),
             __('app.company'),
             __('app.project_id'),
             __('app.project'),
@@ -48,7 +47,6 @@ class InvoiceExport implements FromCollection, WithHeadings, WithMapping
     {
         return [
             $invoice->invoice_number,
-            $invoice->company_id ?? '',
             $invoice->company?->name ?? '',
             $invoice->project_id ?? '',
             $invoice->project?->name ?? '',

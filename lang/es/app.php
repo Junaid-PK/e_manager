@@ -21,7 +21,6 @@ return [
     'projects' => 'Proyectos',
     'project' => 'Proyecto',
     'project_id' => 'Proyecto (ID)',
-    'company_id' => 'ID empresa',
 
     'create' => 'Crear',
     'edit' => 'Editar',
