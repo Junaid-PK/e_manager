@@ -165,7 +165,7 @@ class MovementImportWizard extends Component
                 'concept' => $m['concept'],
                 'deposit' => $m['deposit'] ?? null,
                 'withdrawal' => $m['withdrawal'] ?? null,
-                'balance' => null,
+                'balance' => 0,
                 'import_source' => 'pdf',
             ]);
             $imported++;

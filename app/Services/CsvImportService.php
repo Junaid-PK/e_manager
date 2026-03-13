@@ -67,7 +67,7 @@ class CsvImportService
                     'reference' => $mapped['reference'] ?? null,
                     'deposit' => $deposit,
                     'withdrawal' => $withdrawal,
-                    'balance' => null,
+                    'balance' => 0,
                     'import_source' => 'csv',
                 ]);
                 $imported++;

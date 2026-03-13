@@ -22,9 +22,11 @@ class InvoiceExport implements FromCollection, WithHeadings, WithMapping
     {
         return [
             __('app.invoice_number'),
+            __('app.company_id'),
             __('app.company'),
-            __('app.client'),
+            __('app.project_id'),
             __('app.project'),
+            __('app.client'),
             __('app.month'),
             __('app.date_issued'),
             __('app.date_due'),
@@ -46,9 +48,11 @@ class InvoiceExport implements FromCollection, WithHeadings, WithMapping
     {
         return [
             $invoice->invoice_number,
+            $invoice->company_id ?? '',
             $invoice->company?->name ?? '',
-            $invoice->client?->name ?? '',
+            $invoice->project_id ?? '',
             $invoice->project?->name ?? '',
+            $invoice->client?->name ?? '',
             $invoice->month ?? '',
             $invoice->date_issued?->format('Y-m-d') ?? '',
             $invoice->date_due?->format('Y-m-d') ?? '',

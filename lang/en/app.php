@@ -21,6 +21,7 @@ return [
     'projects' => 'Projects',
     'project' => 'Project',
     'project_id' => 'Project (ID)',
+    'company_id' => 'Company ID',
 
     'create' => 'Create',
     'edit' => 'Edit',
