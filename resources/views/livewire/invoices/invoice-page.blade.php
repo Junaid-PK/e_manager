@@ -261,21 +261,13 @@
                                 <input type="checkbox" wire:model.live="selected" value="{{ $invoice->id }}" class="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 dark:bg-gray-700">
                             </td>
                             <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">{{ $invoice->invoice_number }}</td>
-                            <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[8rem] max-w-[200px] align-top">
-                                @php
-                                    $projOpts = collect($projectOptionsByCompany[$invoice->company_id] ?? []);
-                                    if ($invoice->project_id && $invoice->project && !$projOpts->pluck('value')->contains((string) $invoice->project_id)) {
-                                        $projOpts->push(['value' => (string) $invoice->project_id, 'label' => $invoice->project->name]);
-                                    }
-                                @endphp
-                                <x-custom-select compact
-                                    wire:key="proj-{{ $invoice->id }}"
-                                    :options="$projOpts->values()->all()"
-                                    :value="$invoice->project_id ? (string) $invoice->project_id : ''"
-                                    placeholder="—"
-                                    :empty-label="__('app.none')"
-                                    submit-method="quickUpdateProject"
-                                    :submit-arg="$invoice->id" />
+                            <td class="px-4 py-3 text-sm max-w-[220px]">
+                                <input type="text"
+                                       value="{{ $invoice->project?->name ?? '' }}"
+                                       placeholder="—"
+                                       wire:blur="quickUpdateProjectText({{ $invoice->id }}, $event.target.value)"
+                                       wire:keydown.enter="quickUpdateProjectText({{ $invoice->id }}, $event.target.value)"
+                                       class="w-full text-xs border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500">
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->client?->name ?? '—' }}</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->month ?? '—' }}</td>
@@ -456,13 +448,8 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.project') }}</label>
-                                <select wire:model="formProjectId" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
-                                    <option value="">{{ __('app.none') }}</option>
-                                    @foreach ($projectsForCompany as $project)
-                                        <option value="{{ $project->id }}">{{ $project->name }}</option>
-                                    @endforeach
-                                </select>
-                                @error('formProjectId') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                                <input wire:model="formProjectName" type="text" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                @error('formProjectName') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                             </div>
                             <div class="grid grid-cols-2 gap-4">
                                 <div>

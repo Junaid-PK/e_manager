@@ -53,7 +53,7 @@ class InvoicePage extends Component
 
     public string $formCompanyId = '';
     public string $formClientId = '';
-    public string $formProjectId = '';
+    public string $formProjectName = '';
     public string $formInvoiceNumber = '';
     public string $formMonth = '';
     public string $formDateIssued = '';
@@ -75,7 +75,7 @@ class InvoicePage extends Component
         return [
             'formCompanyId' => 'required|exists:companies,id',
             'formClientId' => 'required|exists:clients,id',
-            'formProjectId' => 'nullable',
+            'formProjectName' => 'nullable|string|max:500',
             'formInvoiceNumber' => 'required|string|max:100',
             'formMonth' => 'nullable|string|max:20',
             'formDateIssued' => 'required|date',
@@ -140,7 +140,7 @@ class InvoicePage extends Component
         $this->editingId = $id;
         $this->formCompanyId = (string) $invoice->company_id;
         $this->formClientId = (string) $invoice->client_id;
-        $this->formProjectId = (string) ($invoice->project_id ?? '');
+        $this->formProjectName = $invoice->project?->name ?? '';
         $this->formInvoiceNumber = $invoice->invoice_number;
         $this->formMonth = $invoice->month ?? '';
         $this->formDateIssued = $invoice->date_issued?->format('Y-m-d') ?? '';
@@ -174,7 +174,7 @@ class InvoicePage extends Component
         $data = [
             'company_id' => $this->formCompanyId,
             'client_id' => $this->formClientId,
-            'project_id' => $this->formProjectId ?: null,
+            'project_id' => $this->resolveOrCreateProjectId((int) $this->formCompanyId, $this->formProjectName),
             'invoice_number' => $this->formInvoiceNumber,
             'month' => $this->formMonth ?: null,
             'date_issued' => $this->formDateIssued,
@@ -236,7 +236,7 @@ class InvoicePage extends Component
         $this->editingId = null;
         $this->formCompanyId = (string) $invoice->company_id;
         $this->formClientId = (string) $invoice->client_id;
-        $this->formProjectId = (string) ($invoice->project_id ?? '');
+        $this->formProjectName = $invoice->project?->name ?? '';
         $this->formMonth = $invoice->month ?? '';
         $this->formDateIssued = $invoice->date_issued?->format('Y-m-d') ?? '';
         $this->formDateDue = $invoice->date_due?->format('Y-m-d') ?? '';
@@ -269,17 +269,34 @@ class InvoicePage extends Component
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
 
-    public function quickUpdateProject(int $id, string $projectId): void
+    public function quickUpdateProjectText(int $id, string $text): void
     {
         $invoice = Invoice::findOrFail($id);
-        $pid = trim($projectId) === '' ? null : (int) $projectId;
-        if ($pid !== null) {
-            if (! Project::where('id', $pid)->where('company_id', $invoice->company_id)->exists()) {
-                return;
-            }
-        }
-        $invoice->update(['project_id' => $pid]);
+        $invoice->update([
+            'project_id' => $this->resolveOrCreateProjectId((int) $invoice->company_id, $text),
+        ]);
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
+    }
+
+    private function resolveOrCreateProjectId(int $companyId, string $text): ?int
+    {
+        $text = trim($text);
+        if ($text === '' || $companyId < 1) {
+            return null;
+        }
+        $project = Project::where('company_id', $companyId)
+            ->where(function ($q) use ($text) {
+                $q->where('name', $text)->orWhere('code', $text);
+            })->first();
+        if (! $project) {
+            $project = Project::create([
+                'company_id' => $companyId,
+                'name' => $text,
+                'code' => null,
+                'status' => 'active',
+            ]);
+        }
+        return $project->id;
     }
 
     private function resolvePaymentTypeSlug(string $input): string
@@ -491,7 +508,7 @@ class InvoicePage extends Component
     {
         $this->formCompanyId = '';
         $this->formClientId = '';
-        $this->formProjectId = '';
+        $this->formProjectName = '';
         $this->formInvoiceNumber = '';
         $this->formMonth = '';
         $this->formDateIssued = '';
@@ -510,18 +527,10 @@ class InvoicePage extends Component
 
     public function render()
     {
-        $projectOptionsByCompany = Project::query()->orderBy('name')->get()->groupBy('company_id')->map(
-            fn ($coll) => $coll->map(fn ($p) => ['value' => (string) $p->id, 'label' => $p->name])->values()->all()
-        )->all();
-
         return view('livewire.invoices.invoice-page', [
             'invoices' => $this->getInvoices(),
             'allCompanies' => Company::query()->orderBy('name')->get(),
             'clients' => Client::orderBy('name')->get(),
-            'projectsForCompany' => $this->formCompanyId
-                ? Project::where('company_id', $this->formCompanyId)->orderBy('name')->get()
-                : collect(),
-            'projectOptionsByCompany' => $projectOptionsByCompany,
             'bankAccounts' => BankAccount::orderBy('bank_name')->get(),
         ])->layout('layouts.app');
     }
