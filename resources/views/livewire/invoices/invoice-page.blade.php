@@ -250,6 +250,10 @@
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.actions') }}</th>
                     </tr>
                 </thead>
+                @php
+                    $invoicePaymentOptions = collect(\App\Models\Invoice::PAYMENT_TYPES)->map(fn ($pt) => ['value' => $pt, 'label' => __('app.' . $pt)])->all();
+                    $bankSelectOptions = $bankAccounts->map(fn ($ba) => ['value' => $ba->bank_name, 'label' => $ba->bank_name])->values()->all();
+                @endphp
                 <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     @forelse ($invoices as $invoice)
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" wire:key="invoice-{{ $invoice->id }}">
@@ -295,24 +299,24 @@
                                     </div>
                                 </div>
                             </td>
-                            <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[8rem]">
-                                <select wire:change="quickUpdatePaymentType({{ $invoice->id }}, $event.target.value)"
-                                        class="w-full max-w-[10rem] text-xs border-0 border-b border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded bg-transparent text-gray-900 dark:text-gray-100 py-1 pl-1 pr-7 focus:ring-0 focus:border-emerald-500 cursor-pointer transition-colors appearance-none bg-[length:1rem] bg-[right_0.15rem_center] bg-no-repeat"
-                                        style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke-width=%222%22 stroke=%22%236b7280%22%3E%3Cpath stroke-linecap=%22round%22 stroke-linejoin=%22round%22 d=%22M19.5 8.25l-7.5 7.5-7.5-7.5%22/%3E%3C/svg%3E');">
-                                    <option value="">{{ __('app.payment_type') }}…</option>
-                                    @foreach (\App\Models\Invoice::PAYMENT_TYPES as $pt)
-                                        <option value="{{ $pt }}" {{ $invoice->payment_type === $pt ? 'selected' : '' }}>{{ __('app.' . $pt) }}</option>
-                                    @endforeach
-                                </select>
+                            <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[8rem] align-top">
+                                <x-custom-select compact
+                                    wire:key="pay-{{ $invoice->id }}"
+                                    :options="$invoicePaymentOptions"
+                                    :value="$invoice->payment_type ?? ''"
+                                    :empty-label="__('app.payment_type') . '…'"
+                                    submit-method="quickUpdatePaymentType"
+                                    :submit-arg="$invoice->id" />
                             </td>
-                            <td class="px-4 py-3 text-sm whitespace-nowrap">
-                                <input type="text"
-                                       list="bank-name-list"
-                                       value="{{ $invoice->bank_name ?? '' }}"
-                                       placeholder="—"
-                                       wire:blur="quickUpdateBankName({{ $invoice->id }}, $event.target.value)"
-                                       wire:keydown.enter="quickUpdateBankName({{ $invoice->id }}, $event.target.value)"
-                                       class="w-36 text-xs border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500">
+                            <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[9rem] align-top">
+                                <x-custom-select compact
+                                    wire:key="bank-{{ $invoice->id }}"
+                                    :options="$bankSelectOptions"
+                                    :value="$invoice->bank_name ?? ''"
+                                    placeholder="—"
+                                    allow-custom
+                                    submit-method="quickUpdateBankName"
+                                    :submit-arg="$invoice->id" />
                             </td>
                             <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
                                 @if ((float) $invoice->amount_paid > 0)
@@ -477,7 +481,7 @@
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.bank_name') }}</label>
-                                    <input wire:model="formBankName" type="text" list="bank-name-list" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                    <x-custom-select :options="$bankSelectOptions" :value="$formBankName ?? ''" allow-custom wire-model="formBankName" placeholder="—" />
                                     @error('formBankName') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                                 </div>
                             </div>
@@ -514,12 +518,8 @@
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.payment_type') }}</label>
-                                    <select wire:model="formPaymentType" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
-                                        <option value="">{{ __('app.none') }}</option>
-                                        @foreach (\App\Models\Invoice::PAYMENT_TYPES as $pt)
-                                            <option value="{{ $pt }}">{{ __('app.' . $pt) }}</option>
-                                        @endforeach
-                                    </select>
+                                    @php $formPayOpts = collect(\App\Models\Invoice::PAYMENT_TYPES)->map(fn ($pt) => ['value' => $pt, 'label' => __('app.' . $pt)])->all(); @endphp
+                                    <x-custom-select :options="$formPayOpts" :value="$formPaymentType ?? ''" :empty-label="__('app.none')" wire-model="formPaymentType" />
                                     @error('formPaymentType') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                                 </div>
                                 <div>
@@ -690,11 +690,6 @@
         </div>
     @endif
 
-    <datalist id="bank-name-list">
-        @foreach ($bankAccounts as $ba)
-            <option value="{{ $ba->bank_name }}">
-        @endforeach
-    </datalist>
     @if ($showReminderModal)
         <div class="fixed inset-0 z-[60] flex items-center justify-center" @keydown.escape.window="$set('showReminderModal', false)">
             <div class="absolute inset-0 bg-black/50" wire:click="$set('showReminderModal', false)"></div>

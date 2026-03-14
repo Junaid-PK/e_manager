@@ -2,6 +2,10 @@
     {{ __('app.movements') }}
 </x-slot>
 
+@php
+    $categoryOpts = $movementCategories->map(fn ($mc) => ['value' => $mc->name, 'label' => $mc->name])->values()->all();
+    $movementTypeOpts = $movementTypes->map(fn ($mt) => ['value' => $mt->slug, 'label' => $mt->name])->values()->all();
+@endphp
 <div>
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700 space-y-3">
@@ -65,7 +69,9 @@
                 <input wire:model.live.debounce.300ms="dateFrom" type="date" placeholder="{{ __('app.from') }}" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 px-3 focus:ring-emerald-500 focus:border-emerald-500">
                 <input wire:model.live.debounce.300ms="dateTo" type="date" placeholder="{{ __('app.to') }}" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 px-3 focus:ring-emerald-500 focus:border-emerald-500">
 
-                <input wire:model.live.debounce.300ms="filterCategory" type="text" list="category-list" placeholder="{{ __('app.category') }}" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 px-3 w-40 focus:ring-emerald-500 focus:border-emerald-500">
+                <div class="w-44">
+                    <x-custom-select compact :options="$categoryOpts" :value="$filterCategory ?? ''" allow-custom wire-model="filterCategory" :placeholder="__('app.category')" />
+                </div>
 
                 <button wire:click="clearFilters" class="inline-flex items-center px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5 mr-1">
@@ -248,22 +254,23 @@
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap">{{ $movement->date->format('d/m/Y') }}</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ $movement->bankAccount->bank_name ?? '—' }}</td>
-                            <td class="px-4 py-3 text-sm whitespace-nowrap">
-                                <select wire:change="quickUpdateType({{ $movement->id }}, $event.target.value)"
-                                        class="text-xs border-0 border-b border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded bg-transparent text-gray-900 dark:text-gray-100 py-1 pl-1 pr-7 focus:ring-0 focus:border-emerald-500 cursor-pointer transition-colors">
-                                    @foreach ($movementTypes as $mt)
-                                        <option value="{{ $mt->slug }}" {{ $movement->type === $mt->slug ? 'selected' : '' }}>{{ $mt->name }}</option>
-                                    @endforeach
-                                </select>
+                            <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[6rem] align-top">
+                                <x-custom-select compact
+                                    wire:key="type-{{ $movement->id }}"
+                                    :options="$movementTypeOpts"
+                                    :value="$movement->type ?? ''"
+                                    submit-method="quickUpdateType"
+                                    :submit-arg="$movement->id" />
                             </td>
-                            <td class="px-4 py-3 text-sm whitespace-nowrap">
-                                <input type="text"
-                                       list="category-list"
-                                       value="{{ $movement->category ?? '' }}"
-                                       placeholder="—"
-                                       wire:blur="quickUpdateCategory({{ $movement->id }}, $event.target.value)"
-                                       wire:keydown.enter="quickUpdateCategory({{ $movement->id }}, $event.target.value)"
-                                       class="w-32 text-xs border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 placeholder-gray-400">
+                            <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[7rem] align-top">
+                                <x-custom-select compact
+                                    wire:key="cat-{{ $movement->id }}"
+                                    :options="$categoryOpts"
+                                    :value="$movement->category ?? ''"
+                                    placeholder="—"
+                                    allow-custom
+                                    submit-method="quickUpdateCategory"
+                                    :submit-arg="$movement->id" />
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 max-w-[200px]">
                                 <span title="{{ $movement->concept }}">{{ \Illuminate\Support\Str::limit($movement->concept, 50) }}</span>
@@ -408,7 +415,7 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.category') }}</label>
-                                <input wire:model="formCategory" type="text" list="category-list" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                <x-custom-select :options="$categoryOpts" :value="$formCategory ?? ''" allow-custom wire-model="formCategory" placeholder="—" />
                                 @error('formCategory') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                             </div>
                             <div>
@@ -478,7 +485,7 @@
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{{ __('app.categorize_selected') }}</h3>
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.category') }}</label>
-                    <input wire:model="bulkCategory" type="text" list="category-list" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="—" autofocus>
+                    <x-custom-select :options="$categoryOpts" :value="$bulkCategory ?? ''" allow-custom wire-model="bulkCategory" placeholder="—" />
                 </div>
                 <div class="flex items-center justify-end space-x-3">
                     <button wire:click="$set('showCategoryModal', false)" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">{{ __('app.cancel') }}</button>
@@ -488,9 +495,4 @@
         </div>
     @endif
 
-    <datalist id="category-list">
-        @foreach ($movementCategories as $mc)
-            <option value="{{ $mc->name }}">
-        @endforeach
-    </datalist>
 </div>
