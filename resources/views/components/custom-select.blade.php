@@ -21,7 +21,7 @@ $opts = collect($options)->map(function ($o) {
 
 <div class="relative" x-data="{
     open: false,
-    q: '',
+    customInput: '',
     selected: @js((string) $value),
     options: @js($opts),
     allowCustom: @js((bool) $allowCustom),
@@ -35,23 +35,9 @@ $opts = collect($options)->map(function ($o) {
         const o = this.options.find(x => x.value === this.selected);
         return o ? o.label : this.selected;
     },
-    filtered() {
-        const qq = (this.q || '').toLowerCase().trim();
-        if (!qq) return this.options;
-        return this.options.filter(x =>
-            x.label.toLowerCase().includes(qq) || x.value.toLowerCase().includes(qq)
-        );
-    },
-    hasExact() {
-        const qq = (this.q || '').trim();
-        if (!qq) return true;
-        const low = qq.toLowerCase();
-        return this.options.some(x => x.value === qq || x.label === qq ||
-            x.value.toLowerCase() === low || x.label.toLowerCase() === low);
-    },
     pick(v) {
         this.selected = v;
-        this.q = '';
+        this.customInput = '';
         this.open = false;
         if (this.wireModel) $wire.set(this.wireModel, v);
         if (this.submitMethod) {
@@ -59,15 +45,15 @@ $opts = collect($options)->map(function ($o) {
             else $wire.call(this.submitMethod, v);
         }
     },
-    pickCustom() {
-        const v = (this.q || '').trim();
+    saveCustom() {
+        const v = (this.customInput || '').trim();
         if (!v) return;
         this.pick(v);
     },
     onOpen() {
         this.open = true;
-        this.q = '';
-        this.$nextTick(() => this.$refs.q?.focus?.());
+        this.customInput = '';
+        if (this.allowCustom) this.$nextTick(() => this.$refs.newval?.focus?.());
     }
 }" @click.outside="open = false" @keydown.escape.window="open = false">
     <button type="button"
@@ -80,32 +66,35 @@ $opts = collect($options)->map(function ($o) {
     </button>
     <div x-show="open"
          x-transition
-         class="absolute left-0 z-[100] mt-1 min-w-full w-max max-w-[16rem] rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-lg py-1"
+         class="absolute left-0 z-[100] mt-1 min-w-full w-max max-w-[18rem] rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-lg flex flex-col overflow-hidden"
          style="display: none;"
          @click.stop>
-        <div class="px-2 pb-1">
-            <input type="text" x-ref="q" x-model="q"
-                   @keydown.enter.prevent="allowCustom && q.trim() && !hasExact() ? pickCustom() : (filtered()[0] && pick(filtered()[0].value))"
-                   placeholder="{{ __('app.search') }}"
-                   class="w-full text-xs border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-2 py-1.5 focus:ring-1 focus:ring-emerald-500">
-        </div>
-        <div class="max-h-48 overflow-y-auto">
+        <div class="max-h-64 overflow-y-auto py-1">
             @if($emptyLabel !== null)
             <button type="button" @click="pick('')"
                     class="w-full text-left px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">
                 {{ $emptyLabel }}
             </button>
             @endif
-            <template x-for="opt in filtered()" :key="opt.value">
+            <template x-for="opt in options" :key="opt.value + '-' + opt.label">
                 <button type="button" @click="pick(opt.value)"
                         class="w-full text-left px-3 py-1.5 text-xs text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 truncate"
                         x-text="opt.label"></button>
             </template>
-            <template x-if="allowCustom && q.trim() && !hasExact()">
-                <button type="button" @click="pickCustom()"
-                        class="w-full text-left px-3 py-1.5 text-xs text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border-t border-gray-100 dark:border-gray-700"
-                        x-text="'+ ' + q.trim()"></button>
-            </template>
         </div>
+        <template x-if="allowCustom">
+            <div class="border-t border-gray-200 dark:border-gray-600 p-2 bg-gray-50 dark:bg-gray-900/40">
+                <div class="flex gap-1.5">
+                    <input type="text" x-ref="newval" x-model="customInput"
+                           @keydown.enter.prevent="saveCustom()"
+                           placeholder="{{ __('app.add_new') }}"
+                           class="min-w-0 flex-1 text-xs border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-2 py-1.5 focus:ring-1 focus:ring-emerald-500">
+                    <button type="button" @click="saveCustom()"
+                            class="shrink-0 text-xs font-medium px-2 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700">
+                        {{ __('app.save') }}
+                    </button>
+                </div>
+            </div>
+        </template>
     </div>
 </div>
