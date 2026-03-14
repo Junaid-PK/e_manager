@@ -305,19 +305,14 @@
                                     @endforeach
                                 </select>
                             </td>
-                            <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[7rem]">
-                                <select wire:change="quickUpdateBankName({{ $invoice->id }}, $event.target.value)"
-                                        class="w-full max-w-[10rem] text-xs border-0 border-b border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded bg-transparent text-gray-900 dark:text-gray-100 py-1 pl-1 pr-7 focus:ring-0 focus:border-emerald-500 cursor-pointer transition-colors appearance-none bg-[length:0.85rem] bg-[right_0.1rem_center] bg-no-repeat"
-                                        style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke-width=%222%22 stroke=%22%236b7280%22%3E%3Cpath stroke-linecap=%22round%22 stroke-linejoin=%22round%22 d=%22M19.5 8.25l-7.5 7.5-7.5-7.5%22/%3E%3C/svg%3E');">
-                                    <option value="">—</option>
-                                    @foreach ($bankAccounts as $ba)
-                                        <option value="{{ $ba->bank_name }}" {{ ($invoice->bank_name ?? '') === $ba->bank_name ? 'selected' : '' }}>{{ $ba->bank_name }}</option>
-                                    @endforeach
-                                    @php $names = $bankAccounts->pluck('bank_name'); @endphp
-                                    @if ($invoice->bank_name && !$names->contains($invoice->bank_name))
-                                        <option value="{{ $invoice->bank_name }}" selected>{{ $invoice->bank_name }}</option>
-                                    @endif
-                                </select>
+                            <td class="px-4 py-3 text-sm whitespace-nowrap">
+                                <input type="text"
+                                       list="bank-name-list"
+                                       value="{{ $invoice->bank_name ?? '' }}"
+                                       placeholder="—"
+                                       wire:blur="quickUpdateBankName({{ $invoice->id }}, $event.target.value)"
+                                       wire:keydown.enter="quickUpdateBankName({{ $invoice->id }}, $event.target.value)"
+                                       class="w-36 text-xs border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500">
                             </td>
                             <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
                                 @if ((float) $invoice->amount_paid > 0)
@@ -482,15 +477,7 @@
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.bank_name') }}</label>
-                                    <select wire:model="formBankName" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
-                                        <option value="">—</option>
-                                        @foreach ($bankAccounts as $ba)
-                                            <option value="{{ $ba->bank_name }}">{{ $ba->bank_name }}</option>
-                                        @endforeach
-                                        @if ($formBankName && !$bankAccounts->pluck('bank_name')->contains($formBankName))
-                                            <option value="{{ $formBankName }}">{{ $formBankName }}</option>
-                                        @endif
-                                    </select>
+                                    <input wire:model="formBankName" type="text" list="bank-name-list" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
                                     @error('formBankName') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                                 </div>
                             </div>
@@ -703,6 +690,11 @@
         </div>
     @endif
 
+    <datalist id="bank-name-list">
+        @foreach ($bankAccounts as $ba)
+            <option value="{{ $ba->bank_name }}">
+        @endforeach
+    </datalist>
     @if ($showReminderModal)
         <div class="fixed inset-0 z-[60] flex items-center justify-center" @keydown.escape.window="$set('showReminderModal', false)">
             <div class="absolute inset-0 bg-black/50" wire:click="$set('showReminderModal', false)"></div>
