@@ -51,7 +51,7 @@
                 </select>
                 <select wire:model.live="filterCompanyId" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 pl-3 pr-8 focus:ring-emerald-500 focus:border-emerald-500">
                     <option value="">{{ __('app.all_companies') }}</option>
-                    @foreach ($companies as $company)
+                    @foreach ($allCompanies as $company)
                         <option value="{{ $company->id }}">{{ $company->name }}</option>
                     @endforeach
                 </select>
@@ -420,7 +420,7 @@
                                 </div>
                                 <select wire:model.live="formCompanyId" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
                                     <option value="">{{ __('app.select_company') }}</option>
-                                    @foreach ($companies as $company)
+                                    @foreach ($allCompanies as $company)
                                         <option value="{{ $company->id }}">{{ $company->name }}</option>
                                     @endforeach
                                 </select>
@@ -443,7 +443,7 @@
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.project') }}</label>
                                 <select wire:model="formProjectId" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
                                     <option value="">{{ __('app.none') }}</option>
-                                    @foreach ($projects as $project)
+                                    @foreach ($projectsForCompany as $project)
                                         <option value="{{ $project->id }}">{{ $project->name }}</option>
                                     @endforeach
                                 </select>

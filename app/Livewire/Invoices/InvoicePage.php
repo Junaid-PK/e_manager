@@ -499,9 +499,9 @@ class InvoicePage extends Component
     {
         return view('livewire.invoices.invoice-page', [
             'invoices' => $this->getInvoices(),
-            'companies' => Company::orderBy('name')->get(),
+            'allCompanies' => Company::query()->orderBy('name')->get(),
             'clients' => Client::orderBy('name')->get(),
-            'projects' => $this->formCompanyId
+            'projectsForCompany' => $this->formCompanyId
                 ? Project::where('company_id', $this->formCompanyId)->orderBy('name')->get()
                 : collect(),
             'bankAccounts' => BankAccount::orderBy('bank_name')->get(),
