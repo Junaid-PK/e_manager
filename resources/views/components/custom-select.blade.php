@@ -30,6 +30,21 @@ $opts = collect($options)->map(function ($o) {
     submitMethod: @js($submitMethod),
     submitArg: @js($submitArg),
     wireModel: @js($wireModel),
+    panelTop: 0,
+    panelLeft: 0,
+    panelW: 200,
+    placePanel() {
+        const el = this.$refs.trigger;
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        const gap = 4;
+        const maxH = Math.min(window.innerHeight - r.bottom - gap - 24, 320);
+        this.panelTop = r.bottom + gap;
+        this.panelLeft = r.left;
+        this.panelW = Math.max(r.width, 200);
+        this._maxListH = Math.max(120, maxH - (this.allowCustom ? 56 : 0));
+    },
+    _maxListH: 260,
     label() {
         if (!this.selected) return this.placeholder;
         const o = this.options.find(x => x.value === this.selected);
@@ -53,10 +68,14 @@ $opts = collect($options)->map(function ($o) {
     onOpen() {
         this.open = true;
         this.customInput = '';
-        if (this.allowCustom) this.$nextTick(() => this.$refs.newval?.focus?.());
+        this.$nextTick(() => {
+            this.placePanel();
+            if (this.allowCustom) this.$refs.newval?.focus?.();
+        });
     }
-}" @click.outside="open = false" @keydown.escape.window="open = false">
-    <button type="button"
+}" @click.outside="open = false" @keydown.escape.window="open = false"
+   @resize.window="open && placePanel()" @scroll.window="open && placePanel()">
+    <button type="button" x-ref="trigger"
             @click="open ? open = false : onOpen()"
             class="{{ $compact ? 'w-full max-w-[10rem] text-left text-xs border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 pl-2 pr-7' : 'w-full text-left text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 pl-3 pr-8' }} focus:ring-emerald-500 focus:border-emerald-500 truncate relative">
         <span x-text="label()" class="block truncate"></span>
@@ -66,24 +85,26 @@ $opts = collect($options)->map(function ($o) {
     </button>
     <div x-show="open"
          x-transition
-         class="absolute left-0 z-[100] mt-1 min-w-full w-max max-w-[18rem] rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-lg flex flex-col overflow-hidden"
+         class="fixed z-[9999] rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-xl flex flex-col"
          style="display: none;"
+         x-bind:style="'top:' + panelTop + 'px;left:' + panelLeft + 'px;min-width:' + panelW + 'px;max-width:min(100vw - 16px, 22rem)'"
          @click.stop>
-        <div class="max-h-64 overflow-y-auto py-1">
+        <div class="overflow-y-auto overscroll-contain py-1 min-h-0 border-b border-transparent"
+             x-bind:style="'max-height:' + _maxListH + 'px'">
             @if($emptyLabel !== null)
             <button type="button" @click="pick('')"
                     class="w-full text-left px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">
                 {{ $emptyLabel }}
             </button>
             @endif
-            <template x-for="opt in options" :key="opt.value + '-' + opt.label">
+            <template x-for="(opt, idx) in options" :key="'csel-' + idx">
                 <button type="button" @click="pick(opt.value)"
                         class="w-full text-left px-3 py-1.5 text-xs text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 truncate"
                         x-text="opt.label"></button>
             </template>
         </div>
         <template x-if="allowCustom">
-            <div class="border-t border-gray-200 dark:border-gray-600 p-2 bg-gray-50 dark:bg-gray-900/40">
+            <div class="p-2 bg-gray-50 dark:bg-gray-900/40 shrink-0">
                 <div class="flex gap-1.5">
                     <input type="text" x-ref="newval" x-model="customInput"
                            @keydown.enter.prevent="saveCustom()"
