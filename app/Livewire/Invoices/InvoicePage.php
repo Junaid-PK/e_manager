@@ -269,6 +269,19 @@ class InvoicePage extends Component
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
 
+    public function quickUpdateProject(int $id, string $projectId): void
+    {
+        $invoice = Invoice::findOrFail($id);
+        $pid = trim($projectId) === '' ? null : (int) $projectId;
+        if ($pid !== null) {
+            if (! Project::where('id', $pid)->where('company_id', $invoice->company_id)->exists()) {
+                return;
+            }
+        }
+        $invoice->update(['project_id' => $pid]);
+        $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
+    }
+
     private function resolvePaymentTypeSlug(string $input): string
     {
         $lower = strtolower(trim($input));
@@ -497,6 +510,10 @@ class InvoicePage extends Component
 
     public function render()
     {
+        $projectOptionsByCompany = Project::query()->orderBy('name')->get()->groupBy('company_id')->map(
+            fn ($coll) => $coll->map(fn ($p) => ['value' => (string) $p->id, 'label' => $p->name])->values()->all()
+        )->all();
+
         return view('livewire.invoices.invoice-page', [
             'invoices' => $this->getInvoices(),
             'allCompanies' => Company::query()->orderBy('name')->get(),
@@ -504,6 +521,7 @@ class InvoicePage extends Component
             'projectsForCompany' => $this->formCompanyId
                 ? Project::where('company_id', $this->formCompanyId)->orderBy('name')->get()
                 : collect(),
+            'projectOptionsByCompany' => $projectOptionsByCompany,
             'bankAccounts' => BankAccount::orderBy('bank_name')->get(),
         ])->layout('layouts.app');
     }

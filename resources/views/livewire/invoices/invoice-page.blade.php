@@ -261,7 +261,22 @@
                                 <input type="checkbox" wire:model.live="selected" value="{{ $invoice->id }}" class="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 dark:bg-gray-700">
                             </td>
                             <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">{{ $invoice->invoice_number }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 max-w-[180px]"><span title="{{ $invoice->project?->name }}">{{ \Illuminate\Support\Str::limit($invoice->project?->name ?? '—', 40) }}</span></td>
+                            <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[8rem] max-w-[200px] align-top">
+                                @php
+                                    $projOpts = collect($projectOptionsByCompany[$invoice->company_id] ?? []);
+                                    if ($invoice->project_id && $invoice->project && !$projOpts->pluck('value')->contains((string) $invoice->project_id)) {
+                                        $projOpts->push(['value' => (string) $invoice->project_id, 'label' => $invoice->project->name]);
+                                    }
+                                @endphp
+                                <x-custom-select compact
+                                    wire:key="proj-{{ $invoice->id }}"
+                                    :options="$projOpts->values()->all()"
+                                    :value="$invoice->project_id ? (string) $invoice->project_id : ''"
+                                    placeholder="—"
+                                    :empty-label="__('app.none')"
+                                    submit-method="quickUpdateProject"
+                                    :submit-arg="$invoice->id" />
+                            </td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->client?->name ?? '—' }}</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->month ?? '—' }}</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-right">{{ fmt_number($invoice->amount) }} &euro;</td>

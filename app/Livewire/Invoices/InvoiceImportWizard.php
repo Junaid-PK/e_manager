@@ -89,7 +89,7 @@ class InvoiceImportWizard extends Component
             'month' => ['month', 'mes'],
             'date_issued' => ['fecha', 'date', 'issued'],
             'date_due' => ['vencimiento', 'due'],
-            'project_id' => ['project_id', 'project id', 'proyecto id', 'id', 'proyecto'],
+            'project_id' => ['project_id', 'project id', 'proyecto id', 'project', 'proyecto', 'nombre proyecto', 'project name'],
             'amount' => ['actual', 'importe', 'base', 'amount'],
             'iva_amount' => ['iva'],
             'retention_amount' => ['ret', 'retencion'],

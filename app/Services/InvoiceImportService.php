@@ -81,7 +81,7 @@ class InvoiceImportService
                 $paymentType = $this->resolvePaymentType($mapped['payment_type'] ?? null);
 
                 $monthValue = $this->parseMonth($mapped['month'] ?? null);
-                $projectId = $this->resolveProjectId($mapped['project_id'] ?? null);
+                $projectId = $this->resolveProjectId($mapped['project_id'] ?? null, $companyId);
 
                 Invoice::create([
                     'company_id' => $companyId,
@@ -154,14 +154,23 @@ class InvoiceImportService
         return $client->id;
     }
 
-    private function resolveProjectId(?string $value): ?int
+    private function resolveProjectId(?string $value, int $companyId): ?int
     {
-        if ($value === null || trim($value) === '') return null;
+        if ($value === null || trim($value) === '') {
+            return null;
+        }
         $value = trim($value);
-        $project = Project::where('name', $value)->first()
-            ?? Project::where('code', $value)->first()
-            ?? Project::where('name', 'like', "%{$value}%")->first()
-            ?? Project::where('code', 'like', "%{$value}%")->first();
+        $base = fn () => Project::where('company_id', $companyId);
+        if (ctype_digit($value)) {
+            $byId = $base()->where('id', (int) $value)->first();
+            if ($byId) {
+                return $byId->id;
+            }
+        }
+        $project = $base()->where('name', $value)->first()
+            ?? $base()->where('code', $value)->first()
+            ?? $base()->where('name', 'like', "%{$value}%")->first()
+            ?? $base()->where('code', 'like', "%{$value}%")->first();
         return $project?->id;
     }
 
