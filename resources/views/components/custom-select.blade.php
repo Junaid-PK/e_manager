@@ -89,17 +89,17 @@ $opts = collect($options)->map(function ($o) {
          style="display: none;"
          x-bind:style="'top:' + panelTop + 'px;left:' + panelLeft + 'px;min-width:' + panelW + 'px;max-width:min(100vw - 16px, 22rem)'"
          @click.stop>
-        <div class="overflow-y-auto overscroll-contain py-1 min-h-0 border-b border-transparent"
+        <div class="flex flex-col w-full overflow-y-auto overscroll-contain py-1 min-h-0 border-b border-transparent"
              x-bind:style="'max-height:' + _maxListH + 'px'">
             @if($emptyLabel !== null)
             <button type="button" @click="pick('')"
-                    class="w-full text-left px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">
+                    class="block w-full text-left px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 shrink-0">
                 {{ $emptyLabel }}
             </button>
             @endif
             <template x-for="(opt, idx) in options" :key="'csel-' + idx">
                 <button type="button" @click="pick(opt.value)"
-                        class="w-full text-left px-3 py-1.5 text-xs text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 truncate"
+                        class="block w-full shrink-0 text-left px-3 py-1.5 text-xs text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 truncate"
                         x-text="opt.label"></button>
             </template>
         </div>
