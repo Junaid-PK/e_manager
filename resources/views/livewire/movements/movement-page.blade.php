@@ -65,7 +65,12 @@
                 <input wire:model.live.debounce.300ms="dateFrom" type="date" placeholder="{{ __('app.from') }}" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 px-3 focus:ring-emerald-500 focus:border-emerald-500">
                 <input wire:model.live.debounce.300ms="dateTo" type="date" placeholder="{{ __('app.to') }}" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 px-3 focus:ring-emerald-500 focus:border-emerald-500">
 
-                <input wire:model.live.debounce.300ms="filterCategory" type="text" placeholder="{{ __('app.category') }}" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 px-3 w-32 focus:ring-emerald-500 focus:border-emerald-500">
+                <select wire:model.live="filterCategory" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 pl-3 pr-8 w-44 focus:ring-emerald-500 focus:border-emerald-500">
+                    <option value="">{{ __('app.all') }} {{ __('app.category') }}</option>
+                    @foreach ($movementCategories as $mc)
+                        <option value="{{ $mc->name }}">{{ $mc->name }}</option>
+                    @endforeach
+                </select>
 
                 <button wire:click="clearFilters" class="inline-flex items-center px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5 mr-1">
@@ -256,14 +261,18 @@
                                     @endforeach
                                 </select>
                             </td>
-                            <td class="px-4 py-3 text-sm whitespace-nowrap">
-                                <input type="text"
-                                       list="category-list"
-                                       value="{{ $movement->category ?? '' }}"
-                                       placeholder="—"
-                                       wire:blur="quickUpdateCategory({{ $movement->id }}, $event.target.value)"
-                                       wire:keydown.enter="quickUpdateCategory({{ $movement->id }}, $event.target.value)"
-                                       class="w-28 text-xs border-0 border-b border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded bg-transparent hover:bg-white dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-1 focus:ring-0 focus:border-emerald-500 placeholder-gray-400 dark:placeholder-gray-500 transition-colors">
+                            <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[7rem]">
+                                <select wire:change="quickUpdateCategory({{ $movement->id }}, $event.target.value)"
+                                        class="w-full max-w-[9rem] text-xs border-0 border-b border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded bg-transparent text-gray-900 dark:text-gray-100 py-1 pl-1 pr-7 focus:ring-0 focus:border-emerald-500 cursor-pointer transition-colors appearance-none bg-[length:0.85rem] bg-[right_0.1rem_center] bg-no-repeat"
+                                        style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke-width=%222%22 stroke=%22%236b7280%22%3E%3Cpath stroke-linecap=%22round%22 stroke-linejoin=%22round%22 d=%22M19.5 8.25l-7.5 7.5-7.5-7.5%22/%3E%3C/svg%3E');">
+                                    <option value="">—</option>
+                                    @foreach ($movementCategories as $mc)
+                                        <option value="{{ $mc->name }}" {{ ($movement->category ?? '') === $mc->name ? 'selected' : '' }}>{{ $mc->name }}</option>
+                                    @endforeach
+                                    @if ($movement->category && !$movementCategories->pluck('name')->contains($movement->category))
+                                        <option value="{{ $movement->category }}" selected>{{ $movement->category }}</option>
+                                    @endif
+                                </select>
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 max-w-[200px]">
                                 <span title="{{ $movement->concept }}">{{ \Illuminate\Support\Str::limit($movement->concept, 50) }}</span>
@@ -408,7 +417,15 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.category') }}</label>
-                                <input wire:model="formCategory" type="text" list="category-list" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                <select wire:model="formCategory" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                    <option value="">—</option>
+                                    @foreach ($movementCategories as $mc)
+                                        <option value="{{ $mc->name }}">{{ $mc->name }}</option>
+                                    @endforeach
+                                    @if ($formCategory && !$movementCategories->pluck('name')->contains($formCategory))
+                                        <option value="{{ $formCategory }}">{{ $formCategory }}</option>
+                                    @endif
+                                </select>
                                 @error('formCategory') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                             </div>
                             <div>
@@ -478,7 +495,12 @@
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{{ __('app.categorize_selected') }}</h3>
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.category') }}</label>
-                    <input wire:model="bulkCategory" type="text" list="category-list" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="—" autofocus>
+                    <select wire:model="bulkCategory" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500" autofocus>
+                        <option value="">—</option>
+                        @foreach ($movementCategories as $mc)
+                            <option value="{{ $mc->name }}">{{ $mc->name }}</option>
+                        @endforeach
+                    </select>
                 </div>
                 <div class="flex items-center justify-end space-x-3">
                     <button wire:click="$set('showCategoryModal', false)" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">{{ __('app.cancel') }}</button>
@@ -488,9 +510,4 @@
         </div>
     @endif
 
-    <datalist id="category-list">
-        @foreach ($movementCategories as $mc)
-            <option value="{{ $mc->name }}">
-        @endforeach
-    </datalist>
 </div>

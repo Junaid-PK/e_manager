@@ -273,7 +273,7 @@ class MovementPage extends Component
         }
 
         if ($this->filterCategory) {
-            $query->where('category', 'like', "%{$this->filterCategory}%");
+            $query->where('category', $this->filterCategory);
         }
 
         if ($this->dateFrom) {
