@@ -254,8 +254,37 @@ class InvoicePage extends Component
 
     public function quickUpdatePaymentType(int $id, string $type): void
     {
-        Invoice::findOrFail($id)->update(['payment_type' => $type ?: null]);
+        $type = trim($type);
+        if ($type === '') {
+            Invoice::findOrFail($id)->update(['payment_type' => null]);
+        } else {
+            Invoice::findOrFail($id)->update(['payment_type' => $this->resolvePaymentTypeSlug($type)]);
+        }
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
+    }
+
+    public function quickUpdateBankName(int $id, string $name): void
+    {
+        Invoice::findOrFail($id)->update(['bank_name' => trim($name) ?: null]);
+        $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
+    }
+
+    private function resolvePaymentTypeSlug(string $input): string
+    {
+        $lower = strtolower(trim($input));
+        foreach (Invoice::PAYMENT_TYPES as $pt) {
+            if ($lower === $pt) {
+                return $pt;
+            }
+            if ($lower === strtolower(__('app.' . $pt))) {
+                return $pt;
+            }
+        }
+        $map = [
+            'transferencia' => 'transfer', 'cheque' => 'cheque', 'confirming' => 'confirming',
+            'efectivo' => 'cash', 'cash' => 'cash', 'other' => 'other', 'otro' => 'other', 'otros' => 'other',
+        ];
+        return $map[$lower] ?? 'other';
     }
 
     public function quickStatusUpdate(int $id, string $status): void
