@@ -171,7 +171,17 @@ class InvoiceImportService
             ?? $base()->where('code', $value)->first()
             ?? $base()->where('name', 'like', "%{$value}%")->first()
             ?? $base()->where('code', 'like', "%{$value}%")->first();
-        return $project?->id;
+
+        if (! $project) {
+            $project = Project::create([
+                'company_id' => $companyId,
+                'name' => $value,
+                'code' => null,
+                'status' => 'active',
+            ]);
+        }
+
+        return $project->id;
     }
 
     private function isFormula(?string $value): bool

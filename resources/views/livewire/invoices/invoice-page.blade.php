@@ -261,14 +261,7 @@
                                 <input type="checkbox" wire:model.live="selected" value="{{ $invoice->id }}" class="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 dark:bg-gray-700">
                             </td>
                             <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">{{ $invoice->invoice_number }}</td>
-                            <td class="px-4 py-3 text-sm max-w-[220px]">
-                                <input type="text"
-                                       value="{{ $invoice->project?->name ?? '' }}"
-                                       placeholder="—"
-                                       wire:blur="quickUpdateProjectText({{ $invoice->id }}, $event.target.value)"
-                                       wire:keydown.enter="quickUpdateProjectText({{ $invoice->id }}, $event.target.value)"
-                                       class="w-full text-xs border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500">
-                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 max-w-[220px]">{{ $invoice->project?->name ?? '—' }}</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->client?->name ?? '—' }}</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->month ?? '—' }}</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-right">{{ fmt_number($invoice->amount) }} &euro;</td>
