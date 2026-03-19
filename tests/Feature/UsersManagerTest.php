@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Livewire\Settings\UsersManager;
+use App\Livewire\Users\UsersPage;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -32,7 +32,7 @@ class UsersManagerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        Livewire::test(UsersManager::class)
+        Livewire::test(UsersPage::class)
             ->assertSee($this->admin->name)
             ->assertSee($this->admin->email);
     }
@@ -44,7 +44,7 @@ class UsersManagerTest extends TestCase
         $this->actingAs($this->admin);
         $viewerRole = Role::create(['name' => 'viewer']);
 
-        Livewire::test(UsersManager::class)
+        Livewire::test(UsersPage::class)
             ->set('name', 'Jane Doe')
             ->set('email', 'jane@example.com')
             ->set('password', 'secret123')
@@ -62,7 +62,7 @@ class UsersManagerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        Livewire::test(UsersManager::class)
+        Livewire::test(UsersPage::class)
             ->set('name', '')
             ->set('email', 'test@example.com')
             ->set('password', 'secret123')
@@ -74,7 +74,7 @@ class UsersManagerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        Livewire::test(UsersManager::class)
+        Livewire::test(UsersPage::class)
             ->set('name', 'Test')
             ->set('email', 'not-an-email')
             ->set('password', 'secret123')
@@ -86,7 +86,7 @@ class UsersManagerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        Livewire::test(UsersManager::class)
+        Livewire::test(UsersPage::class)
             ->set('name', 'Test')
             ->set('email', 'test@example.com')
             ->set('password', 'short')
@@ -101,7 +101,7 @@ class UsersManagerTest extends TestCase
 
         $countBefore = User::count();
 
-        Livewire::test(UsersManager::class)
+        Livewire::test(UsersPage::class)
             ->set('name', 'Another')
             ->set('email', 'dup@example.com')
             ->set('password', 'secret123')
@@ -118,7 +118,7 @@ class UsersManagerTest extends TestCase
         $this->actingAs($this->admin);
         $user = User::factory()->create(['name' => 'Edit Me', 'email' => 'edit@example.com']);
 
-        Livewire::test(UsersManager::class)
+        Livewire::test(UsersPage::class)
             ->call('editUser', $user->id)
             ->assertSet('name', 'Edit Me')
             ->assertSet('email', 'edit@example.com')
@@ -133,7 +133,7 @@ class UsersManagerTest extends TestCase
         $this->actingAs($this->admin);
         $user = User::factory()->create(['name' => 'Old Name', 'email' => 'old@example.com']);
 
-        Livewire::test(UsersManager::class)
+        Livewire::test(UsersPage::class)
             ->call('editUser', $user->id)
             ->set('name', 'New Name')
             ->set('email', 'new@example.com')
@@ -152,7 +152,7 @@ class UsersManagerTest extends TestCase
         $user = User::factory()->create(['password' => Hash::make('original_password')]);
         $originalHash = $user->password;
 
-        Livewire::test(UsersManager::class)
+        Livewire::test(UsersPage::class)
             ->call('editUser', $user->id)
             ->set('password', '')
             ->call('updateUser')
@@ -168,7 +168,7 @@ class UsersManagerTest extends TestCase
         $user = User::factory()->create(['password' => Hash::make('original_password')]);
         $originalHash = $user->password;
 
-        Livewire::test(UsersManager::class)
+        Livewire::test(UsersPage::class)
             ->call('editUser', $user->id)
             ->set('password', 'newpassword123')
             ->call('updateUser')
@@ -185,7 +185,7 @@ class UsersManagerTest extends TestCase
         User::factory()->create(['email' => 'taken@example.com']);
         $user = User::factory()->create(['email' => 'mine@example.com']);
 
-        Livewire::test(UsersManager::class)
+        Livewire::test(UsersPage::class)
             ->call('editUser', $user->id)
             ->set('email', 'taken@example.com')
             ->call('updateUser')
@@ -197,7 +197,7 @@ class UsersManagerTest extends TestCase
         $this->actingAs($this->admin);
         $user = User::factory()->create(['email' => 'mine@example.com']);
 
-        Livewire::test(UsersManager::class)
+        Livewire::test(UsersPage::class)
             ->call('editUser', $user->id)
             ->set('email', 'mine@example.com')
             ->call('updateUser')
@@ -213,7 +213,7 @@ class UsersManagerTest extends TestCase
         $user = User::factory()->create();
         $user->roles()->attach($viewerRole->id);
 
-        Livewire::test(UsersManager::class)
+        Livewire::test(UsersPage::class)
             ->call('deleteUser', $user->id);
 
         $this->assertNull(User::find($user->id));
@@ -224,7 +224,7 @@ class UsersManagerTest extends TestCase
         $this->actingAs($this->admin);
 
         // admin is the only admin user
-        $component = Livewire::test(UsersManager::class)
+        $component = Livewire::test(UsersPage::class)
             ->call('deleteUser', $this->admin->id);
 
         $component->assertHasErrors(['deleteUser']);
@@ -238,7 +238,7 @@ class UsersManagerTest extends TestCase
         $secondAdmin = User::factory()->create();
         $secondAdmin->roles()->attach($this->adminRole->id);
 
-        Livewire::test(UsersManager::class)
+        Livewire::test(UsersPage::class)
             ->call('deleteUser', $this->admin->id);
 
         $this->assertNull(User::find($this->admin->id));
@@ -252,7 +252,7 @@ class UsersManagerTest extends TestCase
         $viewerRole = Role::create(['name' => 'viewer']);
         $user = User::factory()->create();
 
-        Livewire::test(UsersManager::class)
+        Livewire::test(UsersPage::class)
             ->call('assignRoles', $user->id, [$viewerRole->id]);
 
         $user->refresh();

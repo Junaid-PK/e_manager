@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Livewire\Settings\RolesManager;
+use App\Livewire\Roles\RolesPage;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
@@ -32,7 +32,7 @@ class RolesManagerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        Livewire::test(RolesManager::class)
+        Livewire::test(RolesPage::class)
             ->assertSee('admin');
     }
 
@@ -42,7 +42,7 @@ class RolesManagerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        Livewire::test(RolesManager::class)
+        Livewire::test(RolesPage::class)
             ->set('roleName', 'editor')
             ->call('createRole')
             ->assertHasNoErrors();
@@ -57,7 +57,7 @@ class RolesManagerTest extends TestCase
 
         $countBefore = Role::count();
 
-        Livewire::test(RolesManager::class)
+        Livewire::test(RolesPage::class)
             ->set('roleName', 'editor')
             ->call('createRole')
             ->assertHasErrors(['roleName']);
@@ -69,7 +69,7 @@ class RolesManagerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        Livewire::test(RolesManager::class)
+        Livewire::test(RolesPage::class)
             ->set('roleName', '')
             ->call('createRole')
             ->assertHasErrors(['roleName']);
@@ -84,7 +84,7 @@ class RolesManagerTest extends TestCase
         $perm = Permission::create(['name' => 'invoices.view']);
         $role->permissions()->attach($perm->id);
 
-        Livewire::test(RolesManager::class)
+        Livewire::test(RolesPage::class)
             ->call('editRole', $role->id)
             ->assertSet('roleName', 'editor')
             ->assertSet('editingRoleId', $role->id)
@@ -100,7 +100,7 @@ class RolesManagerTest extends TestCase
         $perm1 = Permission::create(['name' => 'invoices.view']);
         $perm2 = Permission::create(['name' => 'invoices.edit']);
 
-        Livewire::test(RolesManager::class)
+        Livewire::test(RolesPage::class)
             ->call('editRole', $role->id)
             ->set('roleName', 'senior-editor')
             ->set('rolePermissions', ['invoices.view', 'invoices.edit'])
@@ -117,7 +117,7 @@ class RolesManagerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        Livewire::test(RolesManager::class)
+        Livewire::test(RolesPage::class)
             ->call('editRole', $this->adminRole->id)
             ->set('roleName', 'superadmin')
             ->call('saveRole')
@@ -132,7 +132,7 @@ class RolesManagerTest extends TestCase
         $this->actingAs($this->admin);
         $perm = Permission::create(['name' => 'invoices.view']);
 
-        Livewire::test(RolesManager::class)
+        Livewire::test(RolesPage::class)
             ->call('editRole', $this->adminRole->id)
             ->set('roleName', 'admin')
             ->set('rolePermissions', ['invoices.view'])
@@ -146,7 +146,7 @@ class RolesManagerTest extends TestCase
         Role::create(['name' => 'viewer']);
         $role = Role::create(['name' => 'editor']);
 
-        Livewire::test(RolesManager::class)
+        Livewire::test(RolesPage::class)
             ->call('editRole', $role->id)
             ->set('roleName', 'viewer')
             ->call('saveRole')
@@ -160,7 +160,7 @@ class RolesManagerTest extends TestCase
         $this->actingAs($this->admin);
         $role = Role::create(['name' => 'temp-role']);
 
-        Livewire::test(RolesManager::class)
+        Livewire::test(RolesPage::class)
             ->call('deleteRole', $role->id);
 
         $this->assertNull(Role::find($role->id));
@@ -170,7 +170,7 @@ class RolesManagerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        Livewire::test(RolesManager::class)
+        Livewire::test(RolesPage::class)
             ->call('deleteRole', $this->adminRole->id)
             ->assertHasErrors(['deleteRole']);
 
@@ -184,7 +184,7 @@ class RolesManagerTest extends TestCase
         $user = User::factory()->create();
         $user->roles()->attach($role->id);
 
-        Livewire::test(RolesManager::class)
+        Livewire::test(RolesPage::class)
             ->call('deleteRole', $role->id)
             ->assertHasErrors(['deleteRole']);
 
@@ -198,7 +198,7 @@ class RolesManagerTest extends TestCase
         $perm = Permission::create(['name' => 'invoices.view']);
         $role->permissions()->attach($perm->id);
 
-        Livewire::test(RolesManager::class)
+        Livewire::test(RolesPage::class)
             ->call('deleteRole', $role->id);
 
         $this->assertNull(Role::find($role->id));
@@ -212,8 +212,8 @@ class RolesManagerTest extends TestCase
     {
         $this->actingAs($this->admin);
 
-        $component = Livewire::test(RolesManager::class);
-        $matrix = (new RolesManager())->getPermissionMatrix();
+        $component = Livewire::test(RolesPage::class);
+        $matrix = (new RolesPage())->getPermissionMatrix();
 
         $this->assertArrayHasKey('invoices', $matrix);
         $this->assertContains('view', $matrix['invoices']);

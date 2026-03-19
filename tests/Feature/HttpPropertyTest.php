@@ -49,6 +49,8 @@ class HttpPropertyTest extends TestCase
             route('credit-lines'),
             route('reminders'),
             route('reports'),
+            route('users'),
+            route('roles'),
             route('settings'),
         ];
 
@@ -83,6 +85,8 @@ class HttpPropertyTest extends TestCase
             route('credit-lines'),
             route('reminders'),
             route('reports'),
+            route('users'),
+            route('roles'),
             route('settings'),
         ];
 
@@ -113,8 +117,8 @@ class HttpPropertyTest extends TestCase
 
         $responseAdmin = $this->actingAs($admin)->get(route('settings'));
         $responseAdmin->assertOk();
-        $responseAdmin->assertSee('Users');
-        $responseAdmin->assertSee('Roles & Permissions', false);
+        $responseAdmin->assertDontSee('switchSection(\'users\')');
+        $responseAdmin->assertDontSee('switchSection(\'roles\')');
 
         // For non-admin
         $user = User::factory()->create();
@@ -126,7 +130,7 @@ class HttpPropertyTest extends TestCase
 
         $responseUser = $this->actingAs($user)->get(route('settings'));
         $responseUser->assertOk();
-        $responseUser->assertDontSee('wire:click="switchSection(\'users\')"', false);
-        $responseUser->assertDontSee('wire:click="switchSection(\'roles\')"', false);
+        $responseUser->assertDontSee('switchSection(\'users\')');
+        $responseUser->assertDontSee('switchSection(\'roles\')');
     }
 }
