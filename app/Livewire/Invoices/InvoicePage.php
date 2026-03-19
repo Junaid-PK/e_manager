@@ -48,6 +48,7 @@ class InvoicePage extends Component
     public string $filterClientId = '';
     public string $filterMonth = '';
     public string $filterPaymentType = '';
+    public string $filterBankName = '';
     public string $dateFrom = '';
     public string $dateTo = '';
 
@@ -113,6 +114,11 @@ class InvoicePage extends Component
     }
 
     public function updatedFilterPaymentType(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterBankName(): void
     {
         $this->resetPage();
     }
@@ -258,7 +264,13 @@ class InvoicePage extends Component
         if ($type === '') {
             Invoice::findOrFail($id)->update(['payment_type' => null]);
         } else {
-            Invoice::findOrFail($id)->update(['payment_type' => $this->resolvePaymentTypeSlug($type)]);
+            // Use known slug if it matches, otherwise store the custom value as-is
+            $slug = in_array($type, Invoice::PAYMENT_TYPES) ? $type : $this->resolvePaymentTypeSlug($type);
+            // If still not a known type, store the raw custom value
+            if (! in_array($slug, Invoice::PAYMENT_TYPES)) {
+                $slug = $type;
+            }
+            Invoice::findOrFail($id)->update(['payment_type' => $slug]);
         }
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
@@ -266,6 +278,15 @@ class InvoicePage extends Component
     public function quickUpdateBankName(int $id, string $name): void
     {
         Invoice::findOrFail($id)->update(['bank_name' => trim($name) ?: null]);
+        $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
+    }
+
+    public function quickUpdateAmountPaid(int $id, string $value): void
+    {
+        $invoice = Invoice::findOrFail($id);
+        $amountPaid = max(0, (float) str_replace(',', '.', $value));
+        $amountRemaining = max(0, round((float) $invoice->total - $amountPaid, 2));
+        $invoice->update(['amount_paid' => $amountPaid, 'amount_remaining' => $amountRemaining]);
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
 
@@ -430,6 +451,7 @@ class InvoicePage extends Component
         $this->filterClientId = '';
         $this->filterMonth = '';
         $this->filterPaymentType = '';
+        $this->filterBankName = '';
         $this->dateFrom = '';
         $this->dateTo = '';
         $this->resetPage();
@@ -453,6 +475,8 @@ class InvoicePage extends Component
             $query->where(function ($q) use ($search) {
                 $q->where('invoice_number', 'like', "%{$search}%")
                   ->orWhere('notes', 'like', "%{$search}%")
+                  ->orWhere('payment_type', 'like', "%{$search}%")
+                  ->orWhere('bank_name', 'like', "%{$search}%")
                   ->orWhereHas('company', fn ($q) => $q->where('name', 'like', "%{$search}%"))
                   ->orWhereHas('client', fn ($q) => $q->where('name', 'like', "%{$search}%"));
             });
@@ -476,6 +500,10 @@ class InvoicePage extends Component
 
         if ($this->filterPaymentType) {
             $query->where('payment_type', $this->filterPaymentType);
+        }
+
+        if ($this->filterBankName) {
+            $query->where('bank_name', 'like', "%{$this->filterBankName}%");
         }
 
         if ($this->dateFrom) {

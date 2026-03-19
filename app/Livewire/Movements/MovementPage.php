@@ -205,7 +205,8 @@ class MovementPage extends Component
 
     public function quickUpdateType(int $id, string $type): void
     {
-        BankMovement::findOrFail($id)->update(['type' => $type]);
+        $slug = $this->resolveOrCreateMovementType(trim($type));
+        BankMovement::findOrFail($id)->update(['type' => $slug]);
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
 
@@ -254,7 +255,9 @@ class MovementPage extends Component
             $query->where(function ($q) {
                 $q->where('concept', 'like', "%{$this->search}%")
                   ->orWhere('beneficiary', 'like', "%{$this->search}%")
-                  ->orWhere('reference', 'like', "%{$this->search}%");
+                  ->orWhere('reference', 'like', "%{$this->search}%")
+                  ->orWhere('type', 'like', "%{$this->search}%")
+                  ->orWhere('category', 'like', "%{$this->search}%");
             });
         }
 
@@ -300,6 +303,16 @@ class MovementPage extends Component
         $maxOrder = (int) MovementCategory::max('sort_order');
         MovementCategory::create(['name' => $value, 'sort_order' => $maxOrder + 1]);
         return $value;
+    }
+
+    private function resolveOrCreateMovementType(string $value): string
+    {
+        if ($value === '') return 'transfer';
+        $existing = MovementType::where('slug', $value)->orWhere('name', $value)->first();
+        if ($existing) return $existing->slug;
+        $maxOrder = (int) MovementType::max('sort_order');
+        $type = MovementType::create(['name' => $value, 'sort_order' => $maxOrder + 1]);
+        return $type->slug;
     }
 
     private function resetForm(): void

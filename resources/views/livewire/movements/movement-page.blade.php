@@ -259,6 +259,7 @@
                                     wire:key="type-{{ $movement->id }}"
                                     :options="$movementTypeOpts"
                                     :value="$movement->type ?? ''"
+                                    allow-custom
                                     submit-method="quickUpdateType"
                                     :submit-arg="$movement->id" />
                             </td>
