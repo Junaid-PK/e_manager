@@ -21,6 +21,7 @@ $opts = collect($options)->map(function ($o) {
 
 <div class="relative" x-data="{
     open: false,
+    search: '',
     customInput: '',
     selected: @js((string) $value),
     options: @js($opts),
@@ -33,6 +34,11 @@ $opts = collect($options)->map(function ($o) {
     panelTop: 0,
     panelLeft: 0,
     panelW: 200,
+    get filtered() {
+        if (!this.search) return this.options;
+        const q = this.search.toLowerCase();
+        return this.options.filter(o => o.label.toLowerCase().includes(q));
+    },
     placePanel() {
         const el = this.$refs.trigger;
         if (!el) return;
@@ -42,9 +48,9 @@ $opts = collect($options)->map(function ($o) {
         this.panelTop = r.bottom + gap;
         this.panelLeft = r.left;
         this.panelW = Math.max(r.width, 200);
-        this._maxListH = Math.max(120, maxH - (this.allowCustom ? 56 : 0));
+        this._maxListH = Math.max(120, maxH - (this.allowCustom ? 56 : 0) - 40);
     },
-    _maxListH: 260,
+    _maxListH: 220,
     label() {
         if (!this.selected) return this.placeholder;
         const o = this.options.find(x => x.value === this.selected);
@@ -52,6 +58,7 @@ $opts = collect($options)->map(function ($o) {
     },
     pick(v) {
         this.selected = v;
+        this.search = '';
         this.customInput = '';
         this.open = false;
         if (this.wireModel) $wire.set(this.wireModel, v);
@@ -67,10 +74,11 @@ $opts = collect($options)->map(function ($o) {
     },
     onOpen() {
         this.open = true;
+        this.search = '';
         this.customInput = '';
         this.$nextTick(() => {
             this.placePanel();
-            if (this.allowCustom) this.$refs.newval?.focus?.();
+            this.$refs.searchInput?.focus();
         });
     }
 }" @click.outside="open = false" @keydown.escape.window="open = false"
@@ -89,22 +97,31 @@ $opts = collect($options)->map(function ($o) {
          style="display: none;"
          x-bind:style="'top:' + panelTop + 'px;left:' + panelLeft + 'px;min-width:' + panelW + 'px;max-width:min(100vw - 16px, 22rem)'"
          @click.stop>
-        <div class="flex flex-col w-full overflow-y-auto overscroll-contain py-1 min-h-0 border-b border-transparent"
+        {{-- Search bar --}}
+        <div class="p-2 border-b border-gray-100 dark:border-gray-700 shrink-0">
+            <input type="text" x-ref="searchInput" x-model="search"
+                   @keydown.escape.stop="open = false"
+                   placeholder="{{ __('app.search') }}…"
+                   class="w-full text-xs border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-2 py-1.5 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500">
+        </div>
+        <div class="flex flex-col w-full overflow-y-auto overscroll-contain py-1 min-h-0"
              x-bind:style="'max-height:' + _maxListH + 'px'">
             @if($emptyLabel !== null)
             <button type="button" @click="pick('')"
+                    x-show="!search"
                     class="block w-full text-left px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 shrink-0">
                 {{ $emptyLabel }}
             </button>
             @endif
-            <template x-for="(opt, idx) in options" :key="'csel-' + idx">
+            <template x-for="(opt, idx) in filtered" :key="'csel-' + idx">
                 <button type="button" @click="pick(opt.value)"
                         class="block w-full shrink-0 text-left px-3 py-1.5 text-xs text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 truncate"
                         x-text="opt.label"></button>
             </template>
+            <p x-show="filtered.length === 0" class="px-3 py-2 text-xs text-gray-400 dark:text-gray-500">{{ __('app.no_results') }}</p>
         </div>
         <template x-if="allowCustom">
-            <div class="p-2 bg-gray-50 dark:bg-gray-900/40 shrink-0">
+            <div class="p-2 bg-gray-50 dark:bg-gray-900/40 border-t border-gray-100 dark:border-gray-700 shrink-0">
                 <div class="flex gap-1.5">
                     <input type="text" x-ref="newval" x-model="customInput"
                            @keydown.enter.prevent="saveCustom()"

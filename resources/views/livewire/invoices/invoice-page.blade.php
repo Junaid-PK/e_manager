@@ -326,12 +326,24 @@
                                     :submit-arg="$invoice->id" />
                             </td>
                             <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
-                                <input type="text"
-                                       value="{{ fmt_number($invoice->amount_paid ?? 0) }}"
-                                       placeholder="0"
-                                       wire:blur="quickUpdateAmountPaid({{ $invoice->id }}, $event.target.value)"
-                                       wire:keydown.enter="quickUpdateAmountPaid({{ $invoice->id }}, $event.target.value)"
-                                       class="w-24 text-xs text-right border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 {{ (float) $invoice->amount_paid > 0 ? 'text-green-600 dark:text-green-400 font-medium' : 'text-gray-400' }}">
+                                <div x-data="{ editing: false, val: '{{ addslashes(fmt_number($invoice->amount_paid ?? 0)) }}' }" class="flex items-center justify-end gap-1">
+                                    <template x-if="!editing">
+                                        <span class="{{ (float) $invoice->amount_paid > 0 ? 'text-green-600 dark:text-green-400 font-medium' : 'text-gray-400' }}" x-text="val + ' €'"></span>
+                                    </template>
+                                    <template x-if="editing">
+                                        <input type="text" x-ref="amtInput" x-model="val"
+                                               @keydown.enter="editing = false; $wire.call('quickUpdateAmountPaid', {{ $invoice->id }}, val)"
+                                               @blur="editing = false; $wire.call('quickUpdateAmountPaid', {{ $invoice->id }}, val)"
+                                               @keydown.escape="editing = false"
+                                               class="w-24 text-xs text-right border border-emerald-400 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500">
+                                    </template>
+                                    <button @click="editing = true; $nextTick(() => $refs.amtInput?.focus())"
+                                            class="text-gray-300 hover:text-emerald-500 dark:text-gray-600 dark:hover:text-emerald-400 transition-colors flex-shrink-0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                                        </svg>
+                                    </button>
+                                </div>
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 max-w-[140px]"><span title="{{ $invoice->company?->name }}">{{ \Illuminate\Support\Str::limit($invoice->company?->name ?? '—', 28) }}</span></td>
                             <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
