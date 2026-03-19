@@ -139,7 +139,15 @@
             </div>
         @endif
 
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto"
+             x-data
+             @keydown.window="
+                 if (event.key === 'F2' && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)) {
+                     event.preventDefault();
+                     const first = document.querySelector('[data-nav-cell][data-row=\'0\'][data-col=\'0\']');
+                     first?.focus();
+                 }
+             ">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead class="bg-gray-50 dark:bg-gray-700/50">
                     <tr>
@@ -260,8 +268,37 @@
                 @php
                     $invoicePaymentOptions = collect(\App\Models\Invoice::PAYMENT_TYPES)->map(fn ($pt) => ['value' => $pt, 'label' => __('app.' . $pt)])->all();
                 @endphp
-                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"
+                       x-data="{
+                           cells() {
+                               return Array.from(this.$el.querySelectorAll('[data-nav-cell]'))
+                                   .sort((a,b) => {
+                                       const ra = +a.dataset.row, rb = +b.dataset.row;
+                                       const ca = +a.dataset.col, cb = +b.dataset.col;
+                                       return ra !== rb ? ra - rb : ca - cb;
+                                   });
+                           },
+                           focusCell(row, col) {
+                               const t = this.$el.querySelector('[data-nav-cell][data-row=\''+row+'\'][data-col=\''+col+'\']');
+                               t?.focus();
+                           },
+                           moveNext(row, col) {
+                               const all = this.cells();
+                               const idx = all.findIndex(el => +el.dataset.row === row && +el.dataset.col === col);
+                               const next = all[idx + 1];
+                               if (next) next.focus();
+                           },
+                           movePrev(row, col) {
+                               const all = this.cells();
+                               const idx = all.findIndex(el => +el.dataset.row === row && +el.dataset.col === col);
+                               const prev = all[idx - 1];
+                               if (prev) prev.focus();
+                           }
+                       }"
+                       @cell-next.window="moveNext($event.detail.row, $event.detail.col)"
+                       @cell-prev.window="movePrev($event.detail.row, $event.detail.col)">
                     @forelse ($invoices as $invoice)
+                        @php $rowIdx = $loop->index; @endphp
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" wire:key="invoice-{{ $invoice->id }}">
                             <td class="px-4 py-3">
                                 <input type="checkbox" wire:model.live="selected" value="{{ $invoice->id }}" class="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 dark:bg-gray-700">
@@ -293,7 +330,9 @@
                                         :value="$invoice->status"
                                         :badge-colors="$statusColors"
                                         submit-method="quickStatusUpdate"
-                                        :submit-arg="$invoice->id" />
+                                        :submit-arg="$invoice->id"
+                                        :nav-row="$rowIdx"
+                                        :nav-col="0" />
                                 </div>
                             </td>
                             <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[8rem] align-top">
@@ -304,7 +343,9 @@
                                     :empty-label="__('app.payment_type') . '…'"
                                     allow-custom
                                     submit-method="quickUpdatePaymentType"
-                                    :submit-arg="$invoice->id" />
+                                    :submit-arg="$invoice->id"
+                                    :nav-row="$rowIdx"
+                                    :nav-col="1" />
                             </td>
                             <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[9rem] align-top">
                                 <x-custom-select compact
@@ -314,7 +355,9 @@
                                     placeholder="—"
                                     allow-custom
                                     submit-method="quickUpdateBankName"
-                                    :submit-arg="$invoice->id" />
+                                    :submit-arg="$invoice->id"
+                                    :nav-row="$rowIdx"
+                                    :nav-col="2" />
                             </td>
                             <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
                                 <div x-data="{ editing: false, val: '{{ addslashes(fmt_number($invoice->amount_paid ?? 0)) }}' }" class="flex items-center justify-end gap-1">

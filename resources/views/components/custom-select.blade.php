@@ -1,14 +1,16 @@
 @props([
-    'options' => [],
-    'value' => '',
+    'options'     => [],
+    'value'       => '',
     'allowCustom' => false,
     'placeholder' => '—',
-    'compact' => false,
-    'badgeColors' => null,   {{-- assoc array: value => 'tailwind classes' for pill-style trigger --}}
-    'submitMethod' => null,
-    'submitArg' => null,
-    'wireModel' => null,
-    'emptyLabel' => null,
+    'compact'     => false,
+    'badgeColors' => null,
+    'submitMethod'=> null,
+    'submitArg'   => null,
+    'wireModel'   => null,
+    'emptyLabel'  => null,
+    'navRow'      => null,   {{-- integer row index for keyboard nav --}}
+    'navCol'      => null,   {{-- integer col index (0=status,1=payment,2=bank) --}}
 ])
 
 @php
@@ -19,9 +21,9 @@ $opts = collect($options)->map(function ($o) {
     return ['value' => (string) $o, 'label' => (string) $o];
 })->values()->all();
 
-$isBadge = !empty($badgeColors);
-// Pass badge colors as JSON for Alpine
+$isBadge        = !empty($badgeColors);
 $badgeColorsJson = $isBadge ? json_encode($badgeColors) : 'null';
+$hasNav          = $navRow !== null && $navCol !== null;
 @endphp
 
 <div class="relative" x-data="{
@@ -38,10 +40,9 @@ $badgeColorsJson = $isBadge ? json_encode($badgeColors) : 'null';
     submitArg: @js($submitArg),
     wireModel: @js($wireModel),
     badgeColors: {{ $badgeColorsJson }},
-    panelTop: 0,
-    panelLeft: 0,
-    panelW: 200,
-    _maxListH: 220,
+    navRow: @js($navRow),
+    navCol: @js($navCol),
+    panelTop: 0, panelLeft: 0, panelW: 200, _maxListH: 220,
     get filtered() {
         if (!this.search) return this.options;
         const q = this.search.toLowerCase();
@@ -73,11 +74,18 @@ $badgeColorsJson = $isBadge ? json_encode($badgeColors) : 'null';
         this.customInput = '';
         this.cursor = -1;
         this.open = false;
-        this.$refs.trigger?.focus();
         if (this.wireModel) $wire.set(this.wireModel, v);
         if (this.submitMethod) {
             if (this.submitArg !== null && this.submitArg !== '') $wire.call(this.submitMethod, this.submitArg, v);
             else $wire.call(this.submitMethod, v);
+        }
+        // After picking, move focus to next nav cell
+        if (this.navRow !== null) {
+            this.$nextTick(() => {
+                window.dispatchEvent(new CustomEvent('cell-next', { detail: { row: this.navRow, col: this.navCol } }));
+            });
+        } else {
+            this.$refs.trigger?.focus();
         }
     },
     saveCustom() {
@@ -95,10 +103,23 @@ $badgeColorsJson = $isBadge ? json_encode($badgeColors) : 'null';
             this.$refs.searchInput?.focus();
         });
     },
-    onClose() {
+    onClose(refocus = true) {
         this.open = false;
         this.search = '';
         this.cursor = -1;
+        if (refocus) this.$refs.trigger?.focus();
+    },
+    navNext() {
+        this.onClose(false);
+        if (this.navRow !== null) {
+            window.dispatchEvent(new CustomEvent('cell-next', { detail: { row: this.navRow, col: this.navCol } }));
+        }
+    },
+    navPrev() {
+        this.onClose(false);
+        if (this.navRow !== null) {
+            window.dispatchEvent(new CustomEvent('cell-prev', { detail: { row: this.navRow, col: this.navCol } }));
+        }
     },
     moveCursor(dir) {
         const list = this.filtered;
@@ -124,25 +145,31 @@ $badgeColorsJson = $isBadge ? json_encode($badgeColors) : 'null';
     {{-- Trigger: badge style --}}
     @if($isBadge)
     <button type="button" x-ref="trigger"
+            @if($hasNav) data-nav-cell data-row="{{ $navRow }}" data-col="{{ $navCol }}" @endif
             @click="open ? onClose() : onOpen()"
-            @keydown.enter.prevent="open ? onClose() : onOpen()"
-            @keydown.space.prevent="open ? onClose() : onOpen()"
+            @keydown.enter.prevent="open ? confirmCursor() : onOpen()"
+            @keydown.space.prevent="!open && onOpen()"
             @keydown.arrow-down.prevent="open ? moveCursor(1) : onOpen()"
             @keydown.arrow-up.prevent="open && moveCursor(-1)"
+            @keydown.tab.prevent="navNext()"
+            @keydown.shift.tab.prevent="navPrev()"
             :class="badgeClass()"
             class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1">
         <span x-text="label()"></span>
         <svg class="w-3 h-3 opacity-70" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
     </button>
 
-    {{-- Trigger: compact box or full box --}}
+    {{-- Trigger: compact / full box --}}
     @else
     <button type="button" x-ref="trigger"
+            @if($hasNav) data-nav-cell data-row="{{ $navRow }}" data-col="{{ $navCol }}" @endif
             @click="open ? onClose() : onOpen()"
-            @keydown.enter.prevent="open ? onClose() : onOpen()"
-            @keydown.space.prevent="open ? onClose() : onOpen()"
+            @keydown.enter.prevent="open ? confirmCursor() : onOpen()"
+            @keydown.space.prevent="!open && onOpen()"
             @keydown.arrow-down.prevent="open ? moveCursor(1) : onOpen()"
             @keydown.arrow-up.prevent="open && moveCursor(-1)"
+            @keydown.tab.prevent="navNext()"
+            @keydown.shift.tab.prevent="navPrev()"
             class="{{ $compact ? 'w-full max-w-[10rem] text-left text-xs border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 pl-2 pr-7' : 'w-full text-left text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 pl-3 pr-8' }} focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 truncate relative">
         <span x-text="label()" class="block truncate"></span>
         <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-1.5 text-gray-500">
@@ -171,7 +198,8 @@ $badgeColorsJson = $isBadge ? json_encode($badgeColors) : 'null';
                    @keydown.arrow-up.prevent="moveCursor(-1)"
                    @keydown.enter.prevent="confirmCursor()"
                    @keydown.escape.stop="onClose()"
-                   @keydown.tab="onClose()"
+                   @keydown.tab.prevent="navNext()"
+                   @keydown.shift.tab.prevent="navPrev()"
                    placeholder="{{ __('app.search') }}…"
                    class="w-full text-xs border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-2 py-1.5 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
         </div>
@@ -206,6 +234,8 @@ $badgeColorsJson = $isBadge ? json_encode($badgeColors) : 'null';
                     <input type="text" x-ref="newval" x-model="customInput"
                            @keydown.enter.prevent="saveCustom()"
                            @keydown.escape.stop="onClose()"
+                           @keydown.tab.prevent="navNext()"
+                           @keydown.shift.tab.prevent="navPrev()"
                            placeholder="{{ __('app.add_new') }}"
                            class="min-w-0 flex-1 text-xs border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-2 py-1.5 focus:ring-1 focus:ring-emerald-500 outline-none">
                     <button type="button" @click="saveCustom()"
