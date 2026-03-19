@@ -6,30 +6,44 @@ use App\Livewire\Traits\WithBulkActions;
 use App\Livewire\Traits\WithFiltering;
 use App\Livewire\Traits\WithSorting;
 use App\Models\CreditLine;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class CreditLinePage extends Component
 {
-    use WithPagination, WithSorting, WithFiltering, WithBulkActions;
+    use WithBulkActions, WithFiltering, WithPagination, WithSorting;
 
     public bool $showFormModal = false;
+
     public bool $showDeleteModal = false;
+
     public ?int $editingId = null;
 
     public string $filterEntityType = '';
+
     public string $filterStatus = '';
+
     public string $filterYear = '';
 
     public string $formEntityName = '';
+
     public string $formEntityType = 'bank';
+
     public string $formYear = '';
+
     public string $formTotalAmount = '0';
+
     public string $formAmountPaid = '0';
+
     public string $formInterestRate = '0';
+
     public string $formStartDate = '';
+
     public string $formDueDate = '';
+
     public string $formStatus = 'active';
+
     public string $formNotes = '';
 
     protected function rules(): array
@@ -48,9 +62,20 @@ class CreditLinePage extends Component
         ];
     }
 
-    public function updatedFilterEntityType(): void { $this->resetPage(); }
-    public function updatedFilterStatus(): void { $this->resetPage(); }
-    public function updatedFilterYear(): void { $this->resetPage(); }
+    public function updatedFilterEntityType(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterStatus(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterYear(): void
+    {
+        $this->resetPage();
+    }
 
     public function clearFilters(): void
     {
@@ -87,6 +112,12 @@ class CreditLinePage extends Component
 
     public function save(): void
     {
+        if ($this->editingId) {
+            Gate::authorize('credit_lines.edit');
+        } else {
+            Gate::authorize('credit_lines.create');
+        }
+
         $this->validate();
 
         $totalAmount = (float) $this->formTotalAmount;
@@ -127,6 +158,7 @@ class CreditLinePage extends Component
 
     public function delete(): void
     {
+        Gate::authorize('credit_lines.delete');
         if ($this->editingId) {
             CreditLine::findOrFail($this->editingId)->delete();
             $this->dispatch('notify', type: 'success', message: __('app.deleted_successfully'));
@@ -137,6 +169,7 @@ class CreditLinePage extends Component
 
     public function deleteSelected(): void
     {
+        Gate::authorize('credit_lines.delete');
         CreditLine::whereIn('id', $this->selected)->delete();
         $this->deselectAll();
         $this->dispatch('notify', type: 'success', message: __('app.deleted_successfully'));

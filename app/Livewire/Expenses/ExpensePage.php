@@ -7,6 +7,7 @@ use App\Livewire\Traits\WithFiltering;
 use App\Livewire\Traits\WithSorting;
 use App\Models\Company;
 use App\Models\Expense;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -14,35 +15,58 @@ use Livewire\WithPagination;
 
 class ExpensePage extends Component
 {
-    use WithPagination, WithSorting, WithFiltering, WithBulkActions, WithFileUploads;
+    use WithBulkActions, WithFileUploads, WithFiltering, WithPagination, WithSorting;
 
     public bool $showFormModal = false;
+
     public bool $showDeleteModal = false;
+
     public bool $showCategoryModal = false;
+
     public bool $showReceiptPreview = false;
+
     public ?int $editingId = null;
+
     public string $previewReceiptUrl = '';
+
     public string $bulkCategory = '';
 
     public string $filterCompanyId = '';
+
     public string $filterCategory = '';
+
     public string $filterPaymentMethod = '';
+
     public string $filterRecurring = '';
+
     public string $filterVendor = '';
+
     public string $dateFrom = '';
+
     public string $dateTo = '';
 
     public string $formCompanyId = '';
+
     public string $formCategory = '';
+
     public string $formDescription = '';
+
     public string $formAmount = '0';
+
     public string $formDate = '';
+
     public string $formVendor = '';
+
     public string $formPaymentMethod = 'cash';
+
     public $formReceipt;
+
     public bool $formRecurring = false;
+
     public string $formRecurringFrequency = 'monthly';
+
     public string $formNotes = '';
+
     public string $existingReceiptPath = '';
 
     protected function rules(): array
@@ -125,6 +149,12 @@ class ExpensePage extends Component
 
     public function save(): void
     {
+        if ($this->editingId) {
+            Gate::authorize('expenses.edit');
+        } else {
+            Gate::authorize('expenses.create');
+        }
+
         $this->validate();
 
         $data = [
@@ -164,6 +194,7 @@ class ExpensePage extends Component
 
     public function delete(): void
     {
+        Gate::authorize('expenses.delete');
         if ($this->editingId) {
             Expense::findOrFail($this->editingId)->delete();
             $this->dispatch('notify', type: 'success', message: __('app.deleted_successfully'));
@@ -174,6 +205,7 @@ class ExpensePage extends Component
 
     public function deleteSelected(): void
     {
+        Gate::authorize('expenses.delete');
         Expense::whereIn('id', $this->selected)->delete();
         $this->deselectAll();
         $this->dispatch('notify', type: 'success', message: __('app.deleted_successfully'));
@@ -220,8 +252,8 @@ class ExpensePage extends Component
             $search = $this->search;
             $query->where(function ($q) use ($search) {
                 $q->where('description', 'like', "%{$search}%")
-                  ->orWhere('vendor', 'like', "%{$search}%")
-                  ->orWhere('notes', 'like', "%{$search}%");
+                    ->orWhere('vendor', 'like', "%{$search}%")
+                    ->orWhere('notes', 'like', "%{$search}%");
             });
         }
 
@@ -278,8 +310,8 @@ class ExpensePage extends Component
             $search = $this->search;
             $query->where(function ($q) use ($search) {
                 $q->where('description', 'like', "%{$search}%")
-                  ->orWhere('vendor', 'like', "%{$search}%")
-                  ->orWhere('notes', 'like', "%{$search}%");
+                    ->orWhere('vendor', 'like', "%{$search}%")
+                    ->orWhere('notes', 'like', "%{$search}%");
             });
         }
 

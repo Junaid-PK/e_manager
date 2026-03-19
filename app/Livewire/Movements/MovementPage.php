@@ -10,6 +10,7 @@ use App\Models\BankAccount;
 use App\Models\BankMovement;
 use App\Models\MovementCategory;
 use App\Models\MovementType;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Livewire\Component;
@@ -18,32 +19,51 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class MovementPage extends Component
 {
-    use WithPagination, WithSorting, WithFiltering, WithBulkActions;
+    use WithBulkActions, WithFiltering, WithPagination, WithSorting;
 
     public bool $showFormModal = false;
+
     public bool $showDeleteModal = false;
+
     public ?int $editingId = null;
+
     public bool $showCategoryModal = false;
+
     public string $bulkCategory = '';
 
     #[\Livewire\Attributes\Url(as: 'bank_account_id')]
     public string $filterBankAccountId = '';
+
     public string $filterType = '';
+
     public string $filterDirection = 'all';
+
     public string $filterCategory = '';
+
     public string $dateFrom = '';
+
     public string $dateTo = '';
 
     public string $formBankAccountId = '';
+
     public string $formDate = '';
+
     public string $formValueDate = '';
+
     public string $formType = 'transfer';
+
     public string $formConcept = '';
+
     public string $formBeneficiary = '';
+
     public string $formReference = '';
+
     public string $formDeposit = '';
+
     public string $formWithdrawal = '';
+
     public string $formCategory = '';
+
     public string $formNotes = '';
 
     protected function rules(): array
@@ -113,10 +133,12 @@ class MovementPage extends Component
 
     public function exportToExcel()
     {
+        Gate::authorize('movements.export');
         $movements = $this->buildQuery()->get();
-        $filename = 'movements-' . date('Y-m-d-His') . '-' . uniqid() . '.xlsx';
+        $filename = 'movements-'.date('Y-m-d-His').'-'.uniqid().'.xlsx';
         Storage::disk('local')->makeDirectory('exports');
-        Excel::store(new MovementExport($movements), 'exports/' . $filename, 'local');
+        Excel::store(new MovementExport($movements), 'exports/'.$filename, 'local');
+
         return redirect(URL::temporarySignedRoute('export.download', now()->addMinutes(5), ['file' => $filename]));
     }
 
@@ -150,6 +172,12 @@ class MovementPage extends Component
 
     public function save(): void
     {
+        if ($this->editingId) {
+            Gate::authorize('movements.edit');
+        } else {
+            Gate::authorize('movements.create');
+        }
+
         $this->validate();
 
         $data = [
@@ -188,6 +216,7 @@ class MovementPage extends Component
 
     public function delete(): void
     {
+        Gate::authorize('movements.delete');
         if ($this->editingId) {
             BankMovement::findOrFail($this->editingId)->delete();
             $this->dispatch('notify', type: 'success', message: __('app.deleted_successfully'));
@@ -198,6 +227,7 @@ class MovementPage extends Component
 
     public function deleteSelected(): void
     {
+        Gate::authorize('movements.delete');
         BankMovement::whereIn('id', $this->selected)->delete();
         $this->deselectAll();
         $this->dispatch('notify', type: 'success', message: __('app.deleted_successfully'));
@@ -246,18 +276,18 @@ class MovementPage extends Component
     protected function buildQuery()
     {
         $query = BankMovement::with('bankAccount')->select('bank_movements.*')->selectRaw(
-            '(SELECT ba.initial_balance FROM bank_accounts ba WHERE ba.id = bank_movements.bank_account_id) + ' .
-            '(SELECT COALESCE(SUM(COALESCE(m2.deposit,0) - COALESCE(m2.withdrawal,0)), 0) FROM bank_movements m2 ' .
+            '(SELECT ba.initial_balance FROM bank_accounts ba WHERE ba.id = bank_movements.bank_account_id) + '.
+            '(SELECT COALESCE(SUM(COALESCE(m2.deposit,0) - COALESCE(m2.withdrawal,0)), 0) FROM bank_movements m2 '.
             'WHERE m2.bank_account_id = bank_movements.bank_account_id AND (m2.date < bank_movements.date OR (m2.date = bank_movements.date AND m2.id <= bank_movements.id))) as running_balance'
         );
 
         if ($this->search) {
             $query->where(function ($q) {
                 $q->where('concept', 'like', "%{$this->search}%")
-                  ->orWhere('beneficiary', 'like', "%{$this->search}%")
-                  ->orWhere('reference', 'like', "%{$this->search}%")
-                  ->orWhere('type', 'like', "%{$this->search}%")
-                  ->orWhere('category', 'like', "%{$this->search}%");
+                    ->orWhere('beneficiary', 'like', "%{$this->search}%")
+                    ->orWhere('reference', 'like', "%{$this->search}%")
+                    ->orWhere('type', 'like', "%{$this->search}%")
+                    ->orWhere('category', 'like', "%{$this->search}%");
             });
         }
 
@@ -297,21 +327,31 @@ class MovementPage extends Component
 
     private function resolveOrCreateCategory(string $value): ?string
     {
-        if ($value === '') return null;
+        if ($value === '') {
+            return null;
+        }
         $existing = MovementCategory::where('name', $value)->first();
-        if ($existing) return $existing->name;
+        if ($existing) {
+            return $existing->name;
+        }
         $maxOrder = (int) MovementCategory::max('sort_order');
         MovementCategory::create(['name' => $value, 'sort_order' => $maxOrder + 1]);
+
         return $value;
     }
 
     private function resolveOrCreateMovementType(string $value): string
     {
-        if ($value === '') return 'transfer';
+        if ($value === '') {
+            return 'transfer';
+        }
         $existing = MovementType::where('slug', $value)->orWhere('name', $value)->first();
-        if ($existing) return $existing->slug;
+        if ($existing) {
+            return $existing->slug;
+        }
         $maxOrder = (int) MovementType::max('sort_order');
         $type = MovementType::create(['name' => $value, 'sort_order' => $maxOrder + 1]);
+
         return $type->slug;
     }
 

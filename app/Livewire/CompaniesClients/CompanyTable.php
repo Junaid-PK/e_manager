@@ -6,21 +6,28 @@ use App\Livewire\Traits\WithBulkActions;
 use App\Livewire\Traits\WithFiltering;
 use App\Livewire\Traits\WithSorting;
 use App\Models\Company;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class CompanyTable extends Component
 {
-    use WithPagination, WithSorting, WithFiltering, WithBulkActions;
+    use WithBulkActions, WithFiltering, WithPagination, WithSorting;
 
     public bool $showFormModal = false;
+
     public bool $showDeleteModal = false;
+
     public ?int $editingId = null;
 
     public string $formName = '';
+
     public string $formTaxId = '';
+
     public string $formEmail = '';
+
     public string $formPhone = '';
+
     public string $formAddress = '';
 
     protected function rules(): array
@@ -55,6 +62,12 @@ class CompanyTable extends Component
 
     public function save(): void
     {
+        if ($this->editingId) {
+            Gate::authorize('companies_clients.edit');
+        } else {
+            Gate::authorize('companies_clients.create');
+        }
+
         $this->validate();
 
         $data = [
@@ -85,6 +98,7 @@ class CompanyTable extends Component
 
     public function delete(): void
     {
+        Gate::authorize('companies_clients.delete');
         if ($this->editingId) {
             Company::findOrFail($this->editingId)->delete();
             $this->dispatch('notify', type: 'success', message: __('app.deleted_successfully'));
@@ -95,6 +109,7 @@ class CompanyTable extends Component
 
     public function deleteSelected(): void
     {
+        Gate::authorize('companies_clients.delete');
         Company::whereIn('id', $this->selected)->delete();
         $this->deselectAll();
         $this->dispatch('notify', type: 'success', message: __('app.deleted_successfully'));
@@ -117,8 +132,8 @@ class CompanyTable extends Component
         if ($this->search) {
             $query->where(function ($q) {
                 $q->where('name', 'like', "%{$this->search}%")
-                  ->orWhere('tax_id', 'like', "%{$this->search}%")
-                  ->orWhere('email', 'like', "%{$this->search}%");
+                    ->orWhere('tax_id', 'like', "%{$this->search}%")
+                    ->orWhere('email', 'like', "%{$this->search}%");
             });
         }
 

@@ -7,6 +7,7 @@ use App\Livewire\Traits\WithSorting;
 use App\Models\Expense;
 use App\Models\Invoice;
 use App\Models\PaymentReminder;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -83,6 +84,12 @@ class ReminderPage extends Component
 
     public function save(): void
     {
+        if ($this->editingId) {
+            Gate::authorize('reminders.edit');
+        } else {
+            Gate::authorize('reminders.create');
+        }
+
         $this->validate();
 
         $remindableType = $this->formRemindableType === 'invoice'
@@ -116,6 +123,7 @@ class ReminderPage extends Component
 
     public function delete(): void
     {
+        Gate::authorize('reminders.delete');
         if ($this->editingId) {
             PaymentReminder::findOrFail($this->editingId)->delete();
             $this->dispatch('notify', type: 'success', message: __('app.deleted_successfully'));

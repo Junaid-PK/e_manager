@@ -12,6 +12,7 @@ use App\Models\Company;
 use App\Models\Invoice;
 use App\Models\PaymentReminder;
 use App\Models\Project;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Livewire\Component;
@@ -20,53 +21,88 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class InvoicePage extends Component
 {
-    use WithPagination, WithSorting, WithFiltering, WithBulkActions;
+    use WithBulkActions, WithFiltering, WithPagination, WithSorting;
 
     public bool $showFormModal = false;
+
     public bool $showDeleteModal = false;
+
     public bool $showStatusModal = false;
+
     public bool $showQuickClientModal = false;
+
     public bool $showQuickCompanyModal = false;
+
     public bool $showReminderModal = false;
+
     public ?int $editingId = null;
 
     public string $quickClientName = '';
+
     public string $quickClientEmail = '';
+
     public string $quickClientPhone = '';
+
     public string $quickClientTaxId = '';
 
     public string $quickCompanyName = '';
+
     public string $quickCompanyTaxId = '';
+
     public string $quickCompanyEmail = '';
 
     public ?int $reminderInvoiceId = null;
+
     public string $reminderDate = '';
+
     public string $reminderMessage = '';
 
     public string $filterStatus = '';
+
     public string $filterCompanyId = '';
+
     public string $filterClientId = '';
+
     public string $filterMonth = '';
+
     public string $filterPaymentType = '';
+
     public string $filterBankName = '';
+
     public string $dateFrom = '';
+
     public string $dateTo = '';
 
     public string $formCompanyId = '';
+
     public string $formClientId = '';
+
     public string $formProjectName = '';
+
     public string $formInvoiceNumber = '';
+
     public string $formMonth = '';
+
     public string $formDateIssued = '';
+
     public string $formDateDue = '';
+
     public string $formAmount = '0';
+
     public string $formIvaRate = '21';
+
     public string $formRetentionRate = '0';
+
     public string $formPaymentType = '';
+
     public string $formAmountPaid = '0';
+
     public string $formBankDate = '';
+
     public string $formBankName = '';
+
     public string $formNotes = '';
+
     public string $formStatus = 'pending';
 
     public string $bulkStatus = '';
@@ -165,6 +201,12 @@ class InvoicePage extends Component
 
     public function save(): void
     {
+        if ($this->editingId) {
+            Gate::authorize('invoices.edit');
+        } else {
+            Gate::authorize('invoices.create');
+        }
+
         $this->validate();
 
         $amount = (float) $this->formAmount;
@@ -220,6 +262,7 @@ class InvoicePage extends Component
 
     public function delete(): void
     {
+        Gate::authorize('invoices.delete');
         if ($this->editingId) {
             Invoice::findOrFail($this->editingId)->delete();
             $this->dispatch('notify', type: 'success', message: __('app.deleted_successfully'));
@@ -230,6 +273,7 @@ class InvoicePage extends Component
 
     public function deleteSelected(): void
     {
+        Gate::authorize('invoices.delete');
         Invoice::whereIn('id', $this->selected)->delete();
         $this->deselectAll();
         $this->dispatch('notify', type: 'success', message: __('app.deleted_successfully'));
@@ -317,6 +361,7 @@ class InvoicePage extends Component
                 'status' => 'active',
             ]);
         }
+
         return $project->id;
     }
 
@@ -327,7 +372,7 @@ class InvoicePage extends Component
             if ($lower === $pt) {
                 return $pt;
             }
-            if ($lower === strtolower(__('app.' . $pt))) {
+            if ($lower === strtolower(__('app.'.$pt))) {
                 return $pt;
             }
         }
@@ -335,6 +380,7 @@ class InvoicePage extends Component
             'transferencia' => 'transfer', 'cheque' => 'cheque', 'confirming' => 'confirming',
             'efectivo' => 'cash', 'cash' => 'cash', 'other' => 'other', 'otro' => 'other', 'otros' => 'other',
         ];
+
         return $map[$lower] ?? 'other';
     }
 
@@ -433,7 +479,7 @@ class InvoicePage extends Component
             'remindable_type' => Invoice::class,
             'remindable_id' => $invoice->id,
             'reminder_date' => $this->reminderDate,
-            'message' => $this->reminderMessage ?: __('app.payment_due_for') . ' ' . $invoice->invoice_number,
+            'message' => $this->reminderMessage ?: __('app.payment_due_for').' '.$invoice->invoice_number,
             'is_sent' => false,
             'is_dismissed' => false,
         ]);
@@ -459,10 +505,12 @@ class InvoicePage extends Component
 
     public function exportToExcel()
     {
+        Gate::authorize('invoices.export');
         $invoices = $this->buildQuery()->get();
-        $filename = 'invoices-' . date('Y-m-d-His') . '-' . uniqid() . '.xlsx';
+        $filename = 'invoices-'.date('Y-m-d-His').'-'.uniqid().'.xlsx';
         Storage::disk('local')->makeDirectory('exports');
-        Excel::store(new InvoiceExport($invoices), 'exports/' . $filename, 'local');
+        Excel::store(new InvoiceExport($invoices), 'exports/'.$filename, 'local');
+
         return redirect(URL::temporarySignedRoute('export.download', now()->addMinutes(5), ['file' => $filename]));
     }
 
@@ -474,11 +522,11 @@ class InvoicePage extends Component
             $search = $this->search;
             $query->where(function ($q) use ($search) {
                 $q->where('invoice_number', 'like', "%{$search}%")
-                  ->orWhere('notes', 'like', "%{$search}%")
-                  ->orWhere('payment_type', 'like', "%{$search}%")
-                  ->orWhere('bank_name', 'like', "%{$search}%")
-                  ->orWhereHas('company', fn ($q) => $q->where('name', 'like', "%{$search}%"))
-                  ->orWhereHas('client', fn ($q) => $q->where('name', 'like', "%{$search}%"));
+                    ->orWhere('notes', 'like', "%{$search}%")
+                    ->orWhere('payment_type', 'like', "%{$search}%")
+                    ->orWhere('bank_name', 'like', "%{$search}%")
+                    ->orWhereHas('company', fn ($q) => $q->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('client', fn ($q) => $q->where('name', 'like', "%{$search}%"));
             });
         }
 

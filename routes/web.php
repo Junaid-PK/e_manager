@@ -3,12 +3,12 @@
 use App\Http\Controllers\ExportDownloadController;
 use App\Livewire\BankAccounts\BankAccountPage;
 use App\Livewire\CompaniesClients\CompaniesClientsPage;
+use App\Livewire\CreditLines\CreditLinePage;
 use App\Livewire\Dashboard\DashboardPage;
 use App\Livewire\Expenses\ExpensePage;
 use App\Livewire\Invoices\InvoicePage;
-use App\Livewire\Movements\MovementPage;
-use App\Livewire\CreditLines\CreditLinePage;
 use App\Livewire\MovementConfig\MovementConfigPage;
+use App\Livewire\Movements\MovementPage;
 use App\Livewire\Reminders\ReminderPage;
 use App\Livewire\Reports\ReportsPage;
 use App\Livewire\Settings\SettingsPage;
@@ -22,17 +22,17 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('download/export/{file}', ExportDownloadController::class)->middleware('signed')->name('export.download');
-    Route::get('dashboard', DashboardPage::class)->name('dashboard');
-    Route::get('invoices', InvoicePage::class)->name('invoices');
-    Route::get('bank-accounts', BankAccountPage::class)->name('bank-accounts');
-    Route::get('movements', MovementPage::class)->name('movements');
-    Route::get('movement-config', MovementConfigPage::class)->name('movement-config');
-    Route::get('expenses', ExpensePage::class)->name('expenses');
-    Route::get('companies-clients', CompaniesClientsPage::class)->name('companies-clients');
-    Route::get('credit-lines', CreditLinePage::class)->name('credit-lines');
-    Route::get('reminders', ReminderPage::class)->name('reminders');
-    Route::get('reports', ReportsPage::class)->name('reports');
-    Route::get('settings', SettingsPage::class)->name('settings');
+    Route::get('dashboard', DashboardPage::class)->middleware('permission:dashboard.view')->name('dashboard');
+    Route::get('invoices', InvoicePage::class)->middleware('permission:invoices.view')->name('invoices');
+    Route::get('bank-accounts', BankAccountPage::class)->middleware('permission:bank_accounts.view')->name('bank-accounts');
+    Route::get('movements', MovementPage::class)->middleware('permission:movements.view')->name('movements');
+    Route::get('movement-config', MovementConfigPage::class)->middleware('permission:movements.view')->name('movement-config');
+    Route::get('expenses', ExpensePage::class)->middleware('permission:expenses.view')->name('expenses');
+    Route::get('companies-clients', CompaniesClientsPage::class)->middleware('permission:companies_clients.view')->name('companies-clients');
+    Route::get('credit-lines', CreditLinePage::class)->middleware('permission:credit_lines.view')->name('credit-lines');
+    Route::get('reminders', ReminderPage::class)->middleware('permission:reminders.view')->name('reminders');
+    Route::get('reports', ReportsPage::class)->middleware('permission:reports.view')->name('reports');
+    Route::get('settings', SettingsPage::class)->middleware('permission:settings.view')->name('settings');
 });
 
 Route::get('lang/{locale}', function (string $locale) {

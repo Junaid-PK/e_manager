@@ -21,6 +21,22 @@
                     {{ $section['label'] }}
                 </button>
             @endforeach
+            @if(auth()->user()->isAdmin())
+                <button wire:click="switchSection('users')"
+                        class="block w-full text-left px-4 py-3 text-sm transition-colors
+                               {{ $activeSection === 'users'
+                                   ? 'border-l-4 border-emerald-600 font-semibold text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-800'
+                                   : 'border-l-4 border-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700' }}">
+                    Users
+                </button>
+                <button wire:click="switchSection('roles')"
+                        class="block w-full text-left px-4 py-3 text-sm transition-colors
+                               {{ $activeSection === 'roles'
+                                   ? 'border-l-4 border-emerald-600 font-semibold text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-800'
+                                   : 'border-l-4 border-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700' }}">
+                    Roles & Permissions
+                </button>
+            @endif
         </nav>
     </div>
 
@@ -154,6 +170,16 @@
                     </form>
                 </div>
             </div>
+        @endif
+
+        @if(auth()->user()->isAdmin())
+            @if ($activeSection === 'users')
+                <livewire:settings.users-manager />
+            @endif
+
+            @if ($activeSection === 'roles')
+                <livewire:settings.roles-manager />
+            @endif
         @endif
     </div>
 </div>

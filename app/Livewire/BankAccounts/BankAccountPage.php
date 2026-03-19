@@ -3,19 +3,27 @@
 namespace App\Livewire\BankAccounts;
 
 use App\Models\BankAccount;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 
 class BankAccountPage extends Component
 {
     public bool $showFormModal = false;
+
     public bool $showDeleteModal = false;
+
     public ?int $editingId = null;
+
     public string $search = '';
 
     public string $formBankName = '';
+
     public string $formAccountNumber = '';
+
     public string $formHolderName = '';
+
     public string $formCurrency = 'EUR';
+
     public string $formInitialBalance = '0.00';
 
     protected function rules(): array
@@ -50,6 +58,12 @@ class BankAccountPage extends Component
 
     public function save(): void
     {
+        if ($this->editingId) {
+            Gate::authorize('bank_accounts.edit');
+        } else {
+            Gate::authorize('bank_accounts.create');
+        }
+
         $this->validate();
 
         $data = [
@@ -81,6 +95,7 @@ class BankAccountPage extends Component
 
     public function delete(): void
     {
+        Gate::authorize('bank_accounts.delete');
         if ($this->editingId) {
             BankAccount::findOrFail($this->editingId)->delete();
             $this->dispatch('notify', type: 'success', message: __('app.deleted_successfully'));
@@ -96,8 +111,8 @@ class BankAccountPage extends Component
         if ($this->search) {
             $query->where(function ($q) {
                 $q->where('bank_name', 'like', "%{$this->search}%")
-                  ->orWhere('account_number', 'like', "%{$this->search}%")
-                  ->orWhere('holder_name', 'like', "%{$this->search}%");
+                    ->orWhere('account_number', 'like', "%{$this->search}%")
+                    ->orWhere('holder_name', 'like', "%{$this->search}%");
             });
         }
 
