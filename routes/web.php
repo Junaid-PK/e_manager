@@ -12,6 +12,8 @@ use App\Livewire\Movements\MovementPage;
 use App\Livewire\Reminders\ReminderPage;
 use App\Livewire\Reports\ReportsPage;
 use App\Livewire\Settings\SettingsPage;
+use App\Livewire\Users\UsersPage;
+use App\Livewire\Roles\RolesPage;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
@@ -32,6 +34,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('credit-lines', CreditLinePage::class)->middleware('permission:credit_lines.view')->name('credit-lines');
     Route::get('reminders', ReminderPage::class)->middleware('permission:reminders.view')->name('reminders');
     Route::get('reports', ReportsPage::class)->middleware('permission:reports.view')->name('reports');
+    Route::get('users', UsersPage::class)->middleware('permission:users.view')->name('users');
+    Route::get('roles', RolesPage::class)->middleware('permission:roles.view')->name('roles');
     Route::get('settings', SettingsPage::class)->middleware('permission:settings.view')->name('settings');
 });
 

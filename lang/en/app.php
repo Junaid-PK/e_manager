@@ -337,4 +337,9 @@ return [
     'add' => 'Add',
     'create_first_invoice' => 'Create your first invoice',
     'edit_invoice' => 'Edit Invoice',
+    'users' => 'Users',
+    'new_user' => 'New User',
+    'roles_and_permissions' => 'Roles & Permissions',
+    'new_role' => 'New Role',
+    'permissions' => 'Permissions',
 ];

@@ -1,14 +1,15 @@
 <?php
 
-namespace App\Livewire\Settings;
+namespace App\Livewire\Users;
 
-use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Models\Role;
 
-class UsersManager extends Component
+class UsersPage extends Component
 {
     use WithPagination;
 
@@ -132,9 +133,9 @@ class UsersManager extends Component
 
     public function render()
     {
-        return view('livewire.settings.users-manager', [
+        return view('livewire.users.users-page', [
             'users'    => User::with('roles')->paginate(10),
             'allRoles' => Role::orderBy('name')->get(),
-        ]);
+        ])->layout('layouts.app');
     }
 }

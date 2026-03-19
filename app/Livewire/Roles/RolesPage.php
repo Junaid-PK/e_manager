@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Settings;
+namespace App\Livewire\Roles;
 
 use App\Models\Permission;
 use App\Models\Role;
@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
-class RolesManager extends Component
+class RolesPage extends Component
 {
     public ?int $editingRoleId = null;
 
@@ -150,10 +150,10 @@ class RolesManager extends Component
 
     public function render()
     {
-        return view('livewire.settings.roles-manager', [
+        return view('livewire.roles.roles-page', [
             'roles'            => Role::withCount('users')->orderBy('name')->get(),
             'permissionMatrix' => $this->getPermissionMatrix(),
             'allActions'       => ['view', 'create', 'edit', 'delete', 'export'],
-        ]);
+        ])->layout('layouts.app');
     }
 }
