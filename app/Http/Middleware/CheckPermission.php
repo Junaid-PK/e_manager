@@ -17,6 +17,10 @@ class CheckPermission
         }
 
         if (Gate::denies($permission)) {
+            if ($request->routeIs('dashboard')) {
+                abort(403, __('You do not have permission to access this page.'));
+            }
+
             session()->flash('error', __('You do not have permission to access this page.'));
 
             return redirect()->route('dashboard');
