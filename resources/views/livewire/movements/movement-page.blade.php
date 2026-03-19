@@ -123,7 +123,15 @@
             </div>
         @endif
 
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto"
+             x-data
+             @keydown.window="
+                 if (event.key === 'F2' && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)) {
+                     event.preventDefault();
+                     const first = document.querySelector('[data-nav-cell][data-row=\'0\'][data-col=\'0\']');
+                     first?.focus();
+                 }
+             ">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead class="bg-gray-50 dark:bg-gray-700/50">
                     <tr>
@@ -246,8 +254,31 @@
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.actions') }}</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"
+                       x-data="{
+                           cells() {
+                               return Array.from(this.$el.querySelectorAll('[data-nav-cell]'))
+                                   .sort((a,b) => {
+                                       const ra = +a.dataset.row, rb = +b.dataset.row;
+                                       const ca = +a.dataset.col, cb = +b.dataset.col;
+                                       return ra !== rb ? ra - rb : ca - cb;
+                                   });
+                           },
+                           moveNext(row, col) {
+                               const all = this.cells();
+                               const idx = all.findIndex(el => +el.dataset.row === row && +el.dataset.col === col);
+                               all[idx + 1]?.focus();
+                           },
+                           movePrev(row, col) {
+                               const all = this.cells();
+                               const idx = all.findIndex(el => +el.dataset.row === row && +el.dataset.col === col);
+                               all[idx - 1]?.focus();
+                           }
+                       }"
+                       @cell-next.window="moveNext($event.detail.row, $event.detail.col)"
+                       @cell-prev.window="movePrev($event.detail.row, $event.detail.col)">
                     @forelse ($movements as $movement)
+                        @php $rowIdx = $loop->index; @endphp
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors {{ $movement->deposit && (float) $movement->deposit > 0 ? 'border-l-4 border-l-green-500' : '' }} {{ $movement->withdrawal && (float) $movement->withdrawal > 0 ? 'border-l-4 border-l-red-500' : '' }}" wire:key="movement-{{ $movement->id }}">
                             <td class="px-4 py-3">
                                 <input type="checkbox" wire:model.live="selected" value="{{ $movement->id }}" class="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 dark:bg-gray-700">
@@ -261,7 +292,9 @@
                                     :value="$movement->type ?? ''"
                                     allow-custom
                                     submit-method="quickUpdateType"
-                                    :submit-arg="$movement->id" />
+                                    :submit-arg="$movement->id"
+                                    :nav-row="$rowIdx"
+                                    :nav-col="0" />
                             </td>
                             <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[7rem] align-top">
                                 <x-custom-select compact
@@ -271,7 +304,9 @@
                                     placeholder="—"
                                     allow-custom
                                     submit-method="quickUpdateCategory"
-                                    :submit-arg="$movement->id" />
+                                    :submit-arg="$movement->id"
+                                    :nav-row="$rowIdx"
+                                    :nav-col="1" />
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 max-w-[200px]">
                                 <span title="{{ $movement->concept }}">{{ \Illuminate\Support\Str::limit($movement->concept, 50) }}</span>
