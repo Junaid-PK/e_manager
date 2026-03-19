@@ -295,8 +295,8 @@
                                if (prev) prev.focus();
                            }
                        }"
-                       @cell-next.window="moveNext($event.detail.row, $event.detail.col)"
-                       @cell-prev.window="movePrev($event.detail.row, $event.detail.col)">
+                       @cell-next="moveNext($event.detail.row, $event.detail.col)"
+                       @cell-prev="movePrev($event.detail.row, $event.detail.col)">
                     @forelse ($invoices as $invoice)
                         @php $rowIdx = $loop->index; @endphp
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" wire:key="invoice-{{ $invoice->id }}">

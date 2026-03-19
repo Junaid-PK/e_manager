@@ -9,8 +9,8 @@
     'submitArg'   => null,
     'wireModel'   => null,
     'emptyLabel'  => null,
-    'navRow'      => null,   {{-- integer row index for keyboard nav --}}
-    'navCol'      => null,   {{-- integer col index (0=status,1=payment,2=bank) --}}
+    'navRow'      => null,
+    'navCol'      => null,
 ])
 
 @php
@@ -21,12 +21,17 @@ $opts = collect($options)->map(function ($o) {
     return ['value' => (string) $o, 'label' => (string) $o];
 })->values()->all();
 
-$isBadge        = !empty($badgeColors);
+$isBadge         = !empty($badgeColors);
 $badgeColorsJson = $isBadge ? json_encode($badgeColors) : 'null';
 $hasNav          = $navRow !== null && $navCol !== null;
 @endphp
 
-<div class="relative" x-data="{
+<div class="relative"
+     @keydown.escape="open && onClose()"
+     @click.outside="open && onClose()"
+     @resize.window="open && placePanel()"
+     @scroll.window.passive="open && placePanel()"
+     x-data="{
     open: false,
     search: '',
     customInput: '',
@@ -68,6 +73,16 @@ $hasNav          = $navRow !== null && $navCol !== null;
         if (!this.badgeColors || !this.selected) return '';
         return this.badgeColors[this.selected] || '';
     },
+    dispatchNav(eventName) {
+        if (this.navRow === null) return;
+        // Dispatch on the closest tbody so it stays scoped and doesn't bleed across pages
+        const tbody = this.$el.closest('tbody');
+        const target = tbody ?? document;
+        target.dispatchEvent(new CustomEvent(eventName, {
+            bubbles: true,
+            detail: { row: this.navRow, col: this.navCol }
+        }));
+    },
     pick(v) {
         this.selected = v;
         this.search = '';
@@ -79,11 +94,8 @@ $hasNav          = $navRow !== null && $navCol !== null;
             if (this.submitArg !== null && this.submitArg !== '') $wire.call(this.submitMethod, this.submitArg, v);
             else $wire.call(this.submitMethod, v);
         }
-        // After picking, move focus to next nav cell
         if (this.navRow !== null) {
-            this.$nextTick(() => {
-                window.dispatchEvent(new CustomEvent('cell-next', { detail: { row: this.navRow, col: this.navCol } }));
-            });
+            this.dispatchNav('cell-next');
         } else {
             this.$refs.trigger?.focus();
         }
@@ -111,15 +123,11 @@ $hasNav          = $navRow !== null && $navCol !== null;
     },
     navNext() {
         this.onClose(false);
-        if (this.navRow !== null) {
-            window.dispatchEvent(new CustomEvent('cell-next', { detail: { row: this.navRow, col: this.navCol } }));
-        }
+        this.dispatchNav('cell-next');
     },
     navPrev() {
         this.onClose(false);
-        if (this.navRow !== null) {
-            window.dispatchEvent(new CustomEvent('cell-prev', { detail: { row: this.navRow, col: this.navCol } }));
-        }
+        this.dispatchNav('cell-prev');
     },
     moveCursor(dir) {
         const list = this.filtered;
@@ -139,8 +147,7 @@ $hasNav          = $navRow !== null && $navCol !== null;
             this.pick(list[0].value);
         }
     }
-}" @click.outside="onClose()" @keydown.escape.window="open && onClose()"
-   @resize.window="open && placePanel()" @scroll.window="open && placePanel()">
+}">
 
     {{-- Trigger: badge style --}}
     @if($isBadge)
