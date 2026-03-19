@@ -276,33 +276,24 @@
                             <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900 dark:text-gray-100">{{ fmt_number($invoice->total) }} &euro;</td>
                             <td class="px-4 py-3" x-data="{ statusOpen: false }" @click.outside="statusOpen = false">
                                 <div class="relative">
-                                    <button @click="statusOpen = !statusOpen" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
-                                        @switch($invoice->status)
-                                            @case('paid') bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 @break
-                                            @case('pending') bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 @break
-                                            @case('overdue') bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 @break
-                                            @case('cancelled') bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300 @break
-                                            @case('partial') bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 @break
-                                        @endswitch
-                                    ">
-                                        {{ __('app.' . $invoice->status) }}
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 ml-1"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
-                                    </button>
-                                    <div x-show="statusOpen"
-                                         x-transition:enter="transition ease-out duration-100"
-                                         x-transition:enter-start="opacity-0 scale-95"
-                                         x-transition:enter-end="opacity-100 scale-100"
-                                         x-transition:leave="transition ease-in duration-75"
-                                         x-transition:leave-start="opacity-100 scale-100"
-                                         x-transition:leave-end="opacity-0 scale-95"
-                                         class="absolute left-0 mt-1 w-32 bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 py-1 z-10"
-                                         style="display: none;">
-                                        @foreach (['pending', 'paid', 'partial', 'overdue', 'cancelled'] as $status)
-                                            <button wire:click="quickStatusUpdate({{ $invoice->id }}, '{{ $status }}')" @click="statusOpen = false" class="block w-full text-left px-3 py-1.5 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-                                                {{ __('app.' . $status) }}
-                                            </button>
-                                        @endforeach
-                                    </div>
+                                    @php
+                                    $statusOptions = collect(['pending','paid','partial','overdue','cancelled'])
+                                        ->map(fn($s) => ['value' => $s, 'label' => __('app.'.$s)])->all();
+                                    $statusColors = [
+                                        'paid'      => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+                                        'pending'   => 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
+                                        'overdue'   => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+                                        'cancelled' => 'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300',
+                                        'partial'   => 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+                                    ];
+                                    @endphp
+                                    <x-custom-select
+                                        wire:key="status-{{ $invoice->id }}"
+                                        :options="$statusOptions"
+                                        :value="$invoice->status"
+                                        :badge-colors="$statusColors"
+                                        submit-method="quickStatusUpdate"
+                                        :submit-arg="$invoice->id" />
                                 </div>
                             </td>
                             <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[8rem] align-top">
