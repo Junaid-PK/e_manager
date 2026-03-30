@@ -132,21 +132,30 @@ $hasNav          = $navRow !== null && $navCol !== null;
         this.dispatchNav('cell-prev');
     },
     moveCursor(dir) {
-        const list = this.filtered;
+        const list = this.visibleOptionEls();
         const max = list.length - 1;
         if (max < 0) return;
         this.cursor = Math.max(0, Math.min(max, this.cursor + dir));
         this.$nextTick(() => {
-            const el = this.$refs.listbox?.querySelectorAll('[role=option]')[this.cursor];
+            const el = list[this.cursor];
             el?.scrollIntoView({ block: 'nearest' });
         });
     },
+    visibleOptionEls() {
+        const items = Array.from(this.$refs.listbox?.querySelectorAll('[data-option-item]') || []);
+        return items.filter(el => el.offsetParent !== null);
+    },
+    isHighlighted(v) {
+        const items = this.visibleOptionEls();
+        if (this.cursor < 0 || this.cursor >= items.length) return false;
+        return (items[this.cursor].dataset.optionValue || '') === String(v ?? '');
+    },
     confirmCursor() {
-        const list = this.filtered;
-        if (this.cursor >= 0 && this.cursor < list.length) {
-            this.pick(list[this.cursor].value);
-        } else if (list.length === 1) {
-            this.pick(list[0].value);
+        const items = this.visibleOptionEls();
+        if (this.cursor >= 0 && this.cursor < items.length) {
+            this.pick(items[this.cursor].dataset.optionValue || '');
+        } else if (items.length === 1) {
+            this.pick(items[0].dataset.optionValue || '');
         }
     }
 }">
@@ -226,9 +235,11 @@ $hasNav          = $navRow !== null && $navCol !== null;
             @endif
             @foreach($opts as $opt)
                 <button type="button" role="option"
+                        data-option-item="1"
+                        data-option-value="{{ $opt['value'] }}"
                         @click="pick(@js($opt['value']))"
                         x-show="!search || @js(mb_strtolower($opt['label'])).includes(search.toLowerCase())"
-                        :class="(cursor > -1 && filtered[cursor] && filtered[cursor].value === @js($opt['value']))
+                        :class="isHighlighted(@js($opt['value']))
                             ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
                             : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'"
                         class="block w-full shrink-0 text-left px-3 py-1.5 text-xs truncate">
