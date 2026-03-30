@@ -152,7 +152,7 @@
         <div class="overflow-x-auto"
              x-data="{
                  tableKey: 'invoices',
-                 userId: {{ auth()->id() }},
+                 userId: @js(auth()->id()),
                  orderIds: [],
                  draggingId: null,
                  init() {
