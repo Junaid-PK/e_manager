@@ -447,29 +447,40 @@ class MovementPage extends Component
 
     public function render()
     {
-        $pendingInvoiceOptions = Invoice::query()
-            ->with('client:id,name')
-            ->where(function ($q) {
-                $q->whereIn('status', ['pending', 'partial'])
-                    ->orWhere(function ($q2) {
-                        $q2->whereNotNull('amount_remaining')->where('amount_remaining', '>', 0);
-                    });
-            })
-            ->orderByDesc('date_due')
-            ->orderByDesc('id')
-            ->limit(300)
-            ->get()
-            ->map(function (Invoice $invoice) {
-                return [
-                    'value' => 'invoice:'.$invoice->id,
-                    'label' => trim(($invoice->invoice_number ?? '').' - '.($invoice->client?->name ?? '')),
-                ];
-            })
-            ->values()
-            ->all();
+        $movements = $this->getMovements();
+        $needsInvoiceOptions = $this->filterType === 'bill'
+            || $this->formType === 'bill'
+            || ($movements->count() > 0 && $movements->getCollection()->contains(fn ($m) => $m->type === 'bill'));
+        $pendingInvoiceOptions = [];
+        if ($needsInvoiceOptions) {
+            $pendingInvoiceOptions = Invoice::query()
+                ->leftJoin('clients', 'clients.id', '=', 'invoices.client_id')
+                ->where(function ($q) {
+                    $q->whereIn('invoices.status', ['pending', 'partial'])
+                        ->orWhere(function ($q2) {
+                            $q2->whereNotNull('invoices.amount_remaining')->where('invoices.amount_remaining', '>', 0);
+                        });
+                })
+                ->orderByDesc('invoices.date_due')
+                ->orderByDesc('invoices.id')
+                ->limit(120)
+                ->get([
+                    'invoices.id',
+                    'invoices.invoice_number',
+                    'clients.name as client_name',
+                ])
+                ->map(function ($invoice) {
+                    return [
+                        'value' => 'invoice:'.$invoice->id,
+                        'label' => trim(($invoice->invoice_number ?? '').' - '.($invoice->client_name ?? '')),
+                    ];
+                })
+                ->values()
+                ->all();
+        }
 
         return view('livewire.movements.movement-page', [
-            'movements' => $this->getMovements(),
+            'movements' => $movements,
             'bankAccounts' => BankAccount::orderBy('bank_name')->get(),
             'movementTypes' => MovementType::orderBy('sort_order')->orderBy('name')->get(),
             'movementCategories' => MovementCategory::orderBy('sort_order')->orderBy('name')->get(),

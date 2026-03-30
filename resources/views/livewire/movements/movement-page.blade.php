@@ -291,7 +291,7 @@
                             </td>
                             <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[7rem] align-top">
                                 <x-custom-select compact
-                                    wire:key="cat-{{ $movement->id }}"
+                                    wire:key="cat-{{ $movement->id }}-{{ $movement->type }}"
                                     :options="$movement->type === 'bill' ? $billInvoiceOpts : $categoryOpts"
                                     :value="$movement->category ?? ''"
                                     placeholder="—"

@@ -33,6 +33,7 @@ $hasNav          = $navRow !== null && $navCol !== null;
      @scroll.window.passive="open && placePanel()"
      x-data="{
     open: false,
+    uid: Math.random().toString(36).slice(2),
     search: '',
     customInput: '',
     cursor: -1,
@@ -223,17 +224,15 @@ $hasNav          = $navRow !== null && $navCol !== null;
                 {{ $emptyLabel }}
             </button>
             @endif
-            @foreach($opts as $opt)
+            <template x-for="(opt, idx) in filtered" :key="uid + '-csel-' + idx">
                 <button type="button" role="option"
-                        @click="pick(@js($opt['value']))"
-                        x-show="!search || @js(mb_strtolower($opt['label'])).includes(search.toLowerCase())"
-                        :class="(cursor > -1 && filtered[cursor] && filtered[cursor].value === @js($opt['value']))
+                        @click="pick(opt.value)"
+                        :class="(cursor > -1 && filtered[cursor] && filtered[cursor].value === opt.value)
                             ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
                             : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'"
-                        class="block w-full shrink-0 text-left px-3 py-1.5 text-xs truncate">
-                    {{ $opt['label'] }}
-                </button>
-            @endforeach
+                        class="block w-full shrink-0 text-left px-3 py-1.5 text-xs truncate"
+                        x-text="opt.label"></button>
+            </template>
             <p x-show="filtered.length === 0" class="px-3 py-2 text-xs text-gray-400 dark:text-gray-500 select-none">{{ __('app.no_results') }}</p>
         </div>
 
