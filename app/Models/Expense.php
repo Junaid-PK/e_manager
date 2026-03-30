@@ -42,6 +42,7 @@ class Expense extends Model
         'recurring',
         'recurring_frequency',
         'notes',
+        'listado_extra',
     ];
 
     protected function casts(): array
@@ -50,6 +51,7 @@ class Expense extends Model
             'date' => 'date',
             'amount' => 'decimal:2',
             'recurring' => 'boolean',
+            'listado_extra' => 'array',
         ];
     }
 

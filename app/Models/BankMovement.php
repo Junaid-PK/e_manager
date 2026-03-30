@@ -21,6 +21,7 @@ class BankMovement extends Model
         'category',
         'notes',
         'import_source',
+        'listado_extra',
     ];
 
     protected function casts(): array
@@ -31,6 +32,7 @@ class BankMovement extends Model
             'deposit' => 'decimal:2',
             'withdrawal' => 'decimal:2',
             'balance' => 'decimal:2',
+            'listado_extra' => 'array',
         ];
     }
 

@@ -13,64 +13,6 @@
 </x-slot>
 
 <div>
-    <div class="mb-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-            <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100">LISTADO GASTOS</h3>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead class="bg-gray-50 dark:bg-gray-700/50">
-                    <tr>
-                        <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">DATE</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">BANK</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">CLIENT</th>
-                        <th class="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">TOTAL AMOL</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">DATE</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Nº FACTURA</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">PROVEEDOR</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">CIF</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">CONCEPTO</th>
-                        <th class="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">BI</th>
-                        <th class="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">IVA</th>
-                        <th class="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">IRPF</th>
-                        <th class="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">OTROS</th>
-                        <th class="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">TOTAL</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    @forelse($purchaseMovements as $row)
-                        @php $total = (float) ($row->withdrawal ?: $row->deposit ?: 0); @endphp
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                            <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-200 whitespace-nowrap">{{ $row->date?->format('d/m/Y') ?? '—' }}</td>
-                            <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-200 whitespace-nowrap">{{ $row->bankAccount?->bank_name ?? '—' }}</td>
-                            <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-200 whitespace-nowrap">{{ $row->beneficiary ?? '—' }}</td>
-                            <td class="px-3 py-2 text-xs text-right text-gray-900 dark:text-gray-100 whitespace-nowrap">{{ fmt_number($total) }}</td>
-                            <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-200 whitespace-nowrap">{{ $row->value_date?->format('d/m/Y') ?? ($row->date?->format('d/m/Y') ?? '—') }}</td>
-                            <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-200 whitespace-nowrap">{{ $row->reference ?? '—' }}</td>
-                            <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-200 whitespace-nowrap">{{ $row->beneficiary ?? '—' }}</td>
-                            <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-200 whitespace-nowrap">—</td>
-                            <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-200">{{ $row->concept ?? '—' }}</td>
-                            <td class="px-3 py-2 text-xs text-right text-gray-700 dark:text-gray-200 whitespace-nowrap">{{ fmt_number($total) }}</td>
-                            <td class="px-3 py-2 text-xs text-right text-gray-700 dark:text-gray-200 whitespace-nowrap">0.00</td>
-                            <td class="px-3 py-2 text-xs text-right text-gray-700 dark:text-gray-200 whitespace-nowrap">0.00</td>
-                            <td class="px-3 py-2 text-xs text-right text-gray-700 dark:text-gray-200 whitespace-nowrap">0.00</td>
-                            <td class="px-3 py-2 text-xs text-right font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">{{ fmt_number($total) }}</td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="14" class="px-4 py-6 text-center text-sm text-gray-400">{{ __('app.no_movements') }}</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-        @if($purchaseMovements->hasPages())
-            <div class="px-4 py-2 border-t border-gray-200 dark:border-gray-700">
-                {{ $purchaseMovements->links() }}
-            </div>
-        @endif
-    </div>
-
     @if (count($categorySummary) > 0)
         <div class="mb-4 overflow-x-auto">
             <div class="flex items-center gap-2 pb-1">
@@ -85,6 +27,7 @@
 
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700 space-y-3">
+            <h2 class="text-sm font-semibold text-gray-800 dark:text-gray-100 tracking-wide">LISTADO GASTOS</h2>
             <div class="flex flex-col lg:flex-row lg:items-center gap-3">
                 <div class="relative flex-1 max-w-sm">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -163,7 +106,7 @@
 
         @if ($search || $filterCompanyId || $filterCategory || $filterPaymentMethod || $filterRecurring !== '' || $filterVendor || $dateFrom || $dateTo)
             <div class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
-                {{ __('app.total_records_shown') }}: {{ $expenses->total() }}
+                {{ __('app.total_records_shown') }}: {{ $unifiedRows->total() }}
             </div>
         @endif
 
@@ -186,14 +129,14 @@
                                 {{ __('app.change_category') }}
                             </button>
                         @endcan
-                        @can('expenses.delete')
+                        @canany(['expenses.delete', 'movements.delete'])
                             <button wire:click="deleteSelected" wire:confirm="{{ __('app.are_you_sure') }}" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5 mr-1">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
                                 </svg>
                                 {{ __('app.delete_selected') }}
                             </button>
-                        @endcan
+                        @endcanany
                         <button wire:click="deselectAll" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
                             {{ __('app.deselect_all') }}
                         </button>
@@ -204,148 +147,221 @@
 
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead class="bg-gray-50 dark:bg-gray-700/50">
+                <thead class="bg-sky-800 text-white">
                     <tr>
-                        <th class="w-12 px-4 py-3">
-                            <input type="checkbox" wire:model.live="selectPage" class="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 dark:bg-gray-700">
+                        <th class="w-10 px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">
+                            <input type="checkbox" wire:model.live="selectPage" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
                         </th>
-                        <th wire:click="sortBy('date')" class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none group {{ $sortField === 'date' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400' }}">
-                            <span class="flex items-center space-x-1">
-                                <span>{{ __('app.date') }}</span>
-                                @if ($sortField === 'date')
-                                    @if ($sortDirection === 'asc')
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" /></svg>
-                                    @else
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
-                                    @endif
-                                @else
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5 opacity-0 group-hover:opacity-50"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" /></svg>
-                                @endif
-                            </span>
-                        </th>
-                        <th wire:click="sortBy('company_id')" class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none group {{ $sortField === 'company_id' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400' }}">
-                            <span class="flex items-center space-x-1">
-                                <span>{{ __('app.company') }}</span>
-                                @if ($sortField === 'company_id')
-                                    @if ($sortDirection === 'asc')
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" /></svg>
-                                    @else
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
-                                    @endif
-                                @else
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5 opacity-0 group-hover:opacity-50"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" /></svg>
-                                @endif
-                            </span>
-                        </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.category') }}</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.description') }}</th>
-                        <th wire:click="sortBy('amount')" class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider cursor-pointer select-none group {{ $sortField === 'amount' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400' }}">
-                            <span class="flex items-center justify-end space-x-1">
-                                <span>{{ __('app.amount') }}</span>
-                                @if ($sortField === 'amount')
-                                    @if ($sortDirection === 'asc')
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" /></svg>
-                                    @else
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
-                                    @endif
-                                @else
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5 opacity-0 group-hover:opacity-50"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" /></svg>
-                                @endif
-                            </span>
-                        </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.vendor') }}</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.payment_method') }}</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.recurring') }}</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.receipt') }}</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.actions') }}</th>
+                        <th class="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap">DATE</th>
+                        <th class="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap min-w-[7rem]">BANK</th>
+                        <th class="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap min-w-[6rem]">CLIENT</th>
+                        <th class="px-2 py-2 text-right text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap">TOTAL AMOUNT</th>
+                        <th class="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap">DATE</th>
+                        <th class="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap min-w-[5rem]">Nº FACTURA</th>
+                        <th class="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap min-w-[6rem]">PROVEEDOR</th>
+                        <th class="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap">CIF</th>
+                        <th class="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider min-w-[8rem]">CONCEPTO</th>
+                        <th class="px-2 py-2 text-right text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap">BI</th>
+                        <th class="px-2 py-2 text-right text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap">IVA</th>
+                        <th class="px-2 py-2 text-right text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap">IRPF</th>
+                        <th class="px-2 py-2 text-right text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap">OTROS</th>
+                        <th class="px-2 py-2 text-right text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap">TOTAL</th>
+                        <th class="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap">{{ __('app.receipt') }}</th>
+                        <th class="px-2 py-2 text-right text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap">{{ __('app.actions') }}</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    @forelse ($expenses as $expense)
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" wire:key="expense-{{ $expense->id }}">
-                            <td class="px-4 py-3">
-                                <input type="checkbox" wire:model.live="selected" value="{{ $expense->id }}" class="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 dark:bg-gray-700">
+                    @forelse ($unifiedRows as $row)
+                        @php
+                            $canRow = ($row['kind'] === 'm' && auth()->user()->can('movements.edit')) || ($row['kind'] === 'e' && auth()->user()->can('expenses.edit'));
+                            $inp = 'w-full min-w-0 text-[11px] border border-gray-300 dark:border-gray-600 rounded px-1 py-0.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100';
+                        @endphp
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" wire:key="listado-{{ $row['composite'] }}">
+                            <td class="px-2 py-1 align-top">
+                                <input type="checkbox" wire:model.live="selected" value="{{ $row['composite'] }}" class="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 dark:bg-gray-700">
                             </td>
-                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ $expense->date?->format('d/m/Y') ?? '—' }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $expense->company?->name ?? '—' }}</td>
-                            <td class="px-4 py-3">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
-                                    {{ $expense->category }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100" title="{{ $expense->description }}">{{ Str::limit($expense->description, 50) }}</td>
-                            <td class="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-gray-100 text-right whitespace-nowrap">{{ fmt_number($expense->amount) }} &euro;</td>
-                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $expense->vendor ?? '—' }}</td>
-                            <td class="px-4 py-3">
-                                @switch($expense->payment_method)
-                                    @case('cash')
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">{{ __('app.cash') }}</span>
-                                        @break
-                                    @case('bank_transfer')
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">{{ __('app.bank_transfer') }}</span>
-                                        @break
-                                    @case('card')
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">{{ __('app.card') }}</span>
-                                        @break
-                                    @case('check')
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">{{ __('app.check') }}</span>
-                                        @break
-                                    @default
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300">{{ __('app.other') }}</span>
-                                @endswitch
-                            </td>
-                            <td class="px-4 py-3 text-center">
-                                @if ($expense->recurring)
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mx-auto text-emerald-600 dark:text-emerald-400">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182M21.015 4.356v4.992" />
-                                    </svg>
+                            <td class="px-2 py-1 align-top whitespace-nowrap">
+                                @if ($canRow)
+                                    <input type="date" value="{{ $row['date'] }}" wire:change="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'date', $event.target.value)" class="{{ $inp }}" />
                                 @else
-                                    <span class="text-gray-300 dark:text-gray-600">—</span>
+                                    <span class="text-[11px] text-gray-700 dark:text-gray-200">{{ $row['date'] ? \Illuminate\Support\Carbon::parse($row['date'])->format('d/m/Y') : '—' }}</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-3 text-center">
-                                @if ($expense->receipt_path)
-                                    <button wire:click="openReceiptPreview({{ $expense->id }})" class="text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mx-auto">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" />
-                                        </svg>
+                            <td class="px-2 py-1 align-top min-w-[8rem]">
+                                @if ($row['kind'] === 'm')
+                                    @can('movements.edit')
+                                        <select wire:change="updateListadoField('m', {{ $row['id'] }}, 'bank_account_id', $event.target.value)" class="{{ $inp }}">
+                                            @foreach ($bankAccounts as $ba)
+                                                <option value="{{ $ba->id }}" @selected((int) $row['bank_account_id'] === (int) $ba->id)>{{ $ba->bank_name }}</option>
+                                            @endforeach
+                                        </select>
+                                    @else
+                                        <span class="text-[11px]">{{ $row['bank_name'] }}</span>
+                                    @endcan
+                                @else
+                                    @can('expenses.edit')
+                                        <input type="text" value="{{ $row['bank_name'] }}" wire:blur="updateListadoField('e', {{ $row['id'] }}, 'bank', $event.target.value)" class="{{ $inp }}" />
+                                    @else
+                                        <span class="text-[11px]">{{ $row['bank_name'] }}</span>
+                                    @endcan
+                                @endif
+                            </td>
+                            <td class="px-2 py-1 align-top">
+                                @if ($canRow)
+                                    <input type="text" value="{{ $row['client'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'client', $event.target.value)" class="{{ $inp }}" />
+                                @else
+                                    <span class="text-[11px] truncate block max-w-[8rem]">{{ $row['client'] }}</span>
+                                @endif
+                            </td>
+                            <td class="px-2 py-1 align-top">
+                                @if ($canRow)
+                                    <input type="number" step="0.01" value="{{ $row['total_amt'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'total_amt', $event.target.value)" class="{{ $inp }} text-right" />
+                                @else
+                                    <span class="text-[11px] text-right block">{{ $row['total_amt'] }}</span>
+                                @endif
+                            </td>
+                            <td class="px-2 py-1 align-top whitespace-nowrap">
+                                @if ($row['kind'] === 'm')
+                                    @can('movements.edit')
+                                        <input type="date" value="{{ $row['value_date'] }}" wire:change="updateListadoField('m', {{ $row['id'] }}, 'value_date', $event.target.value)" class="{{ $inp }}" />
+                                    @else
+                                        <span class="text-[11px]">{{ $row['value_date'] ? \Illuminate\Support\Carbon::parse($row['value_date'])->format('d/m/Y') : '—' }}</span>
+                                    @endcan
+                                @else
+                                    @can('expenses.edit')
+                                        <input type="date" value="{{ $row['value_date'] }}" wire:change="updateListadoField('e', {{ $row['id'] }}, 'invoice_date', $event.target.value)" class="{{ $inp }}" />
+                                    @else
+                                        <span class="text-[11px]">{{ $row['value_date'] ? \Illuminate\Support\Carbon::parse($row['value_date'])->format('d/m/Y') : '—' }}</span>
+                                    @endcan
+                                @endif
+                            </td>
+                            <td class="px-2 py-1 align-top">
+                                @if ($row['kind'] === 'm')
+                                    @can('movements.edit')
+                                        <input type="text" value="{{ $row['reference'] }}" wire:blur="updateListadoField('m', {{ $row['id'] }}, 'reference', $event.target.value)" class="{{ $inp }}" />
+                                    @else
+                                        <span class="text-[11px] truncate block max-w-[7rem]">{{ $row['reference'] }}</span>
+                                    @endcan
+                                @else
+                                    @can('expenses.edit')
+                                        <input type="text" value="{{ $row['reference'] }}" wire:blur="updateListadoField('e', {{ $row['id'] }}, 'invoice_no', $event.target.value)" class="{{ $inp }}" />
+                                    @else
+                                        <span class="text-[11px]">{{ $row['reference'] }}</span>
+                                    @endcan
+                                @endif
+                            </td>
+                            <td class="px-2 py-1 align-top">
+                                @if ($row['kind'] === 'm')
+                                    @can('movements.edit')
+                                        <input type="text" value="{{ $row['beneficiary'] }}" wire:blur="updateListadoField('m', {{ $row['id'] }}, 'beneficiary', $event.target.value)" class="{{ $inp }}" />
+                                    @else
+                                        <span class="text-[11px] truncate block max-w-[8rem]">{{ $row['beneficiary'] }}</span>
+                                    @endcan
+                                @else
+                                    @can('expenses.edit')
+                                        <input type="text" value="{{ $row['beneficiary'] }}" wire:blur="updateListadoField('e', {{ $row['id'] }}, 'vendor', $event.target.value)" class="{{ $inp }}" />
+                                    @else
+                                        <span class="text-[11px]">{{ $row['beneficiary'] }}</span>
+                                    @endcan
+                                @endif
+                            </td>
+                            <td class="px-2 py-1 align-top">
+                                @if ($canRow)
+                                    <input type="text" value="{{ $row['cif'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'cif', $event.target.value)" class="{{ $inp }}" />
+                                @else
+                                    <span class="text-[11px]">{{ $row['cif'] }}</span>
+                                @endif
+                            </td>
+                            <td class="px-2 py-1 align-top">
+                                @if ($row['kind'] === 'm')
+                                    @can('movements.edit')
+                                        <input type="text" value="{{ $row['concept'] }}" wire:blur="updateListadoField('m', {{ $row['id'] }}, 'concept', $event.target.value)" class="{{ $inp }}" />
+                                    @else
+                                        <span class="text-[11px] line-clamp-2">{{ $row['concept'] }}</span>
+                                    @endcan
+                                @else
+                                    @can('expenses.edit')
+                                        <input type="text" value="{{ $row['concept'] }}" wire:blur="updateListadoField('e', {{ $row['id'] }}, 'description', $event.target.value)" class="{{ $inp }}" />
+                                    @else
+                                        <span class="text-[11px] line-clamp-2">{{ $row['concept'] }}</span>
+                                    @endcan
+                                @endif
+                            </td>
+                            <td class="px-2 py-1 align-top">
+                                @if ($canRow)
+                                    <input type="number" step="0.01" value="{{ $row['bi'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'bi', $event.target.value)" class="{{ $inp }} text-right" />
+                                @else
+                                    <span class="text-[11px] text-right block">{{ $row['bi'] }}</span>
+                                @endif
+                            </td>
+                            <td class="px-2 py-1 align-top">
+                                @if ($canRow)
+                                    <input type="number" step="0.01" value="{{ $row['iva'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'iva', $event.target.value)" class="{{ $inp }} text-right" />
+                                @else
+                                    <span class="text-[11px] text-right block">{{ $row['iva'] }}</span>
+                                @endif
+                            </td>
+                            <td class="px-2 py-1 align-top">
+                                @if ($canRow)
+                                    <input type="number" step="0.01" value="{{ $row['irpf'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'irpf', $event.target.value)" class="{{ $inp }} text-right" />
+                                @else
+                                    <span class="text-[11px] text-right block">{{ $row['irpf'] }}</span>
+                                @endif
+                            </td>
+                            <td class="px-2 py-1 align-top">
+                                @if ($canRow)
+                                    <input type="number" step="0.01" value="{{ $row['otros'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'otros', $event.target.value)" class="{{ $inp }} text-right" />
+                                @else
+                                    <span class="text-[11px] text-right block">{{ $row['otros'] }}</span>
+                                @endif
+                            </td>
+                            <td class="px-2 py-1 align-top">
+                                @if ($canRow)
+                                    <input type="number" step="0.01" value="{{ $row['total'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'total', $event.target.value)" class="{{ $inp }} text-right font-medium" />
+                                @else
+                                    <span class="text-[11px] text-right block font-medium">{{ $row['total'] }}</span>
+                                @endif
+                            </td>
+                            <td class="px-2 py-1 align-top text-center">
+                                @if ($row['kind'] === 'e' && $row['receipt_path'])
+                                    <button type="button" wire:click="openReceiptPreview({{ $row['id'] }})" class="text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mx-auto"><path stroke-linecap="round" stroke-linejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" /></svg>
                                     </button>
                                 @else
-                                    <span class="text-gray-300 dark:text-gray-600">—</span>
+                                    <span class="text-gray-400 text-xs">—</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-3 text-right">
-                                <div class="flex items-center justify-end space-x-1">
+                            <td class="px-2 py-1 align-top text-right whitespace-nowrap">
+                                @if ($row['kind'] === 'e')
                                     @can('expenses.edit')
-                                        <button wire:click="edit({{ $expense->id }})" class="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
-                                            </svg>
+                                        <button type="button" wire:click="edit({{ $row['id'] }})" class="p-1 text-gray-400 hover:text-emerald-600" title="{{ __('app.edit') }}">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>
                                         </button>
                                     @endcan
                                     @can('expenses.delete')
-                                        <button wire:click="confirmDelete({{ $expense->id }})" class="p-1.5 rounded-lg text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                                            </svg>
+                                        <button type="button" wire:click="confirmDeleteRow('e', {{ $row['id'] }})" class="p-1 text-gray-400 hover:text-red-600" title="{{ __('app.delete') }}">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
                                         </button>
                                     @endcan
-                                </div>
+                                @else
+                                    @can('movements.delete')
+                                        <button type="button" wire:click="confirmDeleteRow('m', {{ $row['id'] }})" class="p-1 text-gray-400 hover:text-red-600" title="{{ __('app.delete') }}">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
+                                        </button>
+                                    @endcan
+                                    @can('movements.view')
+                                        <a href="{{ route('movements') }}" class="inline-block p-1 text-gray-400 hover:text-sky-600 text-[10px]" title="{{ __('app.movements') }}">→</a>
+                                    @endcan
+                                @endif
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="11" class="px-4 py-12 text-center">
+                            <td colspan="17" class="px-4 py-12 text-center">
                                 <div class="flex flex-col items-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" class="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" />
-                                    </svg>
                                     <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">{{ __('app.no_expenses') }}</p>
                                     @can('expenses.create')
                                         <button wire:click="create" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1.5">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                                            </svg>
                                             {{ __('app.create_first_expense') }}
                                         </button>
                                     @endcan
@@ -357,9 +373,9 @@
             </table>
         </div>
 
-        @if ($expenses->hasPages())
+        @if ($unifiedRows->hasPages())
             <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
-                {{ $expenses->links() }}
+                {{ $unifiedRows->links() }}
             </div>
         @endif
     </div>
