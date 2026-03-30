@@ -77,7 +77,7 @@
                 <input wire:model.live.debounce.300ms="dateTo" type="date" placeholder="{{ __('app.to') }}" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 px-3 focus:ring-emerald-500 focus:border-emerald-500">
 
                 <div class="w-44">
-                    <x-custom-select compact :options="$categoryOpts" :value="$filterCategory ?? ''" allow-custom wire-model="filterCategory" :placeholder="__('app.category')" />
+                    <x-custom-select compact :options="$filterType === 'bill' ? $billInvoiceOpts : $categoryOpts" :value="$filterCategory ?? ''" allow-custom wire-model="filterCategory" :placeholder="__('app.category')" />
                 </div>
 
                 <button wire:click="clearFilters" class="inline-flex items-center px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
@@ -448,7 +448,7 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.category') }}</label>
-                                <x-custom-select :options="$categoryOpts" :value="$formCategory ?? ''" allow-custom wire-model="formCategory" placeholder="—" />
+                                <x-custom-select :options="$formType === 'bill' ? $billInvoiceOpts : $categoryOpts" :value="$formCategory ?? ''" allow-custom wire-model="formCategory" placeholder="—" />
                                 @error('formCategory') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                             </div>
                             <div>
@@ -704,19 +704,35 @@
                             return ra !== rb ? ra - rb : ca - cb;
                         });
                     },
+                    focusWhenReady(row, col, tries = 0) {
+                        const target = this.$el.querySelector('[data-nav-cell][data-row="' + row + '"][data-col="' + col + '"]');
+                        if (target) {
+                            target.focus();
+                            return;
+                        }
+                        if (tries < 12) {
+                            setTimeout(() => this.focusWhenReady(row, col, tries + 1), 35);
+                        }
+                    },
                     moveNext(row, col) {
                         const rowNum = Number(row);
                         const colNum = Number(col);
                         const all = this.cells();
                         const idx = all.findIndex(el => +el.dataset.row === rowNum && +el.dataset.col === colNum);
-                        if (all[idx + 1]) all[idx + 1].focus();
+                        if (all[idx + 1]) {
+                            const next = all[idx + 1];
+                            this.focusWhenReady(Number(next.dataset.row), Number(next.dataset.col));
+                        }
                     },
                     movePrev(row, col) {
                         const rowNum = Number(row);
                         const colNum = Number(col);
                         const all = this.cells();
                         const idx = all.findIndex(el => +el.dataset.row === rowNum && +el.dataset.col === colNum);
-                        if (all[idx - 1]) all[idx - 1].focus();
+                        if (all[idx - 1]) {
+                            const prev = all[idx - 1];
+                            this.focusWhenReady(Number(prev.dataset.row), Number(prev.dataset.col));
+                        }
                     }
                 });
             }

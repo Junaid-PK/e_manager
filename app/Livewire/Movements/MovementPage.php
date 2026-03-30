@@ -11,6 +11,7 @@ use App\Models\BankMovement;
 use App\Models\Invoice;
 use App\Models\MovementCategory;
 use App\Models\MovementType;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
@@ -91,7 +92,13 @@ class MovementPage extends Component
 
     public function updatedFilterType(): void
     {
+        $this->filterCategory = '';
         $this->resetPage();
+    }
+
+    public function updatedFormType(): void
+    {
+        $this->formCategory = '';
     }
 
     public function updatedFilterDirection(): void
@@ -181,6 +188,8 @@ class MovementPage extends Component
 
         $this->validate();
 
+        $resolvedCategory = $this->resolveCategoryForType(trim($this->formCategory ?? ''), $this->formType);
+
         $data = [
             'bank_account_id' => $this->formBankAccountId,
             'date' => $this->formDate,
@@ -191,17 +200,35 @@ class MovementPage extends Component
             'reference' => $this->formReference ?: null,
             'deposit' => $this->formDeposit !== '' ? $this->formDeposit : null,
             'withdrawal' => $this->formWithdrawal !== '' ? $this->formWithdrawal : null,
-            'category' => $this->resolveOrCreateCategory(trim($this->formCategory ?? '')) ?: null,
+            'category' => $resolvedCategory['category'],
             'notes' => $this->formNotes ?: null,
         ];
+        if ($resolvedCategory['deposit'] !== null) {
+            $data['deposit'] = $resolvedCategory['deposit'];
+            $data['withdrawal'] = null;
+        }
 
         if ($this->editingId) {
             $movement = BankMovement::findOrFail($this->editingId);
             $movement->update($data);
+            if ($resolvedCategory['invoice_id'] !== null) {
+                Invoice::whereKey($resolvedCategory['invoice_id'])->update([
+                    'status' => 'paid',
+                    'amount_paid' => DB::raw('total'),
+                    'amount_remaining' => 0,
+                ]);
+            }
             $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
         } else {
             $data['import_source'] = 'manual';
             BankMovement::create($data);
+            if ($resolvedCategory['invoice_id'] !== null) {
+                Invoice::whereKey($resolvedCategory['invoice_id'])->update([
+                    'status' => 'paid',
+                    'amount_paid' => DB::raw('total'),
+                    'amount_remaining' => 0,
+                ]);
+            }
             $this->dispatch('notify', type: 'success', message: __('app.created_successfully'));
         }
 
@@ -374,6 +401,32 @@ class MovementPage extends Component
         $type = MovementType::create(['name' => $value, 'sort_order' => $maxOrder + 1]);
 
         return $type->slug;
+    }
+
+    private function resolveCategoryForType(string $input, string $type): array
+    {
+        if ($input === '') {
+            return ['category' => null, 'deposit' => null, 'invoice_id' => null];
+        }
+        if ($type === 'bill' && str_starts_with($input, 'invoice:')) {
+            $invoiceId = (int) substr($input, 8);
+            $invoice = Invoice::with('client')->findOrFail($invoiceId);
+            $depositAmount = (float) ($invoice->amount_remaining ?? 0) > 0
+                ? (float) $invoice->amount_remaining
+                : (float) $invoice->total;
+
+            return [
+                'category' => trim(($invoice->invoice_number ?? '').' - '.($invoice->client?->name ?? '')),
+                'deposit' => $depositAmount,
+                'invoice_id' => $invoice->id,
+            ];
+        }
+
+        return [
+            'category' => $this->resolveOrCreateCategory($input),
+            'deposit' => null,
+            'invoice_id' => null,
+        ];
     }
 
     private function resetForm(): void
