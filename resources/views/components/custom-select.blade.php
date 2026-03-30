@@ -226,7 +226,7 @@ $hasNav          = $navRow !== null && $navCol !== null;
             <template x-for="(opt, idx) in filtered" :key="'csel-' + idx">
                 <button type="button" role="option"
                         @click="pick(opt.value)"
-                        :class="cursor === idx
+                        :class="(cursor > -1 && filtered[cursor] && filtered[cursor].value === opt.value)
                             ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
                             : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'"
                         class="block w-full shrink-0 text-left px-3 py-1.5 text-xs truncate"
