@@ -296,10 +296,11 @@
              "
              x-init="init()"
              @keydown.window="
-                 if (event.key === 'F2' && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)) {
+                 const activeTag = document.activeElement ? document.activeElement.tagName : '';
+                 if (event.key === 'F2' && !['INPUT','TEXTAREA','SELECT'].includes(activeTag)) {
                      event.preventDefault();
-                     const first = document.querySelector('[data-nav-cell][data-row=\'0\'][data-col=\'0\']');
-                     first?.focus();
+                     const first = document.querySelector(&quot;[data-nav-cell][data-row='0'][data-col='0']&quot;);
+                     if (first) first.focus();
                  }
              ">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -437,12 +438,12 @@
                            moveNext(row, col) {
                                const all = this.cells();
                                const idx = all.findIndex(el => +el.dataset.row === row && +el.dataset.col === col);
-                               all[idx + 1]?.focus();
+                               if (all[idx + 1]) all[idx + 1].focus();
                            },
                            movePrev(row, col) {
                                const all = this.cells();
                                const idx = all.findIndex(el => +el.dataset.row === row && +el.dataset.col === col);
-                               all[idx - 1]?.focus();
+                               if (all[idx - 1]) all[idx - 1].focus();
                            }
                        }"
                        @cell-next="moveNext($event.detail.row, $event.detail.col)"

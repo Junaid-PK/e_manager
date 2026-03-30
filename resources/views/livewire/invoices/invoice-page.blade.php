@@ -312,10 +312,11 @@
              "
              x-init="init()"
              @keydown.window="
-                 if (event.key === 'F2' && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)) {
+                 const activeTag = document.activeElement ? document.activeElement.tagName : '';
+                 if (event.key === 'F2' && !['INPUT','TEXTAREA','SELECT'].includes(activeTag)) {
                      event.preventDefault();
-                     const first = document.querySelector('[data-nav-cell][data-row=\'0\'][data-col=\'0\']');
-                     first?.focus();
+                     const first = document.querySelector(&quot;[data-nav-cell][data-row='0'][data-col='0']&quot;);
+                     if (first) first.focus();
                  }
              ">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -450,7 +451,7 @@
                            },
                            focusCell(row, col) {
                                const t = this.$el.querySelector('[data-nav-cell][data-row=\''+row+'\'][data-col=\''+col+'\']');
-                               t?.focus();
+                               if (t) t.focus();
                            },
                            moveNext(row, col) {
                                const all = this.cells();
@@ -541,7 +542,7 @@
                                                @keydown.escape="editing = false"
                                                class="w-24 text-xs text-right border border-emerald-400 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500">
                                     </template>
-                                    <button @click="editing = true; $nextTick(() => $refs.amtInput?.focus())"
+                                    <button @click="editing = true; $nextTick(() => { if ($refs.amtInput) $refs.amtInput.focus(); })"
                                             class="text-gray-300 hover:text-emerald-500 dark:text-gray-600 dark:hover:text-emerald-400 transition-colors flex-shrink-0">
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />

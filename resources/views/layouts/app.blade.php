@@ -1,8 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"
-      x-data="{ darkMode: localStorage.getItem('dark-mode') === 'true' }"
-      x-init="$watch('darkMode', val => { localStorage.setItem('dark-mode', val); val ? document.documentElement.classList.add('dark') : document.documentElement.classList.remove('dark') }); darkMode ? document.documentElement.classList.add('dark') : document.documentElement.classList.remove('dark')"
-      :class="{ 'dark': darkMode }">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -19,10 +16,25 @@
     </head>
     <body class="font-sans antialiased bg-gray-100 dark:bg-gray-900"
           x-data="{
+              darkMode: localStorage.getItem('dark-mode') === 'true',
               sidebarOpen: localStorage.getItem('sidebar-collapsed') !== 'true',
               mobileOpen: false,
               langOpen: false,
               userOpen: false,
+              init() {
+                  const applyDark = () => {
+                      if (this.darkMode) {
+                          document.documentElement.classList.add('dark');
+                      } else {
+                          document.documentElement.classList.remove('dark');
+                      }
+                  };
+                  applyDark();
+                  this.$watch('darkMode', val => {
+                      localStorage.setItem('dark-mode', val ? 'true' : 'false');
+                      applyDark();
+                  });
+              },
               toggleSidebar() {
                   this.sidebarOpen = !this.sidebarOpen;
                   localStorage.setItem('sidebar-collapsed', !this.sidebarOpen);
