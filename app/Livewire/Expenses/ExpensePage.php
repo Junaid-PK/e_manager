@@ -129,11 +129,17 @@ class ExpensePage extends Component
         $this->resetPage();
     }
 
-    public function create(): void
+    public function openCreateModal(): void
     {
         $this->resetForm();
         $this->editingId = null;
         $this->showFormModal = true;
+    }
+
+    // Keep backward compatibility with existing wire actions.
+    public function create(): void
+    {
+        $this->openCreateModal();
     }
 
     public function edit(int $id): void
