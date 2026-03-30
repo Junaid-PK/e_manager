@@ -11,6 +11,7 @@
     'emptyLabel'  => null,
     'navRow'      => null,
     'navCol'      => null,
+    'multiple'    => false,
 ])
 
 @php
@@ -38,8 +39,10 @@ $hasNav          = $navRow !== null && $navCol !== null;
     customInput: '',
     cursor: -1,
     selected: @js((string) $value),
+    selectedValues: [],
     options: @js($opts),
     allowCustom: @js((bool) $allowCustom),
+    multiple: @js((bool) $multiple),
     placeholder: @js($placeholder),
     emptyLabel: @js($emptyLabel),
     submitMethod: @js($submitMethod),
@@ -66,6 +69,14 @@ $hasNav          = $navRow !== null && $navCol !== null;
         this._maxListH = Math.max(120, maxH - (this.allowCustom ? 56 : 0) - 40);
     },
     label() {
+        if (this.multiple) {
+            if (!Array.isArray(this.selectedValues) || this.selectedValues.length === 0) return this.placeholder;
+            if (this.selectedValues.length === 1) {
+                const o = this.options.find(x => x.value === this.selectedValues[0]);
+                return o ? o.label : this.selectedValues[0];
+            }
+            return this.selectedValues.length + ' {{ __('app.selected') }}';
+        }
         if (!this.selected) return this.placeholder;
         const o = this.options.find(x => x.value === this.selected);
         return o ? o.label : this.selected;
@@ -85,7 +96,25 @@ $hasNav          = $navRow !== null && $navCol !== null;
             detail: { row: this.navRow, col: col }
         }));
     },
+    init() {
+        if (!this.multiple) return;
+        try {
+            const parsed = this.selected ? JSON.parse(this.selected) : [];
+            this.selectedValues = Array.isArray(parsed) ? parsed.map(v => String(v)) : [];
+        } catch (e) {
+            this.selectedValues = [];
+        }
+    },
+    isSelected(v) {
+        const value = String(v ?? '');
+        if (this.multiple) return this.selectedValues.includes(value);
+        return this.selected === value;
+    },
     pick(v) {
+        if (this.multiple) {
+            this.toggleSelected(v);
+            return;
+        }
         this.selected = v;
         this.search = '';
         this.customInput = '';
@@ -106,6 +135,27 @@ $hasNav          = $navRow !== null && $navCol !== null;
         const v = (this.customInput || '').trim();
         if (!v) return;
         this.pick(v);
+    },
+    toggleSelected(v) {
+        const value = String(v ?? '');
+        if (!value) return;
+        const idx = this.selectedValues.indexOf(value);
+        if (idx === -1) this.selectedValues.push(value);
+        else this.selectedValues.splice(idx, 1);
+    },
+    submitMultiple() {
+        const payload = JSON.stringify(this.selectedValues);
+        this.selected = payload;
+        this.search = '';
+        this.cursor = -1;
+        this.open = false;
+        if (this.wireModel) $wire.set(this.wireModel, payload);
+        if (this.submitMethod) {
+            if (this.submitArg !== null && this.submitArg !== '') $wire.call(this.submitMethod, this.submitArg, payload);
+            else $wire.call(this.submitMethod, payload);
+        }
+        if (this.navRow !== null) this.dispatchNav('cell-next');
+        else this.$refs.trigger?.focus();
     },
     onOpen() {
         this.open = true;
@@ -247,9 +297,9 @@ $hasNav          = $navRow !== null && $navCol !== null;
                         data-option-value="{{ $opt['value'] }}"
                         @click="pick(@js($opt['value']))"
                         x-show="!search || @js(mb_strtolower($opt['label'])).includes(search.toLowerCase())"
-                        :class="isHighlighted(@js($opt['value']))
+                        :class="(isHighlighted(@js($opt['value']))
                             ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
-                            : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'"
+                            : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700') + (isSelected(@js($opt['value'])) ? ' font-semibold' : '')"
                         class="block w-full shrink-0 text-left px-3 py-1.5 text-xs truncate">
                     {{ $opt['label'] }}
                 </button>
@@ -257,8 +307,17 @@ $hasNav          = $navRow !== null && $navCol !== null;
             <p x-show="filtered.length === 0" class="px-3 py-2 text-xs text-gray-400 dark:text-gray-500 select-none">{{ __('app.no_results') }}</p>
         </div>
 
+        <template x-if="multiple">
+            <div class="p-2 border-t border-gray-100 dark:border-gray-700 shrink-0">
+                <button type="button" @click="submitMultiple()"
+                        class="w-full text-xs font-medium px-2 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700">
+                    {{ __('app.apply') }}
+                </button>
+            </div>
+        </template>
+
         {{-- Add new --}}
-        <template x-if="allowCustom">
+        <template x-if="allowCustom && !multiple">
             <div class="p-2 bg-gray-50 dark:bg-gray-900/40 border-t border-gray-100 dark:border-gray-700 shrink-0">
                 <div class="flex gap-1.5">
                     <input type="text" x-ref="newval" x-model="customInput"

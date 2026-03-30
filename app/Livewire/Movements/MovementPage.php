@@ -272,22 +272,48 @@ class MovementPage extends Component
     {
         $movement = BankMovement::findOrFail($id);
         $input = trim($category ?? '');
-        if ($movement->type === 'bill' && str_starts_with($input, 'invoice:')) {
-            $invoiceId = (int) substr($input, 8);
-            $invoice = Invoice::with('client')->findOrFail($invoiceId);
-            $depositAmount = (float) ($invoice->amount_remaining ?? 0) > 0
-                ? (float) $invoice->amount_remaining
-                : (float) $invoice->total;
-            $movement->update([
-                'category' => trim(($invoice->invoice_number ?? '').' - '.($invoice->client?->name ?? '')),
-                'deposit' => $depositAmount,
-                'withdrawal' => null,
-            ]);
-            $invoice->update([
-                'status' => 'paid',
-                'amount_paid' => (float) $invoice->total,
-                'amount_remaining' => 0,
-            ]);
+        if ($movement->type === 'bill') {
+            $invoiceTokens = [];
+            $decoded = json_decode($input, true);
+            if (is_array($decoded)) {
+                $invoiceTokens = collect($decoded)->filter(fn ($v) => is_string($v) && str_starts_with($v, 'invoice:'))->values()->all();
+            } elseif (str_starts_with($input, 'invoice:')) {
+                $invoiceTokens = [$input];
+            }
+            $invoiceIds = collect($invoiceTokens)
+                ->map(fn ($token) => (int) substr($token, 8))
+                ->filter(fn ($n) => $n > 0)
+                ->unique()
+                ->values()
+                ->all();
+            if (count($invoiceIds) > 0) {
+                $invoices = Invoice::with('client')->whereIn('id', $invoiceIds)->get();
+                $depositAmount = $invoices->sum(function (Invoice $invoice) {
+                    return (float) ($invoice->amount_remaining ?? 0) > 0
+                        ? (float) $invoice->amount_remaining
+                        : (float) $invoice->total;
+                });
+                $categoryLabel = $invoices
+                    ->map(fn (Invoice $invoice) => trim(($invoice->invoice_number ?? '').' - '.($invoice->client?->name ?? '')))
+                    ->filter()
+                    ->values()
+                    ->implode(' | ');
+                $movement->update([
+                    'category' => $categoryLabel ?: null,
+                    'deposit' => $depositAmount > 0 ? $depositAmount : null,
+                    'withdrawal' => null,
+                ]);
+                if ($invoices->count() > 0) {
+                    Invoice::whereIn('id', $invoices->pluck('id')->all())->update([
+                        'status' => 'paid',
+                        'amount_paid' => DB::raw('total'),
+                        'amount_remaining' => 0,
+                    ]);
+                }
+                $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
+                return;
+            }
+            $movement->update(['category' => null]);
         } else {
             $resolved = $this->resolveOrCreateCategory($input);
             $movement->update(['category' => $resolved]);

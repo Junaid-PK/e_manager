@@ -295,7 +295,8 @@
                                     :options="$movement->type === 'bill' ? $billInvoiceOpts : $categoryOpts"
                                     :value="$movement->category ?? ''"
                                     placeholder="—"
-                                    allow-custom
+                                    :allow-custom="$movement->type !== 'bill'"
+                                    :multiple="$movement->type === 'bill'"
                                     submit-method="quickUpdateCategory"
                                     :submit-arg="$movement->id"
                                     :nav-row="$rowIdx"

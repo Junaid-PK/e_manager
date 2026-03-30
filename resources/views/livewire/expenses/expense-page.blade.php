@@ -13,6 +13,64 @@
 </x-slot>
 
 <div>
+    <div class="mb-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100">LISTADO GASTOS</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700/50">
+                    <tr>
+                        <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">DATE</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">BANK</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">CLIENT</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">TOTAL AMOL</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">DATE</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Nº FACTURA</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">PROVEEDOR</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">CIF</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">CONCEPTO</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">BI</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">IVA</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">IRPF</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">OTROS</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">TOTAL</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    @forelse($purchaseMovements as $row)
+                        @php $total = (float) ($row->withdrawal ?: $row->deposit ?: 0); @endphp
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                            <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-200 whitespace-nowrap">{{ $row->date?->format('d/m/Y') ?? '—' }}</td>
+                            <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-200 whitespace-nowrap">{{ $row->bankAccount?->bank_name ?? '—' }}</td>
+                            <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-200 whitespace-nowrap">{{ $row->beneficiary ?? '—' }}</td>
+                            <td class="px-3 py-2 text-xs text-right text-gray-900 dark:text-gray-100 whitespace-nowrap">{{ fmt_number($total) }}</td>
+                            <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-200 whitespace-nowrap">{{ $row->value_date?->format('d/m/Y') ?? ($row->date?->format('d/m/Y') ?? '—') }}</td>
+                            <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-200 whitespace-nowrap">{{ $row->reference ?? '—' }}</td>
+                            <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-200 whitespace-nowrap">{{ $row->beneficiary ?? '—' }}</td>
+                            <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-200 whitespace-nowrap">—</td>
+                            <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-200">{{ $row->concept ?? '—' }}</td>
+                            <td class="px-3 py-2 text-xs text-right text-gray-700 dark:text-gray-200 whitespace-nowrap">{{ fmt_number($total) }}</td>
+                            <td class="px-3 py-2 text-xs text-right text-gray-700 dark:text-gray-200 whitespace-nowrap">0.00</td>
+                            <td class="px-3 py-2 text-xs text-right text-gray-700 dark:text-gray-200 whitespace-nowrap">0.00</td>
+                            <td class="px-3 py-2 text-xs text-right text-gray-700 dark:text-gray-200 whitespace-nowrap">0.00</td>
+                            <td class="px-3 py-2 text-xs text-right font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">{{ fmt_number($total) }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="14" class="px-4 py-6 text-center text-sm text-gray-400">{{ __('app.no_movements') }}</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        @if($purchaseMovements->hasPages())
+            <div class="px-4 py-2 border-t border-gray-200 dark:border-gray-700">
+                {{ $purchaseMovements->links() }}
+            </div>
+        @endif
+    </div>
+
     @if (count($categorySummary) > 0)
         <div class="mb-4 overflow-x-auto">
             <div class="flex items-center gap-2 pb-1">

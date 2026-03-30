@@ -5,6 +5,7 @@ namespace App\Livewire\Expenses;
 use App\Livewire\Traits\WithBulkActions;
 use App\Livewire\Traits\WithFiltering;
 use App\Livewire\Traits\WithSorting;
+use App\Models\BankMovement;
 use App\Models\Company;
 use App\Models\Expense;
 use Illuminate\Support\Facades\Gate;
@@ -354,6 +355,38 @@ class ExpensePage extends Component
             ->toArray();
     }
 
+    protected function getPurchaseMovements()
+    {
+        $query = BankMovement::query()
+            ->with('bankAccount')
+            ->whereIn('type', ['buy', 'compra']);
+
+        if ($this->search) {
+            $search = $this->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('concept', 'like', "%{$search}%")
+                    ->orWhere('beneficiary', 'like', "%{$search}%")
+                    ->orWhere('reference', 'like', "%{$search}%")
+                    ->orWhere('category', 'like', "%{$search}%")
+                    ->orWhere('notes', 'like', "%{$search}%");
+            });
+        }
+
+        if ($this->filterVendor) {
+            $query->where('beneficiary', 'like', "%{$this->filterVendor}%");
+        }
+
+        if ($this->dateFrom) {
+            $query->whereDate('date', '>=', $this->dateFrom);
+        }
+
+        if ($this->dateTo) {
+            $query->whereDate('date', '<=', $this->dateTo);
+        }
+
+        return $query->latest('date')->latest('id')->paginate($this->perPage, ['*'], 'purchasePage');
+    }
+
     private function resetForm(): void
     {
         $this->formCompanyId = '';
@@ -375,6 +408,7 @@ class ExpensePage extends Component
     {
         return view('livewire.expenses.expense-page', [
             'expenses' => $this->buildQuery()->paginate($this->perPage),
+            'purchaseMovements' => $this->getPurchaseMovements(),
             'companies' => Company::orderBy('name')->get(),
             'categorySummary' => $this->getCategorySummary(),
         ])->layout('layouts.app');
