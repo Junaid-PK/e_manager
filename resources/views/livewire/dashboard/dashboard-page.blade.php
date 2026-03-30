@@ -49,6 +49,42 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="lg:col-span-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+            <div class="flex flex-col lg:flex-row gap-3 lg:items-end lg:justify-between">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 flex-1">
+                    <label class="block">
+                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ __('app.from') }}</span>
+                        <input type="date" wire:model.live="statsDateFrom" class="mt-1 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 text-sm">
+                    </label>
+                    <label class="block">
+                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ __('app.to') }}</span>
+                        <input type="date" wire:model.live="statsDateTo" class="mt-1 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 text-sm">
+                    </label>
+                    <label class="block">
+                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ __('app.category') }}</span>
+                        <select wire:model.live="selectedMovementCategory" class="mt-1 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 text-sm">
+                            <option value="">{{ __('app.all') }}</option>
+                            @foreach($movementCategoryOptions as $option)
+                                <option value="{{ $option }}">{{ $option }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <label class="block">
+                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ __('app.project') }}</span>
+                        <select wire:model.live="selectedInvoiceProject" class="mt-1 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 text-sm">
+                            <option value="">{{ __('app.all') }}</option>
+                            @foreach($invoiceProjectOptions as $option)
+                                <option value="{{ $option }}">{{ $option }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                </div>
+                <button wire:click="exportStatsToExcel" class="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors">
+                    {{ __('app.export') }} Excel
+                </button>
+            </div>
+        </div>
+
         <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-5">
             <div class="flex items-center justify-between mb-4">
                 <p class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ __('app.movements') }}</p>
@@ -57,7 +93,7 @@
                 <div>
                     <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{{ __('app.category') }}</p>
                     @if(count($movementCategoryStats))
-                        <div class="space-y-3">
+                        <div class="space-y-3 max-h-96 overflow-y-auto pr-1">
                             @foreach($movementCategoryStats as $item)
                                 @php $net = (float) $item['net']; @endphp
                                 <div class="flex items-center justify-between gap-3">
@@ -79,7 +115,7 @@
                 <div>
                     <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{{ __('app.type') }}</p>
                     @if(count($movementTypeStats))
-                        <div class="space-y-3">
+                        <div class="space-y-3 max-h-96 overflow-y-auto pr-1">
                             @foreach($movementTypeStats as $item)
                                 @php $net = (float) $item['net']; @endphp
                                 <div class="flex items-center justify-between gap-3">
@@ -109,7 +145,7 @@
                 <div>
                     <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{{ __('app.project') }}</p>
                     @if(count($invoiceProjectStats))
-                        <div class="space-y-3">
+                        <div class="space-y-3 max-h-96 overflow-y-auto pr-1">
                             @foreach($invoiceProjectStats as $item)
                                 <div class="flex items-center justify-between gap-3">
                                     <span class="text-sm text-gray-800 dark:text-gray-200 truncate flex-1">{{ $item['name'] }}</span>
@@ -132,7 +168,7 @@
                 <div>
                     <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{{ __('app.payment_type') }}</p>
                     @if(count($invoicePaymentTypeStats))
-                        <div class="space-y-3">
+                        <div class="space-y-3 max-h-96 overflow-y-auto pr-1">
                             @foreach($invoicePaymentTypeStats as $item)
                                 <div class="flex items-center justify-between gap-3">
                                     <span class="text-sm text-gray-800 dark:text-gray-200 truncate flex-1">{{ $item['name'] }}</span>

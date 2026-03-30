@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Dashboard;
 
+use App\Exports\DashboardStatsExport;
 use App\Models\ActivityLog;
 use App\Models\BankAccount;
 use App\Models\BankMovement;
@@ -10,13 +11,28 @@ use App\Models\Company;
 use App\Models\Expense;
 use App\Models\Invoice;
 use App\Models\PaymentReminder;
+use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
 use App\Models\MovementType;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
+use Maatwebsite\Excel\Facades\Excel;
 
 #[\Livewire\Attributes\Layout('layouts.app')]
 class DashboardPage extends Component
 {
+    public string $statsDateFrom = '';
+    public string $statsDateTo = '';
+    public string $selectedMovementCategory = '';
+    public string $selectedInvoiceProject = '';
+
+    public function mount(): void
+    {
+        $this->statsDateFrom = now()->startOfMonth()->format('Y-m-d');
+        $this->statsDateTo = now()->endOfMonth()->format('Y-m-d');
+    }
+
     public function render()
     {
         $now        = now();
@@ -90,9 +106,18 @@ class DashboardPage extends Component
         $statusBreakdown = $this->getStatusBreakdown();
 
         $movementCategoryStats = $this->getMovementCategoryStats();
-        $movementTypeStats = $this->getMovementTypeStats();
+        $movementCategoryOptions = collect($movementCategoryStats)->pluck('name')->values()->all();
+        if ($this->selectedMovementCategory !== '' && ! in_array($this->selectedMovementCategory, $movementCategoryOptions, true)) {
+            $this->selectedMovementCategory = '';
+        }
+        $movementTypeStats = $this->getMovementTypeStats($this->selectedMovementCategory !== '' ? $this->selectedMovementCategory : null);
+
         $invoiceProjectStats = $this->getInvoiceProjectStats();
-        $invoicePaymentTypeStats = $this->getInvoicePaymentTypeStats();
+        $invoiceProjectOptions = collect($invoiceProjectStats)->pluck('name')->values()->all();
+        if ($this->selectedInvoiceProject !== '' && ! in_array($this->selectedInvoiceProject, $invoiceProjectOptions, true)) {
+            $this->selectedInvoiceProject = '';
+        }
+        $invoicePaymentTypeStats = $this->getInvoicePaymentTypeStats($this->selectedInvoiceProject !== '' ? $this->selectedInvoiceProject : null);
 
         return view('livewire.dashboard.dashboard-page', compact(
             'totalReceivable', 'totalCollected', 'overdueCount', 'overdueAmount',
@@ -105,7 +130,31 @@ class DashboardPage extends Component
             'monthlyData', 'statusBreakdown',
             'movementCategoryStats', 'movementTypeStats',
             'invoiceProjectStats', 'invoicePaymentTypeStats',
+            'movementCategoryOptions', 'invoiceProjectOptions',
         ));
+    }
+
+    public function exportStatsToExcel()
+    {
+        $movementCategoryStats = $this->getMovementCategoryStats();
+        $movementTypeStats = $this->getMovementTypeStats($this->selectedMovementCategory !== '' ? $this->selectedMovementCategory : null);
+        $invoiceProjectStats = $this->getInvoiceProjectStats();
+        $invoicePaymentTypeStats = $this->getInvoicePaymentTypeStats($this->selectedInvoiceProject !== '' ? $this->selectedInvoiceProject : null);
+
+        $filename = 'dashboard-stats-'.date('Y-m-d-His').'-'.uniqid().'.xlsx';
+        Storage::disk('local')->makeDirectory('exports');
+        Excel::store(new DashboardStatsExport(
+            $movementCategoryStats,
+            $movementTypeStats,
+            $invoiceProjectStats,
+            $invoicePaymentTypeStats,
+            $this->statsDateFrom,
+            $this->statsDateTo,
+            $this->selectedMovementCategory,
+            $this->selectedInvoiceProject
+        ), 'exports/'.$filename, 'local');
+
+        return redirect(URL::temporarySignedRoute('export.download', now()->addMinutes(5), ['file' => $filename]));
     }
 
     public function quickMarkPaid(int $invoiceId): void
@@ -157,7 +206,7 @@ class DashboardPage extends Component
 
     private function getMovementCategoryStats(): array
     {
-        $rows = BankMovement::query()
+        $rows = $this->applyDateRange(BankMovement::query(), 'date')
             ->select(
                 'category',
                 DB::raw('COUNT(*) as movement_count'),
@@ -181,15 +230,19 @@ class DashboardPage extends Component
             })
             ->sortByDesc(fn ($x) => abs($x['net']))
             ->values()
-            ->take(5)
             ->all();
     }
 
-    private function getMovementTypeStats(): array
+    private function getMovementTypeStats(?string $categoryName = null): array
     {
         $typeMap = MovementType::query()->get()->keyBy('slug')->map(fn ($mt) => $mt->name)->all();
 
-        $rows = BankMovement::query()
+        $query = $this->applyDateRange(BankMovement::query(), 'date');
+        if ($categoryName !== null) {
+            $query->where('category', $categoryName);
+        }
+
+        $rows = $query
             ->select(
                 'type',
                 DB::raw('COUNT(*) as movement_count'),
@@ -216,13 +269,12 @@ class DashboardPage extends Component
             })
             ->sortByDesc(fn ($x) => abs($x['net']))
             ->values()
-            ->take(5)
             ->all();
     }
 
     private function getInvoiceProjectStats(): array
     {
-        $rows = Invoice::query()
+        $rows = $this->applyDateRange(Invoice::query(), 'date_issued')
             ->leftJoin('projects', 'invoices.project_id', '=', 'projects.id')
             ->select(
                 'projects.name as project_name',
@@ -245,13 +297,22 @@ class DashboardPage extends Component
             })
             ->sortByDesc(fn ($x) => $x['total'])
             ->values()
-            ->take(5)
             ->all();
     }
 
-    private function getInvoicePaymentTypeStats(): array
+    private function getInvoicePaymentTypeStats(?string $projectName = null): array
     {
-        $rows = Invoice::query()
+        $query = $this->applyDateRange(Invoice::query(), 'date_issued')
+            ->leftJoin('projects', 'invoices.project_id', '=', 'projects.id');
+        if ($projectName !== null) {
+            if ($projectName === __('app.none')) {
+                $query->whereNull('projects.name');
+            } else {
+                $query->where('projects.name', $projectName);
+            }
+        }
+
+        $rows = $query
             ->select(
                 'payment_type',
                 DB::raw('COUNT(*) as invoice_count'),
@@ -281,7 +342,18 @@ class DashboardPage extends Component
             })
             ->sortByDesc(fn ($x) => $x['remaining'])
             ->values()
-            ->take(5)
             ->all();
+    }
+
+    private function applyDateRange(Builder $query, string $column): Builder
+    {
+        if ($this->statsDateFrom !== '') {
+            $query->whereDate($column, '>=', $this->statsDateFrom);
+        }
+        if ($this->statsDateTo !== '') {
+            $query->whereDate($column, '<=', $this->statsDateTo);
+        }
+
+        return $query;
     }
 }
