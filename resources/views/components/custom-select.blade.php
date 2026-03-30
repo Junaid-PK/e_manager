@@ -114,7 +114,10 @@ $hasNav          = $navRow !== null && $navCol !== null;
         this.cursor = -1;
         this.$nextTick(() => {
             this.placePanel();
-            this.$refs.searchInput?.focus();
+            setTimeout(() => {
+                if (this.$refs.searchInput) this.$refs.searchInput.focus();
+                else this.$refs.panel?.focus();
+            }, 0);
         });
     },
     onClose(refocus = true) {
@@ -198,6 +201,8 @@ $hasNav          = $navRow !== null && $navCol !== null;
 
     {{-- Dropdown panel --}}
     <div x-show="open"
+         x-ref="panel"
+         tabindex="-1"
          x-transition:enter="transition ease-out duration-100"
          x-transition:enter-start="opacity-0 scale-95"
          x-transition:enter-end="opacity-100 scale-100"
@@ -207,6 +212,9 @@ $hasNav          = $navRow !== null && $navCol !== null;
          class="fixed z-[9999] rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-xl flex flex-col"
          style="display: none;"
          x-bind:style="'top:' + panelTop + 'px;left:' + panelLeft + 'px;min-width:' + panelW + 'px;max-width:min(100vw - 16px, 22rem)'"
+         @keydown.arrow-down.prevent="moveCursor(1)"
+         @keydown.arrow-up.prevent="moveCursor(-1)"
+         @keydown.enter.prevent="confirmCursor()"
          @click.stop>
 
         {{-- Search --}}
