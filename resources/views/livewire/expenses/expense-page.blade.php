@@ -1,15 +1,5 @@
 <x-slot name="header">
-    <div class="flex items-center justify-between">
-        <span>{{ __('app.expenses') }}</span>
-        @can('expenses.create')
-            <button type="button" wire:click="openCreateModal" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
-                {{ __('app.new_expense') }}
-            </button>
-        @endcan
-    </div>
+    {{ __('app.expenses') }}
 </x-slot>
 
 <div>
@@ -27,7 +17,17 @@
 
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700 space-y-3">
-            <h2 class="text-sm font-semibold text-gray-800 dark:text-gray-100 tracking-wide">LISTADO GASTOS</h2>
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h2 class="text-sm font-semibold text-gray-800 dark:text-gray-100 tracking-wide">LISTADO GASTOS</h2>
+                @can('expenses.create')
+                    <button type="button" wire:click="openCreateModal" class="inline-flex shrink-0 items-center justify-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                        </svg>
+                        {{ __('app.new_expense') }}
+                    </button>
+                @endcan
+            </div>
             <div class="flex flex-col lg:flex-row lg:items-center gap-3">
                 <div class="relative flex-1 max-w-sm">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
