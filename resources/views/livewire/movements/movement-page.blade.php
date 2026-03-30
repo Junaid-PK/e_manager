@@ -5,6 +5,7 @@
 @php
     $categoryOpts = $movementCategories->map(fn ($mc) => ['value' => $mc->name, 'label' => $mc->name])->values()->all();
     $movementTypeOpts = $movementTypes->map(fn ($mt) => ['value' => $mt->slug, 'label' => $mt->name])->values()->all();
+    $billInvoiceOpts = $pendingInvoiceOptions ?? [];
 @endphp
 <div>
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
@@ -291,7 +292,7 @@
                             <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[7rem] align-top">
                                 <x-custom-select compact
                                     wire:key="cat-{{ $movement->id }}"
-                                    :options="$categoryOpts"
+                                    :options="$movement->type === 'bill' ? $billInvoiceOpts : $categoryOpts"
                                     :value="$movement->category ?? ''"
                                     placeholder="—"
                                     allow-custom
@@ -704,13 +705,17 @@
                         });
                     },
                     moveNext(row, col) {
+                        const rowNum = Number(row);
+                        const colNum = Number(col);
                         const all = this.cells();
-                        const idx = all.findIndex(el => +el.dataset.row === row && +el.dataset.col === col);
+                        const idx = all.findIndex(el => +el.dataset.row === rowNum && +el.dataset.col === colNum);
                         if (all[idx + 1]) all[idx + 1].focus();
                     },
                     movePrev(row, col) {
+                        const rowNum = Number(row);
+                        const colNum = Number(col);
                         const all = this.cells();
-                        const idx = all.findIndex(el => +el.dataset.row === row && +el.dataset.col === col);
+                        const idx = all.findIndex(el => +el.dataset.row === rowNum && +el.dataset.col === colNum);
                         if (all[idx - 1]) all[idx - 1].focus();
                     }
                 });

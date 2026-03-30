@@ -8,6 +8,7 @@ use App\Livewire\Traits\WithFiltering;
 use App\Livewire\Traits\WithSorting;
 use App\Models\BankAccount;
 use App\Models\BankMovement;
+use App\Models\Invoice;
 use App\Models\MovementCategory;
 use App\Models\MovementType;
 use Illuminate\Support\Facades\Gate;
@@ -242,8 +243,28 @@ class MovementPage extends Component
 
     public function quickUpdateCategory(int $id, string $category): void
     {
-        $resolved = $this->resolveOrCreateCategory(trim($category ?? ''));
-        BankMovement::findOrFail($id)->update(['category' => $resolved]);
+        $movement = BankMovement::findOrFail($id);
+        $input = trim($category ?? '');
+        if ($movement->type === 'bill' && str_starts_with($input, 'invoice:')) {
+            $invoiceId = (int) substr($input, 8);
+            $invoice = Invoice::with('client')->findOrFail($invoiceId);
+            $depositAmount = (float) ($invoice->amount_remaining ?? 0) > 0
+                ? (float) $invoice->amount_remaining
+                : (float) $invoice->total;
+            $movement->update([
+                'category' => trim(($invoice->invoice_number ?? '').' - '.($invoice->client?->name ?? '')),
+                'deposit' => $depositAmount,
+                'withdrawal' => null,
+            ]);
+            $invoice->update([
+                'status' => 'paid',
+                'amount_paid' => (float) $invoice->total,
+                'amount_remaining' => 0,
+            ]);
+        } else {
+            $resolved = $this->resolveOrCreateCategory($input);
+            $movement->update(['category' => $resolved]);
+        }
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
 
@@ -373,11 +394,33 @@ class MovementPage extends Component
 
     public function render()
     {
+        $pendingInvoiceOptions = Invoice::query()
+            ->with('client:id,name')
+            ->where(function ($q) {
+                $q->whereIn('status', ['pending', 'partial'])
+                    ->orWhere(function ($q2) {
+                        $q2->whereNotNull('amount_remaining')->where('amount_remaining', '>', 0);
+                    });
+            })
+            ->orderByDesc('date_due')
+            ->orderByDesc('id')
+            ->limit(300)
+            ->get()
+            ->map(function (Invoice $invoice) {
+                return [
+                    'value' => 'invoice:'.$invoice->id,
+                    'label' => trim(($invoice->invoice_number ?? '').' - '.($invoice->client?->name ?? '')),
+                ];
+            })
+            ->values()
+            ->all();
+
         return view('livewire.movements.movement-page', [
             'movements' => $this->getMovements(),
             'bankAccounts' => BankAccount::orderBy('bank_name')->get(),
             'movementTypes' => MovementType::orderBy('sort_order')->orderBy('name')->get(),
             'movementCategories' => MovementCategory::orderBy('sort_order')->orderBy('name')->get(),
+            'pendingInvoiceOptions' => $pendingInvoiceOptions,
         ])->layout('layouts.app');
     }
 }

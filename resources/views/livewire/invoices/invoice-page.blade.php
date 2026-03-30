@@ -943,14 +943,18 @@
                         if (t) t.focus();
                     },
                     moveNext(row, col) {
+                        const rowNum = Number(row);
+                        const colNum = Number(col);
                         const all = this.cells();
-                        const idx = all.findIndex(el => +el.dataset.row === row && +el.dataset.col === col);
+                        const idx = all.findIndex(el => +el.dataset.row === rowNum && +el.dataset.col === colNum);
                         const next = all[idx + 1];
                         if (next) next.focus();
                     },
                     movePrev(row, col) {
+                        const rowNum = Number(row);
+                        const colNum = Number(col);
                         const all = this.cells();
-                        const idx = all.findIndex(el => +el.dataset.row === row && +el.dataset.col === col);
+                        const idx = all.findIndex(el => +el.dataset.row === rowNum && +el.dataset.col === colNum);
                         const prev = all[idx - 1];
                         if (prev) prev.focus();
                     }
