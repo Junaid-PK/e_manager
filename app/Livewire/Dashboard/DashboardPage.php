@@ -11,7 +11,10 @@ use App\Models\Expense;
 use App\Models\Invoice;
 use App\Models\PaymentReminder;
 use Livewire\Component;
+use App\Models\MovementType;
+use Illuminate\Support\Facades\DB;
 
+#[\Livewire\Attributes\Layout('layouts.app')]
 class DashboardPage extends Component
 {
     public function render()
@@ -86,6 +89,11 @@ class DashboardPage extends Component
         // ── Invoice status breakdown ──────────────────────────────────
         $statusBreakdown = $this->getStatusBreakdown();
 
+        $movementCategoryStats = $this->getMovementCategoryStats();
+        $movementTypeStats = $this->getMovementTypeStats();
+        $invoiceProjectStats = $this->getInvoiceProjectStats();
+        $invoicePaymentTypeStats = $this->getInvoicePaymentTypeStats();
+
         return view('livewire.dashboard.dashboard-page', compact(
             'totalReceivable', 'totalCollected', 'overdueCount', 'overdueAmount',
             'pendingCount', 'collectionRate',
@@ -95,7 +103,9 @@ class DashboardPage extends Component
             'topClients', 'recentMovements',
             'overdueInvoices', 'upcomingReminders',
             'monthlyData', 'statusBreakdown',
-        ))->layout('layouts.app');
+            'movementCategoryStats', 'movementTypeStats',
+            'invoiceProjectStats', 'invoicePaymentTypeStats',
+        ));
     }
 
     public function quickMarkPaid(int $invoiceId): void
@@ -143,5 +153,135 @@ class DashboardPage extends Component
             }
         }
         return $data;
+    }
+
+    private function getMovementCategoryStats(): array
+    {
+        $rows = BankMovement::query()
+            ->select(
+                'category',
+                DB::raw('COUNT(*) as movement_count'),
+                DB::raw('COALESCE(SUM(deposit), 0) as deposits'),
+                DB::raw('COALESCE(SUM(withdrawal), 0) as withdrawals')
+            )
+            ->groupBy('category')
+            ->get();
+
+        return $rows
+            ->map(function ($r) {
+                $net = (float) $r->deposits - (float) $r->withdrawals;
+                return [
+                    'key' => $r->category,
+                    'name' => $r->category ?: __('app.none'),
+                    'count' => (int) $r->movement_count,
+                    'deposits' => (float) $r->deposits,
+                    'withdrawals' => (float) $r->withdrawals,
+                    'net' => $net,
+                ];
+            })
+            ->sortByDesc(fn ($x) => abs($x['net']))
+            ->values()
+            ->take(5)
+            ->all();
+    }
+
+    private function getMovementTypeStats(): array
+    {
+        $typeMap = MovementType::query()->get()->keyBy('slug')->map(fn ($mt) => $mt->name)->all();
+
+        $rows = BankMovement::query()
+            ->select(
+                'type',
+                DB::raw('COUNT(*) as movement_count'),
+                DB::raw('COALESCE(SUM(deposit), 0) as deposits'),
+                DB::raw('COALESCE(SUM(withdrawal), 0) as withdrawals')
+            )
+            ->groupBy('type')
+            ->get();
+
+        return $rows
+            ->map(function ($r) use ($typeMap) {
+                $typeKey = $r->type;
+                $net = (float) $r->deposits - (float) $r->withdrawals;
+                $label = $typeKey ? ($typeMap[$typeKey] ?? $typeKey) : __('app.none');
+
+                return [
+                    'key' => $typeKey,
+                    'name' => $label,
+                    'count' => (int) $r->movement_count,
+                    'deposits' => (float) $r->deposits,
+                    'withdrawals' => (float) $r->withdrawals,
+                    'net' => $net,
+                ];
+            })
+            ->sortByDesc(fn ($x) => abs($x['net']))
+            ->values()
+            ->take(5)
+            ->all();
+    }
+
+    private function getInvoiceProjectStats(): array
+    {
+        $rows = Invoice::query()
+            ->leftJoin('projects', 'invoices.project_id', '=', 'projects.id')
+            ->select(
+                'projects.name as project_name',
+                DB::raw('COUNT(*) as invoice_count'),
+                DB::raw('COALESCE(SUM(invoices.total), 0) as total'),
+                DB::raw('COALESCE(SUM(invoices.amount_remaining), 0) as remaining')
+            )
+            ->groupBy('projects.id', 'projects.name')
+            ->get();
+
+        return $rows
+            ->map(function ($r) {
+                return [
+                    'key' => $r->project_name,
+                    'name' => $r->project_name ?: __('app.none'),
+                    'count' => (int) $r->invoice_count,
+                    'total' => (float) $r->total,
+                    'remaining' => (float) $r->remaining,
+                ];
+            })
+            ->sortByDesc(fn ($x) => $x['total'])
+            ->values()
+            ->take(5)
+            ->all();
+    }
+
+    private function getInvoicePaymentTypeStats(): array
+    {
+        $rows = Invoice::query()
+            ->select(
+                'payment_type',
+                DB::raw('COUNT(*) as invoice_count'),
+                DB::raw('COALESCE(SUM(invoices.total), 0) as total'),
+                DB::raw('COALESCE(SUM(invoices.amount_remaining), 0) as remaining')
+            )
+            ->groupBy('payment_type')
+            ->get();
+
+        return $rows
+            ->map(function ($r) {
+                $key = $r->payment_type;
+                if (! $key) {
+                    $label = __('app.none');
+                } else {
+                    $translated = __('app.' . $key);
+                    $label = $translated === ('app.' . $key) ? $key : $translated;
+                }
+
+                return [
+                    'key' => $key,
+                    'name' => $label,
+                    'count' => (int) $r->invoice_count,
+                    'total' => (float) $r->total,
+                    'remaining' => (float) $r->remaining,
+                ];
+            })
+            ->sortByDesc(fn ($x) => $x['remaining'])
+            ->values()
+            ->take(5)
+            ->all();
     }
 }

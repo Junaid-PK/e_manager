@@ -78,9 +78,10 @@ $hasNav          = $navRow !== null && $navCol !== null;
         // Dispatch on the closest tbody so it stays scoped and doesn't bleed across pages
         const tbody = this.$el.closest('tbody');
         const target = tbody ?? document;
+        const col = this.$refs.trigger?.dataset?.col ?? this.navCol;
         target.dispatchEvent(new CustomEvent(eventName, {
             bubbles: true,
-            detail: { row: this.navRow, col: this.navCol }
+            detail: { row: this.navRow, col: col }
         }));
     },
     pick(v) {

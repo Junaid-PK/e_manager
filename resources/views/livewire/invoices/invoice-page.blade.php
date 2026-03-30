@@ -150,7 +150,167 @@
         @endif
 
         <div class="overflow-x-auto"
-             x-data
+             x-data="{
+                 tableKey: 'invoices',
+                 userId: {{ auth()->id() }},
+                 orderIds: [],
+                 draggingId: null,
+                 init() {
+                     const self = this;
+                     this.$nextTick(() => self.setupAndApply());
+                     const hookKey = '__colOrderHook__' + this.tableKey + '__' + this.userId;
+                     if (window.Livewire && !window[hookKey]) {
+                         window[hookKey] = true;
+                         window.Livewire.hook('message.processed', () => setTimeout(() => self.setupAndApply(), 0));
+                     }
+                 },
+                 storageKey() {
+                     return 'colOrder:' + this.tableKey + ':' + this.userId;
+                 },
+                 ensureIds() {
+                     const table = this.$el.querySelector('table');
+                     if (!table || !table.tHead || !table.tHead.rows[0]) return null;
+                     const headerRow = table.tHead.rows[0];
+                     const headerCells = Array.from(headerRow.children);
+                     headerCells.forEach((cell, idx) => {
+                         if (!cell.dataset.colId) cell.dataset.colId = String(idx);
+                     });
+                     const tbody = table.tBodies[0];
+                     if (!tbody) return null;
+                     Array.from(tbody.rows).forEach(tr => {
+                         const tds = Array.from(tr.children);
+                         tds.forEach((td, idx) => {
+                             if (!td.dataset.colId) td.dataset.colId = String(idx);
+                         });
+                     });
+                     return headerCells.length;
+                 },
+                 loadOrderIds(expectedCount) {
+                     try {
+                         const raw = localStorage.getItem(this.storageKey());
+                         if (!raw) return null;
+                         const parsed = JSON.parse(raw);
+                         if (!Array.isArray(parsed) || parsed.length !== expectedCount) return null;
+                         return parsed.map(v => (typeof v === 'number' ? v : parseInt(v, 10))).filter(v => Number.isInteger(v) && v >= 0 && v < expectedCount);
+                     } catch (e) {
+                         return null;
+                     }
+                 },
+                 saveOrderIds() {
+                     try {
+                         localStorage.setItem(this.storageKey(), JSON.stringify(this.orderIds));
+                     } catch (e) {
+                     }
+                 },
+                 applyOrder() {
+                     const table = this.$el.querySelector('table');
+                     if (!table || !table.tHead || !table.tHead.rows[0] || !table.tBodies || !table.tBodies[0]) return;
+                     const headerRow = table.tHead.rows[0];
+                     const tbody = table.tBodies[0];
+                     const headerCells = Array.from(headerRow.children);
+                     const headerCount = headerCells.length;
+                     if (!Array.isArray(this.orderIds) || this.orderIds.length !== headerCount) {
+                         this.orderIds = headerCells.map(c => parseInt(c.dataset.colId, 10));
+                     }
+                     const mapHeader = new Map(headerCells.map(c => [parseInt(c.dataset.colId, 10), c]));
+                     const headerFrag = document.createDocumentFragment();
+                     this.orderIds.forEach(id => {
+                         const cell = mapHeader.get(id);
+                         if (cell) headerFrag.appendChild(cell);
+                     });
+                     headerRow.appendChild(headerFrag);
+
+                     const rows = Array.from(tbody.rows);
+                     rows.forEach(tr => {
+                         if (tr.children.length !== headerCount) return;
+                         const cells = Array.from(tr.children);
+                         const map = new Map(cells.map(c => [parseInt(c.dataset.colId, 10), c]));
+                         const frag = document.createDocumentFragment();
+                         this.orderIds.forEach(id => {
+                             const cell = map.get(id);
+                             if (cell) frag.appendChild(cell);
+                         });
+                         tr.appendChild(frag);
+                     });
+                 },
+                 reindexNav(tbody) {
+                     if (!tbody) return;
+                     const rows = Array.from(tbody.rows);
+                     rows.forEach(tr => {
+                         const tds = Array.from(tr.children);
+                         let navCol = 0;
+                         tds.forEach(td => {
+                             const navCells = td.querySelectorAll('[data-nav-cell]');
+                             if (navCells && navCells.length > 0) {
+                                 navCells.forEach(el => {
+                                     el.dataset.col = String(navCol);
+                                 });
+                                 navCol++;
+                             }
+                         });
+                     });
+                 },
+                 setupDnD() {
+                     const table = this.$el.querySelector('table');
+                     if (!table || !table.tHead || !table.tHead.rows[0]) return;
+                     const headerRow = table.tHead.rows[0];
+                     Array.from(headerRow.children).forEach(th => {
+                         th.setAttribute('draggable', 'true');
+                         th.style.cursor = 'move';
+                         if (th.dataset.colDndBound) return;
+                         th.dataset.colDndBound = '1';
+                         th.addEventListener('dragstart', e => {
+                             this.draggingId = parseInt(th.dataset.colId, 10);
+                             try {
+                                 e.dataTransfer.effectAllowed = 'move';
+                                 e.dataTransfer.setData('text/plain', String(this.draggingId));
+                             } catch (err) {
+                             }
+                         });
+                         th.addEventListener('dragover', e => {
+                             e.preventDefault();
+                             e.dataTransfer.dropEffect = 'move';
+                         });
+                         th.addEventListener('drop', e => {
+                             e.preventDefault();
+                             const dropId = parseInt(th.dataset.colId, 10);
+                             const fromId = this.draggingId;
+                             if (Number.isInteger(fromId) && Number.isInteger(dropId) && fromId !== dropId) {
+                                 const fromIndex = this.orderIds.indexOf(fromId);
+                                 const toIndex = this.orderIds.indexOf(dropId);
+                                 if (fromIndex !== -1 && toIndex !== -1) {
+                                     const arr = [...this.orderIds];
+                                     const item = arr.splice(fromIndex, 1)[0];
+                                     arr.splice(toIndex, 0, item);
+                                     this.orderIds = arr;
+                                     this.saveOrderIds();
+                                     this.applyOrder();
+                                     this.reindexNav(table.tBodies[0]);
+                                 }
+                             }
+                             this.draggingId = null;
+                         });
+                     });
+                 },
+                 setupAndApply() {
+                     const table = this.$el.querySelector('table');
+                     if (!table || !table.tHead || !table.tHead.rows[0] || !table.tBodies || !table.tBodies[0]) return;
+                     const headerCount = this.ensureIds();
+                     if (!headerCount) return;
+                     const saved = this.loadOrderIds(headerCount);
+                     if (saved) {
+                         this.orderIds = saved;
+                     } else {
+                         const headerRow = table.tHead.rows[0];
+                         this.orderIds = Array.from(headerRow.children).map(c => parseInt(c.dataset.colId, 10));
+                         this.saveOrderIds();
+                     }
+                     this.applyOrder();
+                     this.setupDnD();
+                     this.reindexNav(table.tBodies[0]);
+                 }
+             "
+             x-init="init()"
              @keydown.window="
                  if (event.key === 'F2' && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)) {
                      event.preventDefault();

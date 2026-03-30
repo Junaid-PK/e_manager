@@ -48,6 +48,110 @@
         </a>
     </div>
 
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-5">
+            <div class="flex items-center justify-between mb-4">
+                <p class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ __('app.movements') }}</p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{{ __('app.category') }}</p>
+                    @if(count($movementCategoryStats))
+                        <div class="space-y-3">
+                            @foreach($movementCategoryStats as $item)
+                                @php $net = (float) $item['net']; @endphp
+                                <div class="flex items-center justify-between gap-3">
+                                    <span class="text-sm text-gray-800 dark:text-gray-200 truncate flex-1">{{ $item['name'] }}</span>
+                                    <span class="text-xs text-gray-500 shrink-0">{{ $item['count'] }}</span>
+                                </div>
+                                <div class="flex items-center justify-between gap-3">
+                                    <span class="text-xs text-gray-400 shrink-0">{{ __('app.net') }}</span>
+                                    <span class="{{ $net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400' }} text-xs font-medium shrink-0">
+                                        {{ $net >= 0 ? '+' : '-' }}€{{ fmt_number(abs($net)) }}
+                                    </span>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="text-sm text-gray-400 py-4 text-center">{{ __('app.no_movements') }}</p>
+                    @endif
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{{ __('app.type') }}</p>
+                    @if(count($movementTypeStats))
+                        <div class="space-y-3">
+                            @foreach($movementTypeStats as $item)
+                                @php $net = (float) $item['net']; @endphp
+                                <div class="flex items-center justify-between gap-3">
+                                    <span class="text-sm text-gray-800 dark:text-gray-200 truncate flex-1">{{ $item['name'] }}</span>
+                                    <span class="text-xs text-gray-500 shrink-0">{{ $item['count'] }}</span>
+                                </div>
+                                <div class="flex items-center justify-between gap-3">
+                                    <span class="text-xs text-gray-400 shrink-0">{{ __('app.net') }}</span>
+                                    <span class="{{ $net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400' }} text-xs font-medium shrink-0">
+                                        {{ $net >= 0 ? '+' : '-' }}€{{ fmt_number(abs($net)) }}
+                                    </span>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="text-sm text-gray-400 py-4 text-center">{{ __('app.no_movements') }}</p>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-5">
+            <div class="flex items-center justify-between mb-4">
+                <p class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ __('app.invoices') }}</p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{{ __('app.project') }}</p>
+                    @if(count($invoiceProjectStats))
+                        <div class="space-y-3">
+                            @foreach($invoiceProjectStats as $item)
+                                <div class="flex items-center justify-between gap-3">
+                                    <span class="text-sm text-gray-800 dark:text-gray-200 truncate flex-1">{{ $item['name'] }}</span>
+                                    <span class="text-xs text-gray-500 shrink-0">{{ $item['count'] }}</span>
+                                </div>
+                                <div class="flex items-center justify-between gap-3">
+                                    <span class="text-xs text-gray-400 shrink-0">{{ __('app.total') }}</span>
+                                    <span class="text-xs font-medium text-gray-800 dark:text-gray-100 shrink-0">€{{ fmt_number($item['total']) }}</span>
+                                </div>
+                                <div class="flex items-center justify-between gap-3">
+                                    <span class="text-xs text-gray-400 shrink-0">{{ __('app.amount_remaining') }}</span>
+                                    <span class="text-xs font-medium text-red-500 dark:text-red-400 shrink-0">€{{ fmt_number($item['remaining']) }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="text-sm text-gray-400 py-4 text-center">{{ __('app.no_invoices') }}</p>
+                    @endif
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{{ __('app.payment_type') }}</p>
+                    @if(count($invoicePaymentTypeStats))
+                        <div class="space-y-3">
+                            @foreach($invoicePaymentTypeStats as $item)
+                                <div class="flex items-center justify-between gap-3">
+                                    <span class="text-sm text-gray-800 dark:text-gray-200 truncate flex-1">{{ $item['name'] }}</span>
+                                    <span class="text-xs text-gray-500 shrink-0">{{ $item['count'] }}</span>
+                                </div>
+                                <div class="flex items-center justify-between gap-3">
+                                    <span class="text-xs text-gray-400 shrink-0">{{ __('app.amount_remaining') }}</span>
+                                    <span class="text-xs font-medium text-red-500 dark:text-red-400 shrink-0">€{{ fmt_number($item['remaining']) }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="text-sm text-gray-400 py-4 text-center">{{ __('app.no_invoices') }}</p>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- ── Row 2: This month cash flow + Bank accounts ── --}}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
@@ -126,7 +230,7 @@
                 data: @js($monthlyData),
                 get maxVal() {
                     let m = 0;
-                    this.data.forEach(d => { if(d.income>m) m=d.income; if(d.deposits>m) m=d.deposits; if(d.expenses>m) m=d.expenses; });
+                    this.data.forEach(d => { if(d.income>m) m=d.income; if(d.deposits>m) m=d.deposits; if(d.expenses>m) m=d.expenses; if(d.withdrawals>m) m=d.withdrawals; });
                     return m || 1;
                 }
             }">
