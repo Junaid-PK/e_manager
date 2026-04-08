@@ -205,22 +205,30 @@
                             $canExpense = $row['kind'] === 'e' && auth()->user()->can('expenses.edit') && !$expenseReadonlyListado;
                             // Movement rows (bank_movements) are display-only here; edit them on the Movements page.
                             $canRow = $canExpense;
+                            $rowIsMovement = $row['kind'] === 'm';
                             $inp = 'w-full min-w-0 text-[11px] border border-gray-300 dark:border-gray-600 rounded px-1 py-0.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100';
+                            $staticSpan = $rowIsMovement ? 'text-[11px] text-white' : 'text-[11px] text-gray-700 dark:text-gray-200';
+                            $staticSpanPlain = $rowIsMovement ? 'text-[11px] text-white' : 'text-[11px]';
                         @endphp
-                        <tr @class(['hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors', 'bg-gray-50/90 dark:bg-gray-900/50' => $expenseReadonlyListado]) wire:key="listado-{{ $row['composite'] }}" @if ($row['kind'] === 'e') id="listado-expense-row-{{ $row['id'] }}" @endif>
+                        <tr @class([
+                            'transition-colors',
+                            'bg-sky-800 text-white hover:bg-sky-700 [&_button]:text-white/90 [&_button:hover]:text-white [&_a]:text-white/90 [&_a:hover]:text-sky-200' => $rowIsMovement,
+                            'hover:bg-gray-50 dark:hover:bg-gray-700/50' => ! $rowIsMovement,
+                            'bg-gray-50/90 dark:bg-gray-900/50' => $expenseReadonlyListado && ! $rowIsMovement,
+                        ]) wire:key="listado-{{ $row['composite'] }}" @if ($row['kind'] === 'e') id="listado-expense-row-{{ $row['id'] }}" @endif>
                             <td class="px-2 py-1 align-top">
-                                <input type="checkbox" wire:model.live="selected" value="{{ $row['composite'] }}" class="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 dark:bg-gray-700">
+                                <input type="checkbox" wire:model.live="selected" value="{{ $row['composite'] }}" @class(['rounded text-emerald-600 focus:ring-emerald-500', 'border-white/40 bg-white/10 dark:bg-white/10 dark:border-white/40' => $rowIsMovement, 'border-gray-300 dark:border-gray-600 dark:bg-gray-700' => ! $rowIsMovement])>
                             </td>
                             <td class="px-2 py-1 align-top whitespace-nowrap">
                                 @if ($canRow)
                                     <input type="date" value="{{ $row['date'] }}" wire:change="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'date', $event.target.value)" class="{{ $inp }}" />
                                 @else
-                                    <span class="text-[11px] text-gray-700 dark:text-gray-200">{{ $row['date'] ? \Illuminate\Support\Carbon::parse($row['date'])->format('d/m/Y') : '—' }}</span>
+                                    <span class="{{ $staticSpan }}">{{ $row['date'] ? \Illuminate\Support\Carbon::parse($row['date'])->format('d/m/Y') : '—' }}</span>
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top min-w-[8rem]">
                                 @if ($row['kind'] === 'm')
-                                    <span class="text-[11px]">{{ $row['bank_name'] }}</span>
+                                    <span class="{{ $staticSpanPlain }}">{{ $row['bank_name'] }}</span>
                                 @else
                                     @if ($canExpense)
                                         <input type="text" value="{{ $row['bank_name'] }}" wire:blur="updateListadoField('e', {{ $row['id'] }}, 'bank', $event.target.value)" class="{{ $inp }}" />
@@ -233,19 +241,19 @@
                                 @if ($canRow)
                                     <input type="text" value="{{ $row['client'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'client', $event.target.value)" class="{{ $inp }}" />
                                 @else
-                                    <span class="text-[11px] truncate block max-w-[8rem]">{{ $row['client'] }}</span>
+                                    <span class="{{ $staticSpanPlain }} truncate block max-w-[8rem]">{{ $row['client'] }}</span>
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top">
                                 @if ($canRow)
                                     <input type="number" step="0.01" value="{{ $row['total_amt'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'total_amt', $event.target.value)" class="{{ $inp }} text-right" />
                                 @else
-                                    <span class="text-[11px] text-right block">{{ $row['total_amt'] }}</span>
+                                    <span class="{{ $staticSpanPlain }} text-right block">{{ $row['total_amt'] }}</span>
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top whitespace-nowrap">
                                 @if ($row['kind'] === 'm')
-                                    <span class="text-[11px]">{{ $row['value_date'] ? \Illuminate\Support\Carbon::parse($row['value_date'])->format('d/m/Y') : '—' }}</span>
+                                    <span class="{{ $staticSpanPlain }}">{{ $row['value_date'] ? \Illuminate\Support\Carbon::parse($row['value_date'])->format('d/m/Y') : '—' }}</span>
                                 @else
                                     @if ($canExpense)
                                         <input type="date" value="{{ $row['value_date'] }}" wire:change="updateListadoField('e', {{ $row['id'] }}, 'invoice_date', $event.target.value)" class="{{ $inp }}" />
@@ -256,7 +264,7 @@
                             </td>
                             <td class="px-2 py-1 align-top">
                                 @if ($row['kind'] === 'm')
-                                    <span class="text-[11px] truncate block max-w-[7rem]">{{ $row['reference'] }}</span>
+                                    <span class="{{ $staticSpanPlain }} truncate block max-w-[7rem]">{{ $row['reference'] }}</span>
                                 @else
                                     @if ($canExpense)
                                         <input type="text" value="{{ $row['reference'] }}" wire:blur="updateListadoField('e', {{ $row['id'] }}, 'invoice_no', $event.target.value)" class="{{ $inp }}" />
@@ -267,7 +275,7 @@
                             </td>
                             <td class="px-2 py-1 align-top min-w-[8rem]">
                                 @if ($row['kind'] === 'm')
-                                    <span class="text-[11px] truncate block max-w-[8rem]">{{ $row['beneficiary'] }}</span>
+                                    <span class="{{ $staticSpanPlain }} truncate block max-w-[8rem]">{{ $row['beneficiary'] }}</span>
                                 @else
                                     @if ($canExpense)
                                         <x-custom-select compact
@@ -294,12 +302,12 @@
                                         :submit-method="$row['kind'] === 'e' ? 'quickUpdateExpenseCif' : 'quickUpdateMovementCif'"
                                         :submit-arg="$row['id']" />
                                 @else
-                                    <span class="text-[11px] font-mono">{{ $row['cif'] }}</span>
+                                    <span class="{{ $staticSpanPlain }} font-mono">{{ $row['cif'] }}</span>
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top">
                                 @if ($row['kind'] === 'm')
-                                    <span class="text-[11px] line-clamp-2">{{ $row['concept'] }}</span>
+                                    <span class="{{ $staticSpanPlain }} line-clamp-2">{{ $row['concept'] }}</span>
                                 @else
                                     @if ($canExpense)
                                         <input type="text" value="{{ $row['concept'] }}" wire:blur="updateListadoField('e', {{ $row['id'] }}, 'description', $event.target.value)" class="{{ $inp }}" />
@@ -312,35 +320,35 @@
                                 @if ($canRow)
                                     <input type="number" step="0.01" value="{{ $row['bi'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'bi', $event.target.value)" class="{{ $inp }} text-right" />
                                 @else
-                                    <span class="text-[11px] text-right block">{{ $row['bi'] }}</span>
+                                    <span class="{{ $staticSpanPlain }} text-right block">{{ $row['bi'] }}</span>
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top">
                                 @if ($canRow)
                                     <input type="number" step="0.01" value="{{ $row['iva'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'iva', $event.target.value)" class="{{ $inp }} text-right" />
                                 @else
-                                    <span class="text-[11px] text-right block">{{ $row['iva'] }}</span>
+                                    <span class="{{ $staticSpanPlain }} text-right block">{{ $row['iva'] }}</span>
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top">
                                 @if ($canRow)
                                     <input type="number" step="0.01" value="{{ $row['irpf'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'irpf', $event.target.value)" class="{{ $inp }} text-right" />
                                 @else
-                                    <span class="text-[11px] text-right block">{{ $row['irpf'] }}</span>
+                                    <span class="{{ $staticSpanPlain }} text-right block">{{ $row['irpf'] }}</span>
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top">
                                 @if ($canRow)
                                     <input type="number" step="0.01" value="{{ $row['otros'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'otros', $event.target.value)" class="{{ $inp }} text-right" />
                                 @else
-                                    <span class="text-[11px] text-right block">{{ $row['otros'] }}</span>
+                                    <span class="{{ $staticSpanPlain }} text-right block">{{ $row['otros'] }}</span>
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top">
                                 @if ($canRow)
                                     <input type="number" step="0.01" value="{{ $row['total'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'total', $event.target.value)" class="{{ $inp }} text-right font-medium" />
                                 @else
-                                    <span class="text-[11px] text-right block font-medium">{{ $row['total'] }}</span>
+                                    <span class="{{ $staticSpanPlain }} text-right block font-medium">{{ $row['total'] }}</span>
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top text-center">
@@ -349,7 +357,7 @@
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mx-auto"><path stroke-linecap="round" stroke-linejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" /></svg>
                                     </button>
                                 @else
-                                    <span class="text-gray-400 text-xs">—</span>
+                                    <span @class(['text-xs', 'text-white/70' => $rowIsMovement, 'text-gray-400' => ! $rowIsMovement])>—</span>
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top text-right whitespace-nowrap">
@@ -366,12 +374,12 @@
                                     @endcan
                                 @else
                                     @can('movements.delete')
-                                        <button type="button" wire:click="confirmDeleteRow('m', {{ $row['id'] }})" class="p-1 text-gray-400 hover:text-red-600" title="{{ __('app.delete') }}">
+                                        <button type="button" wire:click="confirmDeleteRow('m', {{ $row['id'] }})" class="p-1 text-white/80 hover:text-red-200" title="{{ __('app.delete') }}">
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
                                         </button>
                                     @endcan
                                     @can('movements.view')
-                                        <a href="{{ route('movements') }}" class="inline-block p-1 text-gray-400 hover:text-sky-600 text-[10px]" title="{{ __('app.movements') }}">→</a>
+                                        <a href="{{ route('movements') }}" class="inline-block p-1 text-white/90 hover:text-sky-200 text-[10px]" title="{{ __('app.movements') }}">→</a>
                                     @endcan
                                 @endif
                             </td>
