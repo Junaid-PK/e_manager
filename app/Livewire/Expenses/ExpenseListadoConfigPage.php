@@ -24,6 +24,12 @@ class ExpenseListadoConfigPage extends Component
 
     public int $providerSortOrder = 0;
 
+    /** Existing CIF id (expense_cifs.id) or empty. */
+    public string $providerExpenseCifId = '';
+
+    /** Optional: create this CIF and link when saving the provider. */
+    public string $providerNewCifCode = '';
+
     public string $cifCode = '';
 
     public int $cifSortOrder = 0;
@@ -53,12 +59,16 @@ class ExpenseListadoConfigPage extends Component
         $this->editingId = $id;
         $this->providerName = $p->name;
         $this->providerSortOrder = $p->sort_order;
+        $this->providerExpenseCifId = $p->expense_cif_id ? (string) $p->expense_cif_id : '';
+        $this->providerNewCifCode = '';
         $this->showModal = true;
     }
 
     public function saveProvider(): void
     {
         Gate::authorize('expenses.edit');
+        $newCifNormalized = mb_strtoupper(trim($this->providerNewCifCode));
+        $this->providerNewCifCode = $newCifNormalized;
         $this->validate([
             'providerName' => [
                 'required',
@@ -67,11 +77,29 @@ class ExpenseListadoConfigPage extends Component
                 Rule::unique('expense_providers', 'name')->ignore($this->editingId),
             ],
             'providerSortOrder' => 'integer|min:0',
+            'providerExpenseCifId' => 'nullable|string',
+            'providerNewCifCode' => 'nullable|string|max:32',
         ]);
+
+        $effectiveCifId = null;
+        if ($newCifNormalized !== '') {
+            $maxC = (int) ExpenseCif::max('sort_order');
+            $cifModel = ExpenseCif::firstOrCreate(
+                ['code' => $newCifNormalized],
+                ['sort_order' => $maxC + 1]
+            );
+            $effectiveCifId = $cifModel->id;
+        } elseif ($this->providerExpenseCifId !== '') {
+            $effectiveCifId = (int) $this->providerExpenseCifId;
+            if (! ExpenseCif::whereKey($effectiveCifId)->exists()) {
+                $effectiveCifId = null;
+            }
+        }
 
         $data = [
             'name' => trim($this->providerName),
             'sort_order' => $this->providerSortOrder,
+            'expense_cif_id' => $effectiveCifId,
         ];
 
         if ($this->editingId) {
@@ -166,6 +194,8 @@ class ExpenseListadoConfigPage extends Component
     {
         $this->providerName = '';
         $this->providerSortOrder = 0;
+        $this->providerExpenseCifId = '';
+        $this->providerNewCifCode = '';
         $this->editingId = null;
         $this->resetValidation();
     }
@@ -180,7 +210,7 @@ class ExpenseListadoConfigPage extends Component
 
     public function render()
     {
-        $providersQuery = ExpenseProvider::query()->orderBy('sort_order')->orderBy('name');
+        $providersQuery = ExpenseProvider::query()->with('cif')->orderBy('sort_order')->orderBy('name');
         if ($this->searchProviders !== '') {
             $s = '%'.$this->searchProviders.'%';
             $providersQuery->where('name', 'like', $s);
@@ -197,6 +227,7 @@ class ExpenseListadoConfigPage extends Component
         return view('livewire.expenses.expense-listado-config-page', [
             'providers' => $providers,
             'cifs' => $cifs,
+            'cifsForProviderSelect' => ExpenseCif::query()->orderBy('sort_order')->orderBy('code')->get(['id', 'code']),
         ])->layout('layouts.app');
     }
 }

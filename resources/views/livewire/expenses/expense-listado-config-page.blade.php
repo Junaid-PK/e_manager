@@ -40,6 +40,7 @@
                     <thead class="bg-gray-50 dark:bg-gray-700/50">
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.name') }}</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.linked_cif') }}</th>
                             <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.order') }}</th>
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-40">{{ __('app.actions') }}</th>
                         </tr>
@@ -48,6 +49,7 @@
                         @forelse ($providers as $provider)
                             <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" wire:key="expense-provider-{{ $provider->id }}">
                                 <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">{{ $provider->name }}</td>
+                                <td class="px-4 py-3 text-sm font-mono text-gray-700 dark:text-gray-300">{{ $provider->cif?->code ?? '—' }}</td>
                                 <td class="px-4 py-3 text-sm text-center text-gray-500 dark:text-gray-400">{{ $provider->sort_order }}</td>
                                 <td class="px-4 py-3 text-right">
                                     @can('expenses.edit')
@@ -60,7 +62,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="3" class="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">{{ __('app.no_records') }}</td>
+                                <td colspan="4" class="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">{{ __('app.no_records') }}</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -143,6 +145,22 @@
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.order') }}</label>
                             <input type="number" wire:model="providerSortOrder" min="0" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
                             @error('providerSortOrder') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.linked_cif') }}</label>
+                            <select wire:model="providerExpenseCifId" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                <option value="">{{ __('app.none') }}</option>
+                                @foreach ($cifsForProviderSelect ?? [] as $cifOpt)
+                                    <option value="{{ $cifOpt->id }}">{{ $cifOpt->code }}</option>
+                                @endforeach
+                            </select>
+                            @error('providerExpenseCifId') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.or_new_cif') }}</label>
+                            <input type="text" wire:model="providerNewCifCode" placeholder="{{ __('app.cif') }}" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500 font-mono uppercase">
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('app.or_new_cif_hint') }}</p>
+                            @error('providerNewCifCode') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                         </div>
                     </div>
                     <div class="flex justify-end space-x-3 mt-6">

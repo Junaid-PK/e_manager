@@ -134,6 +134,18 @@ class ExpensePage extends Component
         $this->resetPage();
     }
 
+    public function updatedFormVendor(): void
+    {
+        $name = trim($this->formVendor ?? '');
+        if ($name === '') {
+            return;
+        }
+        $p = ExpenseProvider::query()->where('name', $name)->with('cif')->first();
+        if ($p?->cif) {
+            $this->formCif = $p->cif->code;
+        }
+    }
+
     public function addNewExpenseRow(): void
     {
         Gate::authorize('expenses.create');
@@ -207,6 +219,9 @@ class ExpensePage extends Component
         $this->validate();
 
         $vendorResolved = $this->resolveOrCreateExpenseProvider(trim($this->formVendor ?? ''));
+        $provider = $vendorResolved
+            ? ExpenseProvider::query()->where('name', $vendorResolved)->with('cif')->first()
+            : null;
 
         $data = [
             'company_id' => $this->formCompanyId ?: null,
@@ -230,7 +245,9 @@ class ExpensePage extends Component
             return;
         }
         $extra = $this->mergeListadoDefaults($expense->listado_extra);
-        $cifResolved = $this->resolveOrCreateExpenseCif(trim($this->formCif ?? ''));
+        $cifResolved = $provider?->cif
+            ? $provider->cif->code
+            : $this->resolveOrCreateExpenseCif(trim($this->formCif ?? ''));
         $extra['cif'] = $cifResolved ?? '';
         $data['listado_extra'] = $extra;
         $expense->update($data);
@@ -344,7 +361,18 @@ class ExpensePage extends Component
             } elseif ($field === 'reference') {
                 $m->update(['reference' => $value !== '' ? $value : null]);
             } elseif ($field === 'beneficiary') {
-                $m->update(['beneficiary' => $value !== '' ? $value : null]);
+                $resolved = $value !== '' ? $this->resolveOrCreateExpenseProvider(trim($value)) : null;
+                $extra = $this->mergeListadoDefaults($m->listado_extra);
+                if ($resolved) {
+                    $prov = ExpenseProvider::query()->where('name', $resolved)->with('cif')->first();
+                    if ($prov?->cif) {
+                        $extra['cif'] = $prov->cif->code;
+                    }
+                }
+                $m->update([
+                    'beneficiary' => $resolved,
+                    'listado_extra' => $extra,
+                ]);
             } elseif ($field === 'cif') {
                 $extra = $this->mergeListadoDefaults($m->listado_extra);
                 $extra['cif'] = $value;
@@ -386,7 +414,18 @@ class ExpensePage extends Component
                 $e->listado_extra = $extra;
                 $e->save();
             } elseif ($field === 'vendor') {
-                $e->update(['vendor' => $value !== '' ? $value : null]);
+                $resolved = $value !== '' ? $this->resolveOrCreateExpenseProvider(trim($value)) : null;
+                $extra = $this->mergeListadoDefaults($e->listado_extra);
+                if ($resolved) {
+                    $prov = ExpenseProvider::query()->where('name', $resolved)->with('cif')->first();
+                    if ($prov?->cif) {
+                        $extra['cif'] = $prov->cif->code;
+                    }
+                }
+                $e->update([
+                    'vendor' => $resolved,
+                    'listado_extra' => $extra,
+                ]);
             } elseif ($field === 'cif') {
                 $extra = $this->mergeListadoDefaults($e->listado_extra);
                 $extra['cif'] = $value;
@@ -705,7 +744,15 @@ class ExpensePage extends Component
             return;
         }
         $resolved = $this->resolveOrCreateExpenseProvider(trim($value));
-        $e->update(['vendor' => $resolved]);
+        $extra = $this->mergeListadoDefaults($e->listado_extra);
+        $p = ExpenseProvider::query()->where('name', $resolved)->with('cif')->first();
+        if ($p?->cif) {
+            $extra['cif'] = $p->cif->code;
+        }
+        $e->update([
+            'vendor' => $resolved,
+            'listado_extra' => $extra,
+        ]);
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
 
@@ -713,7 +760,16 @@ class ExpensePage extends Component
     {
         Gate::authorize('movements.edit');
         $resolved = $this->resolveOrCreateExpenseProvider(trim($value));
-        BankMovement::findOrFail($id)->update(['beneficiary' => $resolved]);
+        $m = BankMovement::findOrFail($id);
+        $extra = $this->mergeListadoDefaults($m->listado_extra);
+        $p = ExpenseProvider::query()->where('name', $resolved)->with('cif')->first();
+        if ($p?->cif) {
+            $extra['cif'] = $p->cif->code;
+        }
+        $m->update([
+            'beneficiary' => $resolved,
+            'listado_extra' => $extra,
+        ]);
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
 
