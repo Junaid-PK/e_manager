@@ -514,9 +514,12 @@ class InvoicePage extends Component
         return redirect(URL::temporarySignedRoute('export.download', now()->addMinutes(5), ['file' => $filename]));
     }
 
-    protected function buildQuery()
+    /**
+     * Filtered invoice query without sorting or eager loads (for aggregates and export).
+     */
+    protected function baseInvoiceQuery()
     {
-        $query = Invoice::query()->with(['company', 'client', 'project']);
+        $query = Invoice::query();
 
         if ($this->search) {
             $search = $this->search;
@@ -562,7 +565,32 @@ class InvoicePage extends Component
             $query->where('date_issued', '<=', $this->dateTo);
         }
 
-        return $this->applySorting($query);
+        return $query;
+    }
+
+    protected function buildQuery()
+    {
+        return $this->applySorting(
+            $this->baseInvoiceQuery()->with(['company', 'client', 'project'])
+        );
+    }
+
+    /**
+     * @return array{invoice_count: int, total_sum: float, amount_paid_sum: float, amount_remaining_sum: float}
+     */
+    protected function getInvoiceStats(): array
+    {
+        $row = $this->baseInvoiceQuery()
+            ->toBase()
+            ->selectRaw('COUNT(*) as invoice_count, COALESCE(SUM(total), 0) as total_sum, COALESCE(SUM(amount_paid), 0) as amount_paid_sum, COALESCE(SUM(amount_remaining), 0) as amount_remaining_sum')
+            ->first();
+
+        return [
+            'invoice_count' => (int) ($row->invoice_count ?? 0),
+            'total_sum' => (float) ($row->total_sum ?? 0),
+            'amount_paid_sum' => (float) ($row->amount_paid_sum ?? 0),
+            'amount_remaining_sum' => (float) ($row->amount_remaining_sum ?? 0),
+        ];
     }
 
     protected function getPageItemIds(): array
@@ -605,6 +633,7 @@ class InvoicePage extends Component
     {
         return view('livewire.invoices.invoice-page', [
             'invoices' => $this->getInvoices(),
+            'invoiceStats' => $this->getInvoiceStats(),
             'allCompanies' => Company::query()->orderBy('name')->get(),
             'clients' => Client::orderBy('name')->get(),
             'bankAccounts' => BankAccount::orderBy('bank_name')->get(),
