@@ -245,12 +245,18 @@ class ExpensePage extends Component
             return;
         }
         $extra = $this->mergeListadoDefaults($expense->listado_extra);
-        $cifResolved = $provider?->cif
-            ? $provider->cif->code
-            : $this->resolveOrCreateExpenseCif(trim($this->formCif ?? ''));
+        $cifTrim = trim($this->formCif ?? '');
+        if ($cifTrim !== '') {
+            $cifResolved = $this->resolveOrCreateExpenseCif($cifTrim);
+        } elseif ($provider?->cif) {
+            $cifResolved = $provider->cif->code;
+        } else {
+            $cifResolved = $this->resolveOrCreateExpenseCif('');
+        }
         $extra['cif'] = $cifResolved ?? '';
         $data['listado_extra'] = $extra;
         $expense->update($data);
+        $this->linkExpenseProviderToCifFromCodes($vendorResolved, $cifResolved);
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
 
         $this->showFormModal = false;
@@ -374,10 +380,12 @@ class ExpensePage extends Component
                     'listado_extra' => $extra,
                 ]);
             } elseif ($field === 'cif') {
+                $resolved = $this->resolveOrCreateExpenseCif(trim($value));
                 $extra = $this->mergeListadoDefaults($m->listado_extra);
-                $extra['cif'] = $value;
+                $extra['cif'] = $resolved ?? '';
                 $m->listado_extra = $extra;
                 $m->save();
+                $this->linkExpenseProviderToCifFromCodes($m->beneficiary, $resolved);
             } elseif ($field === 'concept') {
                 $m->update(['concept' => $value]);
             } elseif (in_array($field, ['bi', 'iva', 'irpf', 'otros'], true)) {
@@ -427,10 +435,12 @@ class ExpensePage extends Component
                     'listado_extra' => $extra,
                 ]);
             } elseif ($field === 'cif') {
+                $resolved = $this->resolveOrCreateExpenseCif(trim($value));
                 $extra = $this->mergeListadoDefaults($e->listado_extra);
-                $extra['cif'] = $value;
+                $extra['cif'] = $resolved ?? '';
                 $e->listado_extra = $extra;
                 $e->save();
+                $this->linkExpenseProviderToCifFromCodes($e->vendor, $resolved);
             } elseif ($field === 'description') {
                 $e->update(['description' => $value !== '' ? $value : $e->description]);
             } elseif (in_array($field, ['bi', 'iva', 'irpf', 'otros'], true)) {
@@ -789,6 +799,7 @@ class ExpensePage extends Component
         $extra['cif'] = $resolved ?? '';
         $e->listado_extra = $extra;
         $e->save();
+        $this->linkExpenseProviderToCifFromCodes($e->vendor, $resolved);
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
 
@@ -801,7 +812,25 @@ class ExpensePage extends Component
         $extra['cif'] = $resolved ?? '';
         $m->listado_extra = $extra;
         $m->save();
+        $this->linkExpenseProviderToCifFromCodes($m->beneficiary, $resolved);
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
+    }
+
+    /**
+     * Persist the provider ↔ CIF association when the user enters a CIF next to a vendor/beneficiary name.
+     */
+    private function linkExpenseProviderToCifFromCodes(?string $providerOrBeneficiaryName, ?string $resolvedCifCode): void
+    {
+        $name = trim((string) $providerOrBeneficiaryName);
+        if ($name === '' || $resolvedCifCode === null || $resolvedCifCode === '') {
+            return;
+        }
+        $code = mb_strtoupper(trim($resolvedCifCode));
+        $cif = ExpenseCif::query()->where('code', $code)->first();
+        if (! $cif) {
+            return;
+        }
+        ExpenseProvider::query()->where('name', $name)->update(['expense_cif_id' => $cif->id]);
     }
 
     private function resolveOrCreateExpenseProvider(string $value): ?string
