@@ -305,6 +305,42 @@ class MovementPage extends Component
     }
 
     /**
+     * When amounts show nothing left to collect but status is not paid yet, align status and columns.
+     * Typical after imports or manual edits where total/amount_paid match but status stayed pending/partial.
+     */
+    private function syncInvoiceStatusesWhenNothingLeftDue(\Illuminate\Support\Collection $invoices): void
+    {
+        foreach ($invoices as $invoice) {
+            $invoice->refresh();
+            if ($invoice->status === 'cancelled') {
+                continue;
+            }
+            $due = $this->invoiceRemainingDue($invoice);
+            if ($due > 0.01) {
+                continue;
+            }
+            if ($invoice->status === 'paid' && round((float) ($invoice->amount_remaining ?? 0), 2) <= 0.01) {
+                continue;
+            }
+            $total = round((float) $invoice->total, 2);
+            $paid = round((float) $invoice->amount_paid, 2);
+            $newPaid = max($paid, $total);
+
+            Invoice::whereKey($invoice->id)->update([
+                'amount_paid' => $newPaid,
+                'amount_remaining' => 0,
+                'status' => 'paid',
+            ]);
+            $this->logBillPayment('sync_invoices.normalize_status_fully_collected', [
+                'invoice_id' => $invoice->id,
+                'total' => $total,
+                'amount_paid_before' => $paid,
+                'amount_paid_after' => $newPaid,
+            ]);
+        }
+    }
+
+    /**
      * Slug for the "bill" / cobro movement type (matches movement_types.slug, default "bill").
      */
     private function billMovementTypeSlug(): string
@@ -645,9 +681,10 @@ class MovementPage extends Component
         }
 
         if ($pool <= 0) {
-            $this->logBillPayment('sync_invoices.abort_pool_zero', [
-                'hint' => 'combined remaining due was 0 (see total vs amount_paid vs amount_remaining); invoices will not be updated',
+            $this->logBillPayment('sync_invoices.pool_zero_attempt_status_normalize', [
+                'hint' => 'no cash to allocate; if amounts show fully collected, status will be set to paid',
             ]);
+            $this->syncInvoiceStatusesWhenNothingLeftDue($invoices);
 
             return;
         }
@@ -663,10 +700,11 @@ class MovementPage extends Component
         $sumRem = round($withBalance->sum(fn (Invoice $inv) => $remaining($inv)), 2);
 
         if ($sumRem <= 0) {
-            $this->logBillPayment('sync_invoices.abort_no_remaining_balance', [
+            $this->logBillPayment('sync_invoices.no_remaining_balance_normalize_status', [
                 'eligible_ids' => $eligible->pluck('id')->all(),
-                'statuses' => $eligible->mapWithKeys(fn (Invoice $i) => [$i->id => $i->status])->all(),
+                'statuses_before' => $eligible->mapWithKeys(fn (Invoice $i) => [$i->id => $i->status])->all(),
             ]);
+            $this->syncInvoiceStatusesWhenNothingLeftDue($eligible);
 
             return;
         }
