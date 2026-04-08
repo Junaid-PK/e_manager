@@ -343,110 +343,66 @@ class ExpensePage extends Component
     public function updateListadoField(string $kind, int $id, string $field, ?string $value): void
     {
         $value = $value ?? '';
+        // Listado is editable only for expenses rows; movement rows are read-only (edit on Movements page).
         if ($kind === 'm') {
-            Gate::authorize('movements.edit');
-            $m = BankMovement::findOrFail($id);
-            if ($field === 'date') {
-                $fallback = $m->date?->format('Y-m-d') ?? now()->format('Y-m-d');
-                $m->update(['date' => $value !== '' ? $value : $fallback]);
-            } elseif ($field === 'bank_account_id') {
-                $baId = (int) $value;
-                if ($baId > 0) {
-                    $m->update(['bank_account_id' => $baId]);
-                }
-            } elseif ($field === 'client') {
-                $extra = $this->mergeListadoDefaults($m->listado_extra);
-                $extra['client'] = $value;
-                $m->listado_extra = $extra;
-                $m->save();
-            } elseif ($field === 'total_amt' || $field === 'total') {
-                $amt = $this->parseMoney($value);
-                $m->update(['withdrawal' => $amt > 0 ? $amt : null, 'deposit' => null]);
-            } elseif ($field === 'value_date') {
-                $m->update(['value_date' => $value !== '' ? $value : null]);
-            } elseif ($field === 'reference') {
-                $m->update(['reference' => $value !== '' ? $value : null]);
-            } elseif ($field === 'beneficiary') {
-                $resolved = $value !== '' ? $this->resolveOrCreateExpenseProvider(trim($value)) : null;
-                $extra = $this->mergeListadoDefaults($m->listado_extra);
-                if ($resolved) {
-                    $prov = ExpenseProvider::query()->where('name', $resolved)->with('cif')->first();
-                    if ($prov?->cif) {
-                        $extra['cif'] = $prov->cif->code;
-                    }
-                }
-                $m->update([
-                    'beneficiary' => $resolved,
-                    'listado_extra' => $extra,
-                ]);
-            } elseif ($field === 'cif') {
-                $resolved = $this->resolveOrCreateExpenseCif(trim($value));
-                $extra = $this->mergeListadoDefaults($m->listado_extra);
-                $extra['cif'] = $resolved ?? '';
-                $m->listado_extra = $extra;
-                $m->save();
-                $this->linkExpenseProviderToCifFromCodes($m->beneficiary, $resolved);
-            } elseif ($field === 'concept') {
-                $m->update(['concept' => $value]);
-            } elseif (in_array($field, ['bi', 'iva', 'irpf', 'otros'], true)) {
-                $this->patchMovementExtra($m, $field, $value);
-            }
-        } else {
-            Gate::authorize('expenses.edit');
-            $e = Expense::findOrFail($id);
-            if ($e->listado_readonly) {
-                return;
-            }
-            if ($field === 'date') {
-                $e->update(['date' => $value !== '' ? $value : $e->date->format('Y-m-d')]);
-            } elseif ($field === 'bank') {
-                $extra = $this->mergeListadoDefaults($e->listado_extra);
-                $extra['bank'] = $value;
-                $e->listado_extra = $extra;
-                $e->save();
-            } elseif ($field === 'client') {
-                $extra = $this->mergeListadoDefaults($e->listado_extra);
-                $extra['client'] = $value;
-                $e->listado_extra = $extra;
-                $e->save();
-            } elseif ($field === 'total_amt' || $field === 'total') {
-                $e->update(['amount' => max(0, $this->parseMoney($value))]);
-            } elseif ($field === 'invoice_date') {
-                $extra = $this->mergeListadoDefaults($e->listado_extra);
-                $extra['invoice_date'] = $value !== '' ? $value : null;
-                $e->listado_extra = $extra;
-                $e->save();
-            } elseif ($field === 'invoice_no') {
-                $extra = $this->mergeListadoDefaults($e->listado_extra);
-                $extra['invoice_no'] = $value;
-                $e->listado_extra = $extra;
-                $e->save();
-            } elseif ($field === 'vendor') {
-                $resolved = $value !== '' ? $this->resolveOrCreateExpenseProvider(trim($value)) : null;
-                $extra = $this->mergeListadoDefaults($e->listado_extra);
-                if ($resolved) {
-                    $prov = ExpenseProvider::query()->where('name', $resolved)->with('cif')->first();
-                    if ($prov?->cif) {
-                        $extra['cif'] = $prov->cif->code;
-                    }
-                }
-                $e->update([
-                    'vendor' => $resolved,
-                    'listado_extra' => $extra,
-                ]);
-            } elseif ($field === 'cif') {
-                $resolved = $this->resolveOrCreateExpenseCif(trim($value));
-                $extra = $this->mergeListadoDefaults($e->listado_extra);
-                $extra['cif'] = $resolved ?? '';
-                $e->listado_extra = $extra;
-                $e->save();
-                $this->linkExpenseProviderToCifFromCodes($e->vendor, $resolved);
-            } elseif ($field === 'description') {
-                $e->update(['description' => $value !== '' ? $value : $e->description]);
-            } elseif (in_array($field, ['bi', 'iva', 'irpf', 'otros'], true)) {
-                $this->patchExpenseExtra($e, $field, $value);
-            }
+            return;
         }
+
+        Gate::authorize('expenses.edit');
+        $e = Expense::findOrFail($id);
+        if ($e->listado_readonly) {
+            return;
+        }
+        if ($field === 'date') {
+            $e->update(['date' => $value !== '' ? $value : $e->date->format('Y-m-d')]);
+        } elseif ($field === 'bank') {
+            $extra = $this->mergeListadoDefaults($e->listado_extra);
+            $extra['bank'] = $value;
+            $e->listado_extra = $extra;
+            $e->save();
+        } elseif ($field === 'client') {
+            $extra = $this->mergeListadoDefaults($e->listado_extra);
+            $extra['client'] = $value;
+            $e->listado_extra = $extra;
+            $e->save();
+        } elseif ($field === 'total_amt' || $field === 'total') {
+            $e->update(['amount' => max(0, $this->parseMoney($value))]);
+        } elseif ($field === 'invoice_date') {
+            $extra = $this->mergeListadoDefaults($e->listado_extra);
+            $extra['invoice_date'] = $value !== '' ? $value : null;
+            $e->listado_extra = $extra;
+            $e->save();
+        } elseif ($field === 'invoice_no') {
+            $extra = $this->mergeListadoDefaults($e->listado_extra);
+            $extra['invoice_no'] = $value;
+            $e->listado_extra = $extra;
+            $e->save();
+        } elseif ($field === 'vendor') {
+            $resolved = $value !== '' ? $this->resolveOrCreateExpenseProvider(trim($value)) : null;
+            $extra = $this->mergeListadoDefaults($e->listado_extra);
+            if ($resolved) {
+                $prov = ExpenseProvider::query()->where('name', $resolved)->with('cif')->first();
+                if ($prov?->cif) {
+                    $extra['cif'] = $prov->cif->code;
+                }
+            }
+            $e->update([
+                'vendor' => $resolved,
+                'listado_extra' => $extra,
+            ]);
+        } elseif ($field === 'cif') {
+            $resolved = $this->resolveOrCreateExpenseCif(trim($value));
+            $extra = $this->mergeListadoDefaults($e->listado_extra);
+            $extra['cif'] = $resolved ?? '';
+            $e->listado_extra = $extra;
+            $e->save();
+            $this->linkExpenseProviderToCifFromCodes($e->vendor, $resolved);
+        } elseif ($field === 'description') {
+            $e->update(['description' => $value !== '' ? $value : $e->description]);
+        } elseif (in_array($field, ['bi', 'iva', 'irpf', 'otros'], true)) {
+            $this->patchExpenseExtra($e, $field, $value);
+        }
+
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
 
@@ -796,21 +752,7 @@ class ExpensePage extends Component
 
     public function quickUpdateMovementBeneficiary(int $id, string $value): void
     {
-        Gate::authorize('movements.edit');
-        $resolved = $this->resolveOrCreateExpenseProvider(trim($value));
-        $m = BankMovement::findOrFail($id);
-        $extra = $this->mergeListadoDefaults($m->listado_extra);
-        $p = $resolved
-            ? ExpenseProvider::query()->where('name', $resolved)->with('cif')->first()
-            : null;
-        if ($p?->cif) {
-            $extra['cif'] = $p->cif->code;
-        }
-        $m->update([
-            'beneficiary' => $resolved,
-            'listado_extra' => $extra,
-        ]);
-        $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
+        // Movement rows are not edited from the expenses listado; use the Movements page.
     }
 
     public function quickUpdateExpenseCif(int $id, string $value): void
@@ -831,15 +773,7 @@ class ExpensePage extends Component
 
     public function quickUpdateMovementCif(int $id, string $value): void
     {
-        Gate::authorize('movements.edit');
-        $resolved = $this->resolveOrCreateExpenseCif(trim($value));
-        $m = BankMovement::findOrFail($id);
-        $extra = $this->mergeListadoDefaults($m->listado_extra);
-        $extra['cif'] = $resolved ?? '';
-        $m->listado_extra = $extra;
-        $m->save();
-        $this->linkExpenseProviderToCifFromCodes($m->beneficiary, $resolved);
-        $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
+        // Movement rows are not edited from the expenses listado; use the Movements page.
     }
 
     /**

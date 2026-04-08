@@ -202,9 +202,9 @@
                     @forelse ($unifiedRows as $row)
                         @php
                             $expenseReadonlyListado = ($row['kind'] === 'e' && !empty($row['listado_readonly']));
-                            $canMovement = $row['kind'] === 'm' && auth()->user()->can('movements.edit');
                             $canExpense = $row['kind'] === 'e' && auth()->user()->can('expenses.edit') && !$expenseReadonlyListado;
-                            $canRow = $canMovement || $canExpense;
+                            // Movement rows (bank_movements) are display-only here; edit them on the Movements page.
+                            $canRow = $canExpense;
                             $inp = 'w-full min-w-0 text-[11px] border border-gray-300 dark:border-gray-600 rounded px-1 py-0.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100';
                         @endphp
                         <tr @class(['hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors', 'bg-gray-50/90 dark:bg-gray-900/50' => $expenseReadonlyListado]) wire:key="listado-{{ $row['composite'] }}" @if ($row['kind'] === 'e') id="listado-expense-row-{{ $row['id'] }}" @endif>
@@ -220,15 +220,7 @@
                             </td>
                             <td class="px-2 py-1 align-top min-w-[8rem]">
                                 @if ($row['kind'] === 'm')
-                                    @can('movements.edit')
-                                        <select wire:change="updateListadoField('m', {{ $row['id'] }}, 'bank_account_id', $event.target.value)" class="{{ $inp }}">
-                                            @foreach ($bankAccounts as $ba)
-                                                <option value="{{ $ba->id }}" @selected((int) $row['bank_account_id'] === (int) $ba->id)>{{ $ba->bank_name }}</option>
-                                            @endforeach
-                                        </select>
-                                    @else
-                                        <span class="text-[11px]">{{ $row['bank_name'] }}</span>
-                                    @endcan
+                                    <span class="text-[11px]">{{ $row['bank_name'] }}</span>
                                 @else
                                     @if ($canExpense)
                                         <input type="text" value="{{ $row['bank_name'] }}" wire:blur="updateListadoField('e', {{ $row['id'] }}, 'bank', $event.target.value)" class="{{ $inp }}" />
@@ -253,11 +245,7 @@
                             </td>
                             <td class="px-2 py-1 align-top whitespace-nowrap">
                                 @if ($row['kind'] === 'm')
-                                    @can('movements.edit')
-                                        <input type="date" value="{{ $row['value_date'] }}" wire:change="updateListadoField('m', {{ $row['id'] }}, 'value_date', $event.target.value)" class="{{ $inp }}" />
-                                    @else
-                                        <span class="text-[11px]">{{ $row['value_date'] ? \Illuminate\Support\Carbon::parse($row['value_date'])->format('d/m/Y') : '—' }}</span>
-                                    @endcan
+                                    <span class="text-[11px]">{{ $row['value_date'] ? \Illuminate\Support\Carbon::parse($row['value_date'])->format('d/m/Y') : '—' }}</span>
                                 @else
                                     @if ($canExpense)
                                         <input type="date" value="{{ $row['value_date'] }}" wire:change="updateListadoField('e', {{ $row['id'] }}, 'invoice_date', $event.target.value)" class="{{ $inp }}" />
@@ -268,11 +256,7 @@
                             </td>
                             <td class="px-2 py-1 align-top">
                                 @if ($row['kind'] === 'm')
-                                    @can('movements.edit')
-                                        <input type="text" value="{{ $row['reference'] }}" wire:blur="updateListadoField('m', {{ $row['id'] }}, 'reference', $event.target.value)" class="{{ $inp }}" />
-                                    @else
-                                        <span class="text-[11px] truncate block max-w-[7rem]">{{ $row['reference'] }}</span>
-                                    @endcan
+                                    <span class="text-[11px] truncate block max-w-[7rem]">{{ $row['reference'] }}</span>
                                 @else
                                     @if ($canExpense)
                                         <input type="text" value="{{ $row['reference'] }}" wire:blur="updateListadoField('e', {{ $row['id'] }}, 'invoice_no', $event.target.value)" class="{{ $inp }}" />
@@ -283,18 +267,7 @@
                             </td>
                             <td class="px-2 py-1 align-top min-w-[8rem]">
                                 @if ($row['kind'] === 'm')
-                                    @can('movements.edit')
-                                        <x-custom-select compact
-                                            wire:key="listado-prov-m-{{ $row['id'] }}"
-                                            :options="$expenseProviderOpts"
-                                            :value="$row['beneficiary'] ?? ''"
-                                            allow-custom
-                                            :empty-label="__('app.none')"
-                                            submit-method="quickUpdateMovementBeneficiary"
-                                            :submit-arg="$row['id']" />
-                                    @else
-                                        <span class="text-[11px] truncate block max-w-[8rem]">{{ $row['beneficiary'] }}</span>
-                                    @endcan
+                                    <span class="text-[11px] truncate block max-w-[8rem]">{{ $row['beneficiary'] }}</span>
                                 @else
                                     @if ($canExpense)
                                         <x-custom-select compact
@@ -326,11 +299,7 @@
                             </td>
                             <td class="px-2 py-1 align-top">
                                 @if ($row['kind'] === 'm')
-                                    @can('movements.edit')
-                                        <input type="text" value="{{ $row['concept'] }}" wire:blur="updateListadoField('m', {{ $row['id'] }}, 'concept', $event.target.value)" class="{{ $inp }}" />
-                                    @else
-                                        <span class="text-[11px] line-clamp-2">{{ $row['concept'] }}</span>
-                                    @endcan
+                                    <span class="text-[11px] line-clamp-2">{{ $row['concept'] }}</span>
                                 @else
                                     @if ($canExpense)
                                         <input type="text" value="{{ $row['concept'] }}" wire:blur="updateListadoField('e', {{ $row['id'] }}, 'description', $event.target.value)" class="{{ $inp }}" />
