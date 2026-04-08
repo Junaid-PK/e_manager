@@ -135,7 +135,7 @@
         @endif
 
         <div class="overflow-x-auto"
-             x-data="columnOrderTable('movements', @js(auth()->id()))"
+             x-data="columnOrderTableMovements('movements', @js(auth()->id()))"
              @keydown.window="
                  const activeTag = document.activeElement ? document.activeElement.tagName : '';
                  if (event.key === 'F2' && !['INPUT','TEXTAREA','SELECT'].includes(activeTag)) {
@@ -144,7 +144,7 @@
                      if (first) first.focus();
                  }
              ">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <table class="min-w-full w-full table-fixed divide-y divide-gray-200 dark:divide-gray-700">
                 <thead class="bg-gray-50 dark:bg-gray-700/50">
                     <tr>
                         <th class="w-12 px-4 py-3">
@@ -302,8 +302,8 @@
                                     :nav-row="$rowIdx"
                                     :nav-col="1" />
                             </td>
-                            <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 max-w-[200px]">
-                                <span title="{{ $movement->concept }}">{{ \Illuminate\Support\Str::limit($movement->concept, 50) }}</span>
+                            <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 min-w-0">
+                                <span class="block truncate" title="{{ $movement->concept }}">{{ \Illuminate\Support\Str::limit($movement->concept, 50) }}</span>
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ $movement->beneficiary ?? '—' }}</td>
                             <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
@@ -531,8 +531,8 @@
 
     @once
         <script>
-            if (!window.columnOrderTable) {
-                window.columnOrderTable = (tableKey, userId) => ({
+            if (!window.columnOrderTableMovements) {
+                window.columnOrderTableMovements = (tableKey, userId) => ({
                     tableKey,
                     userId,
                     orderIds: [],
@@ -548,6 +548,118 @@
                     },
                     storageKey() {
                         return 'colOrder:' + this.tableKey + ':' + this.userId;
+                    },
+                    widthsStorageKey() {
+                        return 'colWidths:' + this.tableKey + ':' + this.userId;
+                    },
+                    loadWidths() {
+                        try {
+                            const raw = localStorage.getItem(this.widthsStorageKey());
+                            if (!raw) return null;
+                            const parsed = JSON.parse(raw);
+                            if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+                            return parsed;
+                        } catch (e) {
+                            return null;
+                        }
+                    },
+                    saveWidths(map) {
+                        try {
+                            localStorage.setItem(this.widthsStorageKey(), JSON.stringify(map));
+                        } catch (e) {
+                        }
+                    },
+                    persistColumnWidths() {
+                        const table = this.$el.querySelector('table');
+                        if (!table || !table.tHead || !table.tHead.rows[0]) return;
+                        const headerCells = Array.from(table.tHead.rows[0].children);
+                        const map = {};
+                        headerCells.forEach((th) => {
+                            const id = parseInt(th.dataset.colId, 10);
+                            if (!Number.isInteger(id)) return;
+                            map[id] = Math.round(th.getBoundingClientRect().width);
+                        });
+                        this.saveWidths(map);
+                    },
+                    applyColumnWidths() {
+                        const table = this.$el.querySelector('table');
+                        if (!table || !table.tHead || !table.tHead.rows[0]) return;
+                        const widths = this.loadWidths();
+                        if (!widths) return;
+                        const minW = 40;
+                        const apply = (el) => {
+                            const id = parseInt(el.dataset.colId, 10);
+                            if (!Number.isInteger(id)) return;
+                            const w = widths[id];
+                            if (w == null || w < minW) return;
+                            const px = w + 'px';
+                            el.style.width = px;
+                            el.style.minWidth = px;
+                            el.style.maxWidth = px;
+                        };
+                        Array.from(table.tHead.rows[0].children).forEach(apply);
+                        const tbody = table.tBodies[0];
+                        if (!tbody) return;
+                        Array.from(tbody.rows).forEach((tr) => {
+                            Array.from(tr.children).forEach(apply);
+                        });
+                    },
+                    setupColumnResize() {
+                        const table = this.$el.querySelector('table');
+                        if (!table || !table.tHead || !table.tHead.rows[0]) return;
+                        const headerRow = table.tHead.rows[0];
+                        const tbody = table.tBodies[0];
+                        Array.from(headerRow.children).forEach((th) => {
+                            if (th.querySelector('.column-resize-handle')) return;
+                            th.style.position = 'relative';
+                            const handle = document.createElement('span');
+                            handle.className = 'column-resize-handle absolute top-0 right-0 bottom-0 w-1.5 z-20 cursor-col-resize select-none hover:bg-emerald-500/35';
+                            handle.setAttribute('aria-hidden', 'true');
+                            handle.title = 'Drag to resize column';
+                            th.appendChild(handle);
+                            handle.addEventListener('mousedown', (e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                const colId = parseInt(th.dataset.colId, 10);
+                                if (!Number.isInteger(colId)) return;
+                                const startX = e.clientX;
+                                const startW = th.getBoundingClientRect().width;
+                                const minW = 48;
+                                const cellsForCol = () => {
+                                    const heads = Array.from(headerRow.children).filter((c) => parseInt(c.dataset.colId, 10) === colId);
+                                    const bodies = [];
+                                    if (tbody) {
+                                        Array.from(tbody.rows).forEach((tr) => {
+                                            Array.from(tr.children).forEach((td) => {
+                                                if (parseInt(td.dataset.colId, 10) === colId) bodies.push(td);
+                                            });
+                                        });
+                                    }
+                                    return [...heads, ...bodies];
+                                };
+                                const onMove = (ev) => {
+                                    const dx = ev.clientX - startX;
+                                    const newW = Math.max(minW, Math.round(startW + dx));
+                                    const px = newW + 'px';
+                                    cellsForCol().forEach((el) => {
+                                        el.style.width = px;
+                                        el.style.minWidth = px;
+                                        el.style.maxWidth = px;
+                                    });
+                                };
+                                const onUp = () => {
+                                    document.removeEventListener('mousemove', onMove);
+                                    document.removeEventListener('mouseup', onUp);
+                                    document.body.style.cursor = '';
+                                    document.body.style.userSelect = '';
+                                    this.persistColumnWidths();
+                                };
+                                document.addEventListener('mousemove', onMove);
+                                document.addEventListener('mouseup', onUp);
+                                document.body.style.cursor = 'col-resize';
+                                document.body.style.userSelect = 'none';
+                            });
+                        });
                     },
                     ensureIds() {
                         const table = this.$el.querySelector('table');
@@ -642,6 +754,10 @@
                             if (th.dataset.colDndBound) return;
                             th.dataset.colDndBound = '1';
                             th.addEventListener('dragstart', e => {
+                                if (e.target && e.target.closest && e.target.closest('.column-resize-handle')) {
+                                    e.preventDefault();
+                                    return;
+                                }
                                 this.draggingId = parseInt(th.dataset.colId, 10);
                                 try {
                                     e.dataTransfer.effectAllowed = 'move';
@@ -690,6 +806,8 @@
                         this.applyOrder();
                         this.setupDnD();
                         this.reindexNav(table.tBodies[0]);
+                        this.applyColumnWidths();
+                        this.setupColumnResize();
                     }
                 });
             }
