@@ -290,7 +290,7 @@
                             <td class="px-2 py-1 align-top min-w-[6rem]">
                                 @if ($canRow)
                                     <x-custom-select compact
-                                        wire:key="listado-cif-{{ $row['kind'] }}-{{ $row['id'] }}"
+                                        wire:key="listado-cif-{{ $row['composite'] }}-{{ $row['cif'] ?? '' }}"
                                         :options="$expenseCifOpts"
                                         :value="$row['cif'] ?? ''"
                                         allow-custom
@@ -491,6 +491,7 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.cif') }}</label>
                                     <x-custom-select
+                                        wire:key="modal-cif-{{ $editingId }}-{{ $formCif }}"
                                         :options="$expenseCifOpts"
                                         :value="$formCif ?? ''"
                                         allow-custom

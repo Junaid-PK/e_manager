@@ -745,7 +745,9 @@ class ExpensePage extends Component
         }
         $resolved = $this->resolveOrCreateExpenseProvider(trim($value));
         $extra = $this->mergeListadoDefaults($e->listado_extra);
-        $p = ExpenseProvider::query()->where('name', $resolved)->with('cif')->first();
+        $p = $resolved
+            ? ExpenseProvider::query()->where('name', $resolved)->with('cif')->first()
+            : null;
         if ($p?->cif) {
             $extra['cif'] = $p->cif->code;
         }
@@ -762,7 +764,9 @@ class ExpensePage extends Component
         $resolved = $this->resolveOrCreateExpenseProvider(trim($value));
         $m = BankMovement::findOrFail($id);
         $extra = $this->mergeListadoDefaults($m->listado_extra);
-        $p = ExpenseProvider::query()->where('name', $resolved)->with('cif')->first();
+        $p = $resolved
+            ? ExpenseProvider::query()->where('name', $resolved)->with('cif')->first()
+            : null;
         if ($p?->cif) {
             $extra['cif'] = $p->cif->code;
         }
