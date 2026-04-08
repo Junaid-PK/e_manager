@@ -27,7 +27,7 @@ $badgeColorsJson = $isBadge ? json_encode($badgeColors) : 'null';
 $hasNav          = $navRow !== null && $navCol !== null;
 @endphp
 
-<div class="relative"
+<div {{ $attributes->merge(['class' => 'relative']) }}
      @keydown.escape="open && onClose()"
      @click.outside="open && onClose()"
      @resize.window="open && placePanel()"
