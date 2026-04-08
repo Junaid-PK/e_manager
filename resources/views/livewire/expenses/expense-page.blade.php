@@ -18,9 +18,14 @@
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700 space-y-3">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h2 class="text-sm font-semibold text-gray-800 dark:text-gray-100 tracking-wide">LISTADO GASTOS</h2>
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+                    <h2 class="text-sm font-semibold text-gray-800 dark:text-gray-100 tracking-wide">LISTADO GASTOS</h2>
+                    @can('expenses.view')
+                        <a href="{{ route('expense-listado-config') }}" wire:navigate class="text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline">{{ __('app.expense_listado_config') }}</a>
+                    @endcan
+                </div>
                 @can('expenses.create')
-                    <button type="button" wire:click="openCreateModal" class="inline-flex shrink-0 items-center justify-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors">
+                    <button type="button" wire:click="addNewExpenseRow" class="inline-flex shrink-0 items-center justify-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                         </svg>
@@ -173,10 +178,13 @@
                 <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     @forelse ($unifiedRows as $row)
                         @php
-                            $canRow = ($row['kind'] === 'm' && auth()->user()->can('movements.edit')) || ($row['kind'] === 'e' && auth()->user()->can('expenses.edit'));
+                            $expenseReadonlyListado = ($row['kind'] === 'e' && !empty($row['listado_readonly']));
+                            $canMovement = $row['kind'] === 'm' && auth()->user()->can('movements.edit');
+                            $canExpense = $row['kind'] === 'e' && auth()->user()->can('expenses.edit') && !$expenseReadonlyListado;
+                            $canRow = $canMovement || $canExpense;
                             $inp = 'w-full min-w-0 text-[11px] border border-gray-300 dark:border-gray-600 rounded px-1 py-0.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100';
                         @endphp
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" wire:key="listado-{{ $row['composite'] }}">
+                        <tr @class(['hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors', 'bg-gray-50/90 dark:bg-gray-900/50' => $expenseReadonlyListado]) wire:key="listado-{{ $row['composite'] }}" @if ($row['kind'] === 'e') id="listado-expense-row-{{ $row['id'] }}" @endif>
                             <td class="px-2 py-1 align-top">
                                 <input type="checkbox" wire:model.live="selected" value="{{ $row['composite'] }}" class="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 dark:bg-gray-700">
                             </td>
@@ -199,11 +207,11 @@
                                         <span class="text-[11px]">{{ $row['bank_name'] }}</span>
                                     @endcan
                                 @else
-                                    @can('expenses.edit')
+                                    @if ($canExpense)
                                         <input type="text" value="{{ $row['bank_name'] }}" wire:blur="updateListadoField('e', {{ $row['id'] }}, 'bank', $event.target.value)" class="{{ $inp }}" />
                                     @else
                                         <span class="text-[11px]">{{ $row['bank_name'] }}</span>
-                                    @endcan
+                                    @endif
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top">
@@ -228,11 +236,11 @@
                                         <span class="text-[11px]">{{ $row['value_date'] ? \Illuminate\Support\Carbon::parse($row['value_date'])->format('d/m/Y') : '—' }}</span>
                                     @endcan
                                 @else
-                                    @can('expenses.edit')
+                                    @if ($canExpense)
                                         <input type="date" value="{{ $row['value_date'] }}" wire:change="updateListadoField('e', {{ $row['id'] }}, 'invoice_date', $event.target.value)" class="{{ $inp }}" />
                                     @else
                                         <span class="text-[11px]">{{ $row['value_date'] ? \Illuminate\Support\Carbon::parse($row['value_date'])->format('d/m/Y') : '—' }}</span>
-                                    @endcan
+                                    @endif
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top">
@@ -243,33 +251,54 @@
                                         <span class="text-[11px] truncate block max-w-[7rem]">{{ $row['reference'] }}</span>
                                     @endcan
                                 @else
-                                    @can('expenses.edit')
+                                    @if ($canExpense)
                                         <input type="text" value="{{ $row['reference'] }}" wire:blur="updateListadoField('e', {{ $row['id'] }}, 'invoice_no', $event.target.value)" class="{{ $inp }}" />
                                     @else
                                         <span class="text-[11px]">{{ $row['reference'] }}</span>
-                                    @endcan
+                                    @endif
                                 @endif
                             </td>
-                            <td class="px-2 py-1 align-top">
+                            <td class="px-2 py-1 align-top min-w-[8rem]">
                                 @if ($row['kind'] === 'm')
                                     @can('movements.edit')
-                                        <input type="text" value="{{ $row['beneficiary'] }}" wire:blur="updateListadoField('m', {{ $row['id'] }}, 'beneficiary', $event.target.value)" class="{{ $inp }}" />
+                                        <x-custom-select compact
+                                            wire:key="listado-prov-m-{{ $row['id'] }}"
+                                            :options="$expenseProviderOpts"
+                                            :value="$row['beneficiary'] ?? ''"
+                                            allow-custom
+                                            :empty-label="__('app.none')"
+                                            submit-method="quickUpdateMovementBeneficiary"
+                                            :submit-arg="$row['id']" />
                                     @else
                                         <span class="text-[11px] truncate block max-w-[8rem]">{{ $row['beneficiary'] }}</span>
                                     @endcan
                                 @else
-                                    @can('expenses.edit')
-                                        <input type="text" value="{{ $row['beneficiary'] }}" wire:blur="updateListadoField('e', {{ $row['id'] }}, 'vendor', $event.target.value)" class="{{ $inp }}" />
+                                    @if ($canExpense)
+                                        <x-custom-select compact
+                                            wire:key="listado-prov-e-{{ $row['id'] }}"
+                                            :options="$expenseProviderOpts"
+                                            :value="$row['beneficiary'] ?? ''"
+                                            allow-custom
+                                            :empty-label="__('app.none')"
+                                            submit-method="quickUpdateExpenseVendor"
+                                            :submit-arg="$row['id']" />
                                     @else
                                         <span class="text-[11px]">{{ $row['beneficiary'] }}</span>
-                                    @endcan
+                                    @endif
                                 @endif
                             </td>
-                            <td class="px-2 py-1 align-top">
+                            <td class="px-2 py-1 align-top min-w-[6rem]">
                                 @if ($canRow)
-                                    <input type="text" value="{{ $row['cif'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'cif', $event.target.value)" class="{{ $inp }}" />
+                                    <x-custom-select compact
+                                        wire:key="listado-cif-{{ $row['kind'] }}-{{ $row['id'] }}"
+                                        :options="$expenseCifOpts"
+                                        :value="$row['cif'] ?? ''"
+                                        allow-custom
+                                        :empty-label="__('app.none')"
+                                        :submit-method="$row['kind'] === 'e' ? 'quickUpdateExpenseCif' : 'quickUpdateMovementCif'"
+                                        :submit-arg="$row['id']" />
                                 @else
-                                    <span class="text-[11px]">{{ $row['cif'] }}</span>
+                                    <span class="text-[11px] font-mono">{{ $row['cif'] }}</span>
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top">
@@ -280,11 +309,11 @@
                                         <span class="text-[11px] line-clamp-2">{{ $row['concept'] }}</span>
                                     @endcan
                                 @else
-                                    @can('expenses.edit')
+                                    @if ($canExpense)
                                         <input type="text" value="{{ $row['concept'] }}" wire:blur="updateListadoField('e', {{ $row['id'] }}, 'description', $event.target.value)" class="{{ $inp }}" />
                                     @else
                                         <span class="text-[11px] line-clamp-2">{{ $row['concept'] }}</span>
-                                    @endcan
+                                    @endif
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top">
@@ -333,11 +362,11 @@
                             </td>
                             <td class="px-2 py-1 align-top text-right whitespace-nowrap">
                                 @if ($row['kind'] === 'e')
-                                    @can('expenses.edit')
+                                    @if ($canExpense)
                                         <button type="button" wire:click="edit({{ $row['id'] }})" class="p-1 text-gray-400 hover:text-emerald-600" title="{{ __('app.edit') }}">
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>
                                         </button>
-                                    @endcan
+                                    @endif
                                     @can('expenses.delete')
                                         <button type="button" wire:click="confirmDeleteRow('e', {{ $row['id'] }})" class="p-1 text-gray-400 hover:text-red-600" title="{{ __('app.delete') }}">
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
@@ -361,7 +390,7 @@
                                 <div class="flex flex-col items-center">
                                     <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">{{ __('app.no_expenses') }}</p>
                                     @can('expenses.create')
-                                        <button type="button" wire:click="openCreateModal" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">
+                                        <button type="button" wire:click="addNewExpenseRow" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">
                                             {{ __('app.create_first_expense') }}
                                         </button>
                                     @endcan
@@ -380,9 +409,9 @@
         @endif
     </div>
 
-    @if ($showFormModal)
-        <div class="fixed inset-0 z-50 overflow-hidden" @keydown.escape.window="$set('showFormModal', false)">
-            <div class="absolute inset-0 bg-black/50" wire:click="$set('showFormModal', false)"></div>
+    @if ($showFormModal && $editingId)
+        <div class="fixed inset-0 z-50 overflow-hidden" @keydown.escape.window="$wire.closeExpenseEditModal()">
+            <div class="absolute inset-0 bg-black/50" wire:click="closeExpenseEditModal"></div>
             <div class="absolute inset-y-0 right-0 w-full max-w-[500px] flex"
                  x-data
                  x-show="$wire.showFormModal"
@@ -395,9 +424,9 @@
                 <div class="w-full bg-white dark:bg-gray-800 shadow-sm flex flex-col">
                     <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                            {{ $editingId ? __('app.edit_expense') : __('app.new_expense') }}
+                            {{ __('app.edit_expense') }}
                         </h3>
-                        <button wire:click="$set('showFormModal', false)" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        <button type="button" wire:click="closeExpenseEditModal" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
                         </button>
                     </div>
@@ -448,10 +477,27 @@
                                     @error('formPaymentMethod') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                                 </div>
                             </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.vendor') }}</label>
-                                <input wire:model="formVendor" type="text" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
-                                @error('formVendor') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.vendor') }}</label>
+                                    <x-custom-select
+                                        :options="$expenseProviderOpts"
+                                        :value="$formVendor ?? ''"
+                                        allow-custom
+                                        wire-model="formVendor"
+                                        :placeholder="__('app.vendor')" />
+                                    @error('formVendor') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.cif') }}</label>
+                                    <x-custom-select
+                                        :options="$expenseCifOpts"
+                                        :value="$formCif ?? ''"
+                                        allow-custom
+                                        wire-model="formCif"
+                                        :placeholder="__('app.cif')" />
+                                    @error('formCif') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                                </div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.receipt') }}</label>
@@ -511,7 +557,7 @@
                                 @error('formNotes') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                             </div>
                             <div class="flex items-center justify-end space-x-3 pt-4">
-                                <button type="button" wire:click="$set('showFormModal', false)" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">{{ __('app.cancel') }}</button>
+                                <button type="button" wire:click="closeExpenseEditModal" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">{{ __('app.cancel') }}</button>
                                 <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors" wire:loading.attr="disabled">
                                     <span wire:loading.remove wire:target="save">{{ __('app.save') }}</span>
                                     <span wire:loading wire:target="save">{{ __('app.loading') }}</span>

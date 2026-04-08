@@ -9,6 +9,8 @@ use App\Models\BankAccount;
 use App\Models\BankMovement;
 use App\Models\Company;
 use App\Models\Expense;
+use App\Models\ExpenseCif;
+use App\Models\ExpenseProvider;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
@@ -65,6 +67,8 @@ class ExpensePage extends Component
 
     public string $formVendor = '';
 
+    public string $formCif = '';
+
     public string $formPaymentMethod = 'cash';
 
     public $formReceipt;
@@ -86,6 +90,7 @@ class ExpensePage extends Component
             'formAmount' => 'required|numeric|min:0',
             'formDate' => 'required|date',
             'formVendor' => 'nullable|string|max:255',
+            'formCif' => 'nullable|string|max:32',
             'formPaymentMethod' => 'required|in:cash,bank_transfer,card,check,other',
             'formReceipt' => 'nullable|file|max:10240',
             'formRecurring' => 'boolean',
@@ -129,22 +134,51 @@ class ExpensePage extends Component
         $this->resetPage();
     }
 
-    public function openCreateModal(): void
+    public function addNewExpenseRow(): void
     {
-        $this->resetForm();
-        $this->editingId = null;
-        $this->showFormModal = true;
+        Gate::authorize('expenses.create');
+        $today = now()->format('Y-m-d');
+        $category = Expense::CATEGORIES[0] ?? '—';
+        $expense = Expense::create([
+            'company_id' => null,
+            'category' => $category,
+            'description' => '—',
+            'amount' => 0,
+            'date' => $today,
+            'vendor' => null,
+            'payment_method' => 'cash',
+            'recurring' => false,
+            'recurring_frequency' => null,
+            'notes' => null,
+            'listado_extra' => $this->mergeListadoDefaults(null),
+            'listado_readonly' => true,
+        ]);
+        $this->resetPage();
+        $this->dispatch('notify', type: 'success', message: __('app.created_successfully'));
+        $eid = $expense->id;
+        $this->js("setTimeout(() => document.getElementById('listado-expense-row-{$eid}')?.scrollIntoView({block:'nearest',behavior:'smooth'}), 80)");
     }
 
     // Keep backward compatibility with existing wire actions.
     public function create(): void
     {
-        $this->openCreateModal();
+        $this->addNewExpenseRow();
+    }
+
+    public function closeExpenseEditModal(): void
+    {
+        $this->showFormModal = false;
+        $this->resetForm();
     }
 
     public function edit(int $id): void
     {
         $expense = Expense::findOrFail($id);
+        if ($expense->listado_readonly) {
+            $this->dispatch('notify', type: 'error', message: __('app.expense_readonly'));
+
+            return;
+        }
         $this->editingId = $id;
         $this->formCompanyId = (string) ($expense->company_id ?? '');
         $this->formCategory = $expense->category;
@@ -152,6 +186,8 @@ class ExpensePage extends Component
         $this->formAmount = (string) $expense->amount;
         $this->formDate = $expense->date?->format('Y-m-d') ?? '';
         $this->formVendor = $expense->vendor ?? '';
+        $extra = $this->mergeListadoDefaults($expense->listado_extra);
+        $this->formCif = $extra['cif'] !== '' ? mb_strtoupper((string) $extra['cif']) : '';
         $this->formPaymentMethod = $expense->payment_method;
         $this->formRecurring = (bool) $expense->recurring;
         $this->formRecurringFrequency = $expense->recurring_frequency ?? 'monthly';
@@ -163,13 +199,14 @@ class ExpensePage extends Component
 
     public function save(): void
     {
-        if ($this->editingId) {
-            Gate::authorize('expenses.edit');
-        } else {
-            Gate::authorize('expenses.create');
+        Gate::authorize('expenses.edit');
+        if (! $this->editingId) {
+            return;
         }
 
         $this->validate();
+
+        $vendorResolved = $this->resolveOrCreateExpenseProvider(trim($this->formVendor ?? ''));
 
         $data = [
             'company_id' => $this->formCompanyId ?: null,
@@ -177,7 +214,7 @@ class ExpensePage extends Component
             'description' => $this->formDescription,
             'amount' => (float) $this->formAmount,
             'date' => $this->formDate,
-            'vendor' => $this->formVendor ?: null,
+            'vendor' => $vendorResolved,
             'payment_method' => $this->formPaymentMethod,
             'recurring' => $this->formRecurring,
             'recurring_frequency' => $this->formRecurring ? $this->formRecurringFrequency : null,
@@ -188,13 +225,16 @@ class ExpensePage extends Component
             $data['receipt_path'] = $this->formReceipt->store('receipts', 'public');
         }
 
-        if ($this->editingId) {
-            Expense::findOrFail($this->editingId)->update($data);
-            $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
-        } else {
-            Expense::create($data);
-            $this->dispatch('notify', type: 'success', message: __('app.created_successfully'));
+        $expense = Expense::findOrFail($this->editingId);
+        if ($expense->listado_readonly) {
+            return;
         }
+        $extra = $this->mergeListadoDefaults($expense->listado_extra);
+        $cifResolved = $this->resolveOrCreateExpenseCif(trim($this->formCif ?? ''));
+        $extra['cif'] = $cifResolved ?? '';
+        $data['listado_extra'] = $extra;
+        $expense->update($data);
+        $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
 
         $this->showFormModal = false;
         $this->resetForm();
@@ -260,7 +300,7 @@ class ExpensePage extends Component
             ->values()
             ->all();
         if ($expenseIds !== []) {
-            Expense::whereIn('id', $expenseIds)->update(['category' => $this->bulkCategory]);
+            Expense::whereIn('id', $expenseIds)->where('listado_readonly', false)->update(['category' => $this->bulkCategory]);
         }
         $this->showCategoryModal = false;
         $this->bulkCategory = '';
@@ -318,6 +358,9 @@ class ExpensePage extends Component
         } else {
             Gate::authorize('expenses.edit');
             $e = Expense::findOrFail($id);
+            if ($e->listado_readonly) {
+                return;
+            }
             if ($field === 'date') {
                 $e->update(['date' => $value !== '' ? $value : $e->date->format('Y-m-d')]);
             } elseif ($field === 'bank') {
@@ -588,7 +631,7 @@ class ExpensePage extends Component
             'value_date' => $m->value_date?->format('Y-m-d') ?? ($m->date?->format('Y-m-d') ?? ''),
             'reference' => $m->reference ?? '',
             'beneficiary' => $m->beneficiary ?? '',
-            'cif' => $extra['cif'] ?? '',
+            'cif' => ($extra['cif'] ?? '') !== '' ? mb_strtoupper((string) $extra['cif']) : '',
             'concept' => $m->concept ?? '',
             'bi' => $this->formatOptionalMoney($extra['bi'] !== null ? (float) $extra['bi'] : null),
             'iva' => $this->formatOptionalMoney($extra['iva'] !== null ? (float) $extra['iva'] : null),
@@ -623,7 +666,7 @@ class ExpensePage extends Component
             'value_date' => $invoiceDate ? (string) $invoiceDate : ($e->date?->format('Y-m-d') ?? ''),
             'reference' => $extra['invoice_no'] ?? '',
             'beneficiary' => $e->vendor ?? '',
-            'cif' => $extra['cif'] ?? '',
+            'cif' => ($extra['cif'] ?? '') !== '' ? mb_strtoupper((string) $extra['cif']) : '',
             'concept' => $e->description ?? '',
             'bi' => $this->formatOptionalMoney($extra['bi'] !== null ? (float) $extra['bi'] : null),
             'iva' => $this->formatOptionalMoney($extra['iva'] !== null ? (float) $extra['iva'] : null),
@@ -631,17 +674,20 @@ class ExpensePage extends Component
             'otros' => $this->formatOptionalMoney($extra['otros'] !== null ? (float) $extra['otros'] : null),
             'total' => $this->formatOptionalMoney($amt),
             'receipt_path' => $e->receipt_path,
+            'listado_readonly' => (bool) $e->listado_readonly,
         ];
     }
 
     private function resetForm(): void
     {
+        $this->editingId = null;
         $this->formCompanyId = '';
         $this->formCategory = '';
         $this->formDescription = '';
         $this->formAmount = '0';
         $this->formDate = '';
         $this->formVendor = '';
+        $this->formCif = '';
         $this->formPaymentMethod = 'cash';
         $this->formReceipt = null;
         $this->formRecurring = false;
@@ -651,6 +697,100 @@ class ExpensePage extends Component
         $this->resetValidation();
     }
 
+    public function quickUpdateExpenseVendor(int $id, string $value): void
+    {
+        Gate::authorize('expenses.edit');
+        $e = Expense::findOrFail($id);
+        if ($e->listado_readonly) {
+            return;
+        }
+        $resolved = $this->resolveOrCreateExpenseProvider(trim($value));
+        $e->update(['vendor' => $resolved]);
+        $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
+    }
+
+    public function quickUpdateMovementBeneficiary(int $id, string $value): void
+    {
+        Gate::authorize('movements.edit');
+        $resolved = $this->resolveOrCreateExpenseProvider(trim($value));
+        BankMovement::findOrFail($id)->update(['beneficiary' => $resolved]);
+        $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
+    }
+
+    public function quickUpdateExpenseCif(int $id, string $value): void
+    {
+        Gate::authorize('expenses.edit');
+        $e = Expense::findOrFail($id);
+        if ($e->listado_readonly) {
+            return;
+        }
+        $resolved = $this->resolveOrCreateExpenseCif(trim($value));
+        $extra = $this->mergeListadoDefaults($e->listado_extra);
+        $extra['cif'] = $resolved ?? '';
+        $e->listado_extra = $extra;
+        $e->save();
+        $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
+    }
+
+    public function quickUpdateMovementCif(int $id, string $value): void
+    {
+        Gate::authorize('movements.edit');
+        $resolved = $this->resolveOrCreateExpenseCif(trim($value));
+        $m = BankMovement::findOrFail($id);
+        $extra = $this->mergeListadoDefaults($m->listado_extra);
+        $extra['cif'] = $resolved ?? '';
+        $m->listado_extra = $extra;
+        $m->save();
+        $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
+    }
+
+    private function resolveOrCreateExpenseProvider(string $value): ?string
+    {
+        if ($value === '') {
+            return null;
+        }
+        $existing = ExpenseProvider::where('name', $value)->first();
+        if ($existing) {
+            return $existing->name;
+        }
+        $maxOrder = (int) ExpenseProvider::max('sort_order');
+        ExpenseProvider::create(['name' => $value, 'sort_order' => $maxOrder + 1]);
+
+        return $value;
+    }
+
+    private function resolveOrCreateExpenseCif(string $value): ?string
+    {
+        if ($value === '') {
+            return null;
+        }
+        $normalized = mb_strtoupper($value);
+        $existing = ExpenseCif::where('code', $normalized)->first();
+        if ($existing) {
+            return $existing->code;
+        }
+        $maxOrder = (int) ExpenseCif::max('sort_order');
+        ExpenseCif::create(['code' => $normalized, 'sort_order' => $maxOrder + 1]);
+
+        return $normalized;
+    }
+
+    private function expenseProviderSelectOptions(): array
+    {
+        return ExpenseProvider::query()->orderBy('sort_order')->orderBy('name')->get()
+            ->map(fn (ExpenseProvider $p) => ['value' => $p->name, 'label' => $p->name])
+            ->values()
+            ->all();
+    }
+
+    private function expenseCifSelectOptions(): array
+    {
+        return ExpenseCif::query()->orderBy('sort_order')->orderBy('code')->get()
+            ->map(fn (ExpenseCif $c) => ['value' => $c->code, 'label' => $c->code])
+            ->values()
+            ->all();
+    }
+
     public function render()
     {
         return view('livewire.expenses.expense-page', [
@@ -658,6 +798,8 @@ class ExpensePage extends Component
             'bankAccounts' => BankAccount::orderBy('bank_name')->get(),
             'companies' => Company::orderBy('name')->get(),
             'categorySummary' => $this->getCategorySummary(),
+            'expenseProviderOpts' => $this->expenseProviderSelectOptions(),
+            'expenseCifOpts' => $this->expenseCifSelectOptions(),
         ])->layout('layouts.app');
     }
 }

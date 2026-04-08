@@ -5,6 +5,7 @@ use App\Livewire\BankAccounts\BankAccountPage;
 use App\Livewire\CompaniesClients\CompaniesClientsPage;
 use App\Livewire\CreditLines\CreditLinePage;
 use App\Livewire\Dashboard\DashboardPage;
+use App\Livewire\Expenses\ExpenseListadoConfigPage;
 use App\Livewire\Expenses\ExpensePage;
 use App\Livewire\Invoices\InvoicePage;
 use App\Livewire\MovementConfig\MovementConfigPage;
@@ -30,6 +31,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('movements', MovementPage::class)->middleware('permission:movements.view')->name('movements');
     Route::get('movement-config', MovementConfigPage::class)->middleware('permission:movements.view')->name('movement-config');
     Route::get('expenses', ExpensePage::class)->middleware('permission:expenses.view')->name('expenses');
+    Route::get('expense-listado-config', ExpenseListadoConfigPage::class)->middleware('permission:expenses.view')->name('expense-listado-config');
     Route::get('companies-clients', CompaniesClientsPage::class)->middleware('permission:companies_clients.view')->name('companies-clients');
     Route::get('credit-lines', CreditLinePage::class)->middleware('permission:credit_lines.view')->name('credit-lines');
     Route::get('reminders', ReminderPage::class)->middleware('permission:reminders.view')->name('reminders');

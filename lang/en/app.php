@@ -10,6 +10,10 @@ return [
     'movement' => 'Movement',
     'expenses' => 'Expenses',
     'expense' => 'Expense',
+    'expense_listado_config' => 'Expense providers & CIFs',
+    'expense_providers' => 'Providers',
+    'expense_cifs' => 'CIF / tax IDs',
+    'cif' => 'CIF',
     'companies' => 'Companies',
     'company' => 'Company',
     'clients' => 'Clients',
@@ -109,6 +113,7 @@ return [
     'value_date' => 'Value Date',
 
     'vendor' => 'Vendor',
+    'expense_readonly' => 'This expense was added from the list and cannot be edited.',
     'payment_method' => 'Payment Method',
     'receipt' => 'Receipt',
     'recurring' => 'Recurring',

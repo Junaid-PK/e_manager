@@ -11,7 +11,6 @@ use App\Models\BankMovement;
 use App\Models\Invoice;
 use App\Models\MovementCategory;
 use App\Models\MovementType;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
@@ -212,22 +211,18 @@ class MovementPage extends Component
             $movement = BankMovement::findOrFail($this->editingId);
             $movement->update($data);
             if ($resolvedCategory['invoice_id'] !== null) {
-                Invoice::whereKey($resolvedCategory['invoice_id'])->update([
-                    'status' => 'paid',
-                    'amount_paid' => DB::raw('total'),
-                    'amount_remaining' => 0,
-                ]);
+                $invoice = Invoice::findOrFail($resolvedCategory['invoice_id']);
+                $pool = (float) ($data['deposit'] ?? 0);
+                $this->syncInvoicesForBillPayment(collect([$invoice]), $pool);
             }
             $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
         } else {
             $data['import_source'] = 'manual';
-            BankMovement::create($data);
+            $created = BankMovement::create($data);
             if ($resolvedCategory['invoice_id'] !== null) {
-                Invoice::whereKey($resolvedCategory['invoice_id'])->update([
-                    'status' => 'paid',
-                    'amount_paid' => DB::raw('total'),
-                    'amount_remaining' => 0,
-                ]);
+                $invoice = Invoice::findOrFail($resolvedCategory['invoice_id']);
+                $pool = (float) ($data['deposit'] ?? 0);
+                $this->syncInvoicesForBillPayment(collect([$invoice]), $pool);
             }
             $this->dispatch('notify', type: 'success', message: __('app.created_successfully'));
         }
@@ -288,11 +283,16 @@ class MovementPage extends Component
                 ->all();
             if (count($invoiceIds) > 0) {
                 $invoices = Invoice::with('client')->whereIn('id', $invoiceIds)->get();
-                $depositAmount = $invoices->sum(function (Invoice $invoice) {
-                    return (float) ($invoice->amount_remaining ?? 0) > 0
-                        ? (float) $invoice->amount_remaining
-                        : (float) $invoice->total;
+                $suggestedDeposit = $invoices->sum(function (Invoice $invoice) {
+                    return max(0, round((float) $invoice->total - (float) $invoice->amount_paid, 2));
                 });
+                $existingDeposit = (float) ($movement->deposit ?? 0);
+                $paymentPool = $suggestedDeposit <= 0
+                    ? 0.0
+                    : ($existingDeposit > 0 ? min($suggestedDeposit, $existingDeposit) : $suggestedDeposit);
+                $depositColumn = $existingDeposit > 0
+                    ? $movement->deposit
+                    : ($paymentPool > 0 ? $paymentPool : null);
                 $categoryLabel = $invoices
                     ->map(fn (Invoice $invoice) => trim(($invoice->invoice_number ?? '').' - '.($invoice->client?->name ?? '')))
                     ->filter()
@@ -300,16 +300,10 @@ class MovementPage extends Component
                     ->implode(' | ');
                 $movement->update([
                     'category' => $categoryLabel ?: null,
-                    'deposit' => $depositAmount > 0 ? $depositAmount : null,
+                    'deposit' => $depositColumn,
                     'withdrawal' => null,
                 ]);
-                if ($invoices->count() > 0) {
-                    Invoice::whereIn('id', $invoices->pluck('id')->all())->update([
-                        'status' => 'paid',
-                        'amount_paid' => DB::raw('total'),
-                        'amount_remaining' => 0,
-                    ]);
-                }
+                $this->syncInvoicesForBillPayment($invoices, $paymentPool);
                 $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
                 return;
             }
@@ -427,6 +421,52 @@ class MovementPage extends Component
         $type = MovementType::create(['name' => $value, 'sort_order' => $maxOrder + 1]);
 
         return $type->slug;
+    }
+
+    /**
+     * Allocate the bank deposit (payment pool) across linked invoices: cobrado (amount_paid)
+     * increases by each slice; resto (amount_remaining) = total - amount_paid.
+     */
+    private function syncInvoicesForBillPayment(\Illuminate\Support\Collection $invoices, float $paymentPool): void
+    {
+        $pool = round(max(0, $paymentPool), 2);
+        if ($pool <= 0 || $invoices->isEmpty()) {
+            return;
+        }
+
+        foreach ($invoices->sortBy('id') as $invoice) {
+            if ($invoice->status === 'cancelled') {
+                continue;
+            }
+            $rem = round(max(0, (float) $invoice->total - (float) $invoice->amount_paid), 2);
+            if ($rem <= 0) {
+                continue;
+            }
+            $pay = round(min($rem, $pool), 2);
+            if ($pay <= 0) {
+                continue;
+            }
+            $pool = round($pool - $pay, 2);
+            $newPaid = round((float) $invoice->amount_paid + $pay, 2);
+            $newRem = round((float) $invoice->total - $newPaid, 2);
+            if ($newRem < 0) {
+                $newRem = 0;
+            }
+            $status = 'pending';
+            if ($newRem <= 0.00001) {
+                $status = 'paid';
+            } elseif ($newPaid > 0) {
+                $status = 'partial';
+            }
+            Invoice::whereKey($invoice->id)->update([
+                'amount_paid' => $newPaid,
+                'amount_remaining' => $newRem,
+                'status' => $status,
+            ]);
+            if ($pool <= 0) {
+                break;
+            }
+        }
     }
 
     private function resolveCategoryForType(string $input, string $type): array

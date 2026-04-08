@@ -10,6 +10,10 @@ return [
     'movement' => 'Movimiento',
     'expenses' => 'Gastos',
     'expense' => 'Gasto',
+    'expense_listado_config' => 'Proveedores y CIF',
+    'expense_providers' => 'Proveedores',
+    'expense_cifs' => 'CIF',
+    'cif' => 'CIF',
     'companies' => 'Empresas',
     'company' => 'Empresa',
     'clients' => 'Clientes',
@@ -109,6 +113,7 @@ return [
     'value_date' => 'Fecha Valor',
 
     'vendor' => 'Proveedor',
+    'expense_readonly' => 'Este gasto se añadió desde el listado y no se puede editar.',
     'payment_method' => 'Método de Pago',
     'receipt' => 'Recibo',
     'recurring' => 'Recurrente',
