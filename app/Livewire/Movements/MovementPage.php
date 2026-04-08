@@ -292,6 +292,19 @@ class MovementPage extends Component
     }
 
     /**
+     * Amount still owed on an invoice for bill allocation. Uses both stored amount_remaining
+     * and (total − amount_paid) so a stale column does not zero out the pool when the UI still
+     * shows a balance (common when imports or edits desynchronise the two).
+     */
+    private function invoiceRemainingDue(Invoice $invoice): float
+    {
+        $computed = round(max(0, (float) $invoice->total - (float) $invoice->amount_paid), 2);
+        $stored = round(max(0, (float) ($invoice->amount_remaining ?? 0)), 2);
+
+        return round(max($computed, $stored), 2);
+    }
+
+    /**
      * Slug for the "bill" / cobro movement type (matches movement_types.slug, default "bill").
      */
     private function billMovementTypeSlug(): string
@@ -388,9 +401,7 @@ class MovementPage extends Component
         }
 
         $invoices = Invoice::with('client')->whereIn('id', $invoiceIds)->get();
-        $suggestedDeposit = $invoices->sum(function (Invoice $invoice) {
-            return max(0, round((float) $invoice->total - (float) $invoice->amount_paid, 2));
-        });
+        $suggestedDeposit = round($invoices->sum(fn (Invoice $invoice) => $this->invoiceRemainingDue($invoice)), 2);
         $existingDeposit = (float) ($movement->deposit ?? 0);
         $paymentPool = $suggestedDeposit <= 0
             ? 0.0
@@ -413,7 +424,9 @@ class MovementPage extends Component
                 'status' => $inv->status,
                 'total' => (float) $inv->total,
                 'amount_paid' => (float) $inv->amount_paid,
-                'remaining' => round(max(0, (float) $inv->total - (float) $inv->amount_paid), 2),
+                'amount_remaining_column' => (float) ($inv->amount_remaining ?? 0),
+                'remaining_computed' => round(max(0, (float) $inv->total - (float) $inv->amount_paid), 2),
+                'remaining_due_used' => $this->invoiceRemainingDue($inv),
             ])->values()->all(),
             'suggested_deposit' => $suggestedDeposit,
             'existing_deposit' => $existingDeposit,
@@ -633,7 +646,7 @@ class MovementPage extends Component
 
         if ($pool <= 0) {
             $this->logBillPayment('sync_invoices.abort_pool_zero', [
-                'hint' => 'suggested_deposit was 0 or existing deposit capped pool; invoices will not be updated',
+                'hint' => 'combined remaining due was 0 (see total vs amount_paid vs amount_remaining); invoices will not be updated',
             ]);
 
             return;
@@ -644,9 +657,7 @@ class MovementPage extends Component
             ->sortBy('id')
             ->values();
 
-        $remaining = function (Invoice $invoice): float {
-            return round(max(0, (float) $invoice->total - (float) $invoice->amount_paid), 2);
-        };
+        $remaining = fn (Invoice $invoice): float => $this->invoiceRemainingDue($invoice);
 
         $withBalance = $eligible->filter(fn (Invoice $inv) => $remaining($inv) > 0)->values();
         $sumRem = round($withBalance->sum(fn (Invoice $inv) => $remaining($inv)), 2);
@@ -699,6 +710,7 @@ class MovementPage extends Component
 
                 continue;
             }
+            $invoice->refresh();
             $rem = $remaining($invoice);
             if ($rem <= 0) {
                 $this->logBillPayment('sync_invoices.skip_no_remaining', ['invoice_id' => $invoice->id]);
