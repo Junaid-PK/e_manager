@@ -611,6 +611,32 @@ class ExpensePage extends Component
             ->toArray();
     }
 
+    /**
+     * Aggregates for stat cards: same filter rules as the unified listado (expenses + buy/compra movements).
+     */
+    protected function getListadoStats(): array
+    {
+        $expenseQ = Expense::query();
+        $this->applyExpenseFilters($expenseQ);
+        $expenseTotal = (float) (clone $expenseQ)->sum('amount');
+        $expenseCount = (int) (clone $expenseQ)->count();
+
+        $movQ = $this->filteredMovementsQuery();
+        $movementTotal = (float) (clone $movQ)->selectRaw(
+            'COALESCE(SUM(CASE WHEN COALESCE(withdrawal, 0) != 0 THEN withdrawal ELSE COALESCE(deposit, 0) END), 0) as s'
+        )->value('s');
+        $movementCount = (int) (clone $movQ)->count();
+
+        return [
+            'combined_total' => round($expenseTotal + $movementTotal, 2),
+            'expense_total' => round($expenseTotal, 2),
+            'movement_total' => round($movementTotal, 2),
+            'expense_count' => $expenseCount,
+            'movement_count' => $movementCount,
+            'row_count' => $expenseCount + $movementCount,
+        ];
+    }
+
     private function mergeListadoDefaults(?array $extra): array
     {
         return array_merge([
@@ -887,6 +913,7 @@ class ExpensePage extends Component
             'bankAccounts' => BankAccount::orderBy('bank_name')->get(),
             'companies' => Company::orderBy('name')->get(),
             'categorySummary' => $this->getCategorySummary(),
+            'listadoStats' => $this->getListadoStats(),
             'expenseProviderOpts' => $this->expenseProviderSelectOptions(),
             'expenseCifOpts' => $this->expenseCifSelectOptions(),
         ])->layout('layouts.app');

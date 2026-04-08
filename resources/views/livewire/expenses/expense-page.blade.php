@@ -3,6 +3,29 @@
 </x-slot>
 
 <div>
+    <div class="mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ __('app.expense_stat_combined') }}</p>
+            <p class="mt-2 text-2xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{{ fmt_number($listadoStats['combined_total'] ?? 0) }} <span class="text-lg font-medium text-gray-500">&euro;</span></p>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('app.expense_stat_filters_hint') }}</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ __('app.expense_stat_expenses') }}</p>
+            <p class="mt-2 text-xl font-bold tabular-nums text-gray-900 dark:text-gray-100">{{ fmt_number($listadoStats['expense_total'] ?? 0) }} <span class="text-base font-medium text-gray-500">&euro;</span></p>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ trans_choice('app.expense_stat_lines', $listadoStats['expense_count'] ?? 0, ['count' => $listadoStats['expense_count'] ?? 0]) }}</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ __('app.expense_stat_movements') }}</p>
+            <p class="mt-2 text-xl font-bold tabular-nums text-gray-900 dark:text-gray-100">{{ fmt_number($listadoStats['movement_total'] ?? 0) }} <span class="text-base font-medium text-gray-500">&euro;</span></p>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ trans_choice('app.expense_stat_movement_lines', $listadoStats['movement_count'] ?? 0, ['count' => $listadoStats['movement_count'] ?? 0]) }}</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ __('app.expense_stat_rows') }}</p>
+            <p class="mt-2 text-2xl font-bold tabular-nums text-gray-900 dark:text-gray-100">{{ $listadoStats['row_count'] ?? 0 }}</p>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('app.expense_stat_rows_hint') }}</p>
+        </div>
+    </div>
+
     @if (count($categorySummary) > 0)
         <div class="mb-4 overflow-x-auto">
             <div class="flex items-center gap-2 pb-1">
