@@ -132,6 +132,7 @@ return [
     'collection_rate' => 'Collection rate',
     'outstanding' => 'Outstanding',
     'total_bank_balance' => 'Total Bank Balance',
+    'book_balance_caption' => 'Initial balance plus all movements. Independent of table sort and filters.',
     'recent_activity' => 'Recent Activity',
     'upcoming_reminders' => 'Upcoming Reminders',
     'quick_actions' => 'Quick Actions',

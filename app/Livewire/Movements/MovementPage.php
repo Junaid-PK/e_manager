@@ -536,9 +536,43 @@ class MovementPage extends Component
         $this->resetValidation();
     }
 
+    /**
+     * Book balance per account: initial_balance + sum(deposit − withdrawal), same basis as the table’s running_balance column.
+     */
+    private function balanceBookRows(): array
+    {
+        $nets = BankMovement::query()
+            ->select('bank_account_id')
+            ->selectRaw('COALESCE(SUM(COALESCE(deposit, 0) - COALESCE(withdrawal, 0)), 0) as net')
+            ->groupBy('bank_account_id')
+            ->pluck('net', 'bank_account_id');
+
+        return BankAccount::query()
+            ->orderBy('bank_name')
+            ->get()
+            ->map(function (BankAccount $ba) use ($nets) {
+                $initial = (float) ($ba->initial_balance ?? 0);
+                $net = (float) ($nets[$ba->id] ?? 0);
+
+                return [
+                    'id' => $ba->id,
+                    'name' => $ba->bank_name,
+                    'balance' => round($initial + $net, 2),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
     public function render()
     {
         $movements = $this->getMovements();
+        $balanceBookRows = $this->balanceBookRows();
+        $balanceBookTotal = round(collect($balanceBookRows)->sum('balance'), 2);
+        $filterBankId = (int) $this->filterBankAccountId;
+        $balanceBookDisplay = $filterBankId > 0
+            ? collect($balanceBookRows)->firstWhere('id', $filterBankId)
+            : null;
         $needsInvoiceOptions = $this->filterType === 'bill'
             || $this->formType === 'bill'
             || ($movements->count() > 0 && $movements->getCollection()->contains(fn ($m) => $m->type === 'bill'));
@@ -576,6 +610,9 @@ class MovementPage extends Component
             'movementTypes' => MovementType::orderBy('sort_order')->orderBy('name')->get(),
             'movementCategories' => MovementCategory::orderBy('sort_order')->orderBy('name')->get(),
             'pendingInvoiceOptions' => $pendingInvoiceOptions,
+            'balanceBookRows' => $balanceBookRows,
+            'balanceBookTotal' => $balanceBookTotal,
+            'balanceBookDisplay' => $balanceBookDisplay,
         ])->layout('layouts.app');
     }
 }

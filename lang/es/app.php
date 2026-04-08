@@ -132,6 +132,7 @@ return [
     'collection_rate' => 'Tasa de cobro',
     'outstanding' => 'Pendiente',
     'total_bank_balance' => 'Saldo Bancario Total',
+    'book_balance_caption' => 'Saldo inicial más todos los movimientos. Independiente del orden de la tabla y de los filtros.',
     'recent_activity' => 'Actividad Reciente',
     'upcoming_reminders' => 'Próximos Recordatorios',
     'quick_actions' => 'Acciones Rápidas',

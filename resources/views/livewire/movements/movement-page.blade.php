@@ -94,6 +94,42 @@
                     <option value="100">100 {{ __('app.per_page') }}</option>
                 </select>
             </div>
+
+            @if (! empty($balanceBookRows))
+                <div class="rounded-xl border border-emerald-200/90 dark:border-emerald-800/70 bg-emerald-50/90 dark:bg-emerald-950/35 px-4 py-3">
+                    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-emerald-800 dark:text-emerald-300">{{ __('app.current_balance') }}</p>
+                            @if ($filterBankAccountId && ! empty($balanceBookDisplay))
+                                <p class="mt-1 text-2xl sm:text-3xl font-semibold tabular-nums tracking-tight text-gray-900 dark:text-gray-50">
+                                    {{ fmt_number($balanceBookDisplay['balance']) }} <span class="text-lg font-medium text-gray-600 dark:text-gray-400">&euro;</span>
+                                </p>
+                                <p class="mt-0.5 text-sm font-medium text-gray-700 dark:text-gray-300 truncate" title="{{ $balanceBookDisplay['name'] }}">{{ $balanceBookDisplay['name'] }}</p>
+                            @else
+                                <p class="mt-1 text-2xl sm:text-3xl font-semibold tabular-nums tracking-tight text-gray-900 dark:text-gray-50">
+                                    {{ fmt_number($balanceBookTotal) }} <span class="text-lg font-medium text-gray-600 dark:text-gray-400">&euro;</span>
+                                </p>
+                                @if (count($balanceBookRows) === 1)
+                                    <p class="mt-0.5 text-sm font-medium text-gray-700 dark:text-gray-300 truncate" title="{{ $balanceBookRows[0]['name'] }}">{{ $balanceBookRows[0]['name'] }}</p>
+                                @else
+                                    <p class="mt-0.5 text-sm text-gray-600 dark:text-gray-400">{{ __('app.total_bank_balance') }}</p>
+                                @endif
+                            @endif
+                        </div>
+                        @if (! $filterBankAccountId && count($balanceBookRows) > 1)
+                            <dl class="flex flex-wrap gap-x-6 gap-y-2 text-sm sm:justify-end sm:text-right">
+                                @foreach ($balanceBookRows as $row)
+                                    <div class="min-w-[10rem]">
+                                        <dt class="text-gray-500 dark:text-gray-400 truncate max-w-[14rem] sm:max-w-[18rem]" title="{{ $row['name'] }}">{{ $row['name'] }}</dt>
+                                        <dd class="font-medium tabular-nums text-gray-900 dark:text-gray-100">{{ fmt_number($row['balance']) }} &euro;</dd>
+                                    </div>
+                                @endforeach
+                            </dl>
+                        @endif
+                    </div>
+                    <p class="mt-3 text-xs text-gray-500 dark:text-gray-400 border-t border-emerald-200/60 dark:border-emerald-800/50 pt-2">{{ __('app.book_balance_caption') }}</p>
+                </div>
+            @endif
         </div>
 
         @if ($search || $filterBankAccountId || $filterType || $filterDirection !== 'all' || $filterCategory || $dateFrom || $dateTo)
