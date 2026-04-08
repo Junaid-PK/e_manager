@@ -151,7 +151,7 @@ class ExpensePage extends Component
             'recurring_frequency' => null,
             'notes' => null,
             'listado_extra' => $this->mergeListadoDefaults(null),
-            'listado_readonly' => true,
+            'listado_readonly' => false,
         ]);
         $this->resetPage();
         $this->dispatch('notify', type: 'success', message: __('app.created_successfully'));
