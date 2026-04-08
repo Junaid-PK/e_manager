@@ -576,18 +576,37 @@ class InvoicePage extends Component
     }
 
     /**
-     * @return array{invoice_count: int, total_sum: float, amount_paid_sum: float, amount_remaining_sum: float}
+     * @return array{
+     *     invoice_count: int,
+     *     total_sum: float,
+     *     amount_sum: float,
+     *     iva_sum: float,
+     *     retention_sum: float,
+     *     amount_paid_sum: float,
+     *     amount_remaining_sum: float
+     * }
      */
     protected function getInvoiceStats(): array
     {
         $row = $this->baseInvoiceQuery()
             ->toBase()
-            ->selectRaw('COUNT(*) as invoice_count, COALESCE(SUM(total), 0) as total_sum, COALESCE(SUM(amount_paid), 0) as amount_paid_sum, COALESCE(SUM(amount_remaining), 0) as amount_remaining_sum')
+            ->selectRaw(
+                'COUNT(*) as invoice_count, '.
+                'COALESCE(SUM(total), 0) as total_sum, '.
+                'COALESCE(SUM(amount), 0) as amount_sum, '.
+                'COALESCE(SUM(iva_amount), 0) as iva_sum, '.
+                'COALESCE(SUM(retention_amount), 0) as retention_sum, '.
+                'COALESCE(SUM(amount_paid), 0) as amount_paid_sum, '.
+                'COALESCE(SUM(amount_remaining), 0) as amount_remaining_sum'
+            )
             ->first();
 
         return [
             'invoice_count' => (int) ($row->invoice_count ?? 0),
             'total_sum' => (float) ($row->total_sum ?? 0),
+            'amount_sum' => (float) ($row->amount_sum ?? 0),
+            'iva_sum' => (float) ($row->iva_sum ?? 0),
+            'retention_sum' => (float) ($row->retention_sum ?? 0),
             'amount_paid_sum' => (float) ($row->amount_paid_sum ?? 0),
             'amount_remaining_sum' => (float) ($row->amount_remaining_sum ?? 0),
         ];

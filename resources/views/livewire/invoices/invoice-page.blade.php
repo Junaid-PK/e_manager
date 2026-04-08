@@ -6,11 +6,26 @@
     $bankSelectOptions = $bankAccounts->map(fn ($ba) => ['value' => $ba->bank_name, 'label' => $ba->bank_name])->values()->all();
 @endphp
 <div>
-    <div class="mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+    <div class="mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
             <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ __('app.invoice_stat_total_invoiced') }}</p>
             <p class="mt-2 text-2xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{{ fmt_number($invoiceStats['total_sum'] ?? 0) }} <span class="text-lg font-medium text-gray-500">&euro;</span></p>
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('app.invoice_stat_filters_hint') }}</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ __('app.invoice_stat_base_amount') }}</p>
+            <p class="mt-2 text-xl font-bold tabular-nums text-gray-900 dark:text-gray-100">{{ fmt_number($invoiceStats['amount_sum'] ?? 0) }} <span class="text-base font-medium text-gray-500">&euro;</span></p>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('app.invoice_stat_base_hint') }}</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ __('app.invoice_stat_iva_total') }}</p>
+            <p class="mt-2 text-xl font-bold tabular-nums text-gray-900 dark:text-gray-100">{{ fmt_number($invoiceStats['iva_sum'] ?? 0) }} <span class="text-base font-medium text-gray-500">&euro;</span></p>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('app.invoice_stat_iva_hint') }}</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ __('app.invoice_stat_retention_total') }}</p>
+            <p class="mt-2 text-xl font-bold tabular-nums text-gray-900 dark:text-gray-100">{{ fmt_number($invoiceStats['retention_sum'] ?? 0) }} <span class="text-base font-medium text-gray-500">&euro;</span></p>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('app.invoice_stat_retention_hint') }}</p>
         </div>
         <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
             <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ __('app.invoices') }}</p>
