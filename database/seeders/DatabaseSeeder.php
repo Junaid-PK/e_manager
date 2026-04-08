@@ -13,12 +13,15 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        User::create([
-            'name' => 'Admin',
-            'email' => 'admin@emanager.com',
-            'password' => Hash::make('password'),
-            'email_verified_at' => now(),
-        ]);
+        // User::create([
+        //     'name' => 'Admin',
+        //     'email' => 'admin@emanager.com',
+        //     'password' => Hash::make('password'),
+        //     'email_verified_at' => now(),
+        // ]);
+
+        // Seeds permissions, attaches all to the admin role, and assigns that role to the first user.
+        $this->call(RolesAndPermissionsSeeder::class);
 
         // $mon2025 = Company::create([
         //     'name' => 'MON2025',

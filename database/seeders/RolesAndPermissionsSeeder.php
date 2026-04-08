@@ -24,6 +24,7 @@ class RolesAndPermissionsSeeder extends Seeder
         'reminders'         => ['view', 'create', 'edit', 'delete'],
         'settings'          => ['view', 'edit'],
         'users'             => ['view', 'create', 'edit', 'delete'],
+        'roles'             => ['view'],
     ];
 
     public function run(): void

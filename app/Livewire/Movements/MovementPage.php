@@ -12,6 +12,7 @@ use App\Models\Invoice;
 use App\Models\MovementCategory;
 use App\Models\MovementType;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Livewire\Component;
@@ -222,6 +223,11 @@ class MovementPage extends Component
             if ($resolvedCategory['invoice_id'] !== null) {
                 $invoice = Invoice::findOrFail($resolvedCategory['invoice_id']);
                 $pool = (float) ($data['deposit'] ?? 0);
+                $this->logBillPayment('save.update_movement_with_invoice', [
+                    'movement_id' => $movement->id,
+                    'invoice_id' => $invoice->id,
+                    'payment_pool' => $pool,
+                ]);
                 $this->syncInvoicesForBillPayment(collect([$invoice]), $pool);
             }
             $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
@@ -231,6 +237,11 @@ class MovementPage extends Component
             if ($resolvedCategory['invoice_id'] !== null) {
                 $invoice = Invoice::findOrFail($resolvedCategory['invoice_id']);
                 $pool = (float) ($data['deposit'] ?? 0);
+                $this->logBillPayment('save.created_movement_with_invoice', [
+                    'movement_id' => $created->id,
+                    'invoice_id' => $invoice->id,
+                    'payment_pool' => $pool,
+                ]);
                 $this->syncInvoicesForBillPayment(collect([$invoice]), $pool);
             }
             $this->dispatch('notify', type: 'success', message: __('app.created_successfully'));
@@ -273,6 +284,14 @@ class MovementPage extends Component
     }
 
     /**
+     * Debug trace for bill ↔ invoice linking (grep logs for "movements.bill_payment").
+     */
+    private function logBillPayment(string $step, array $context = []): void
+    {
+        Log::info('[movements.bill_payment] '.$step, $context);
+    }
+
+    /**
      * Slug for the "bill" / cobro movement type (matches movement_types.slug, default "bill").
      */
     private function billMovementTypeSlug(): string
@@ -293,18 +312,38 @@ class MovementPage extends Component
     {
         $input = trim($input);
         if ($input === '') {
+            $this->logBillPayment('parse_invoice_tokens.empty_input', []);
+
             return [];
         }
         $decoded = json_decode($input, true);
         if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-            return collect($decoded)
+            $tokens = collect($decoded)
                 ->filter(fn ($v) => is_string($v) && str_starts_with($v, 'invoice:'))
                 ->values()
                 ->all();
+            $this->logBillPayment('parse_invoice_tokens.json_array', [
+                'decoded_count' => count($decoded),
+                'invoice_tokens' => $tokens,
+            ]);
+
+            return $tokens;
+        }
+        if (json_last_error() !== JSON_ERROR_NONE && str_starts_with($input, '[')) {
+            $this->logBillPayment('parse_invoice_tokens.json_decode_failed', [
+                'json_error' => json_last_error_msg(),
+                'input_preview' => mb_substr($input, 0, 200),
+            ]);
         }
         if (str_starts_with($input, 'invoice:')) {
+            $this->logBillPayment('parse_invoice_tokens.single_token', ['token' => $input]);
+
             return [$input];
         }
+
+        $this->logBillPayment('parse_invoice_tokens.no_tokens', [
+            'input_preview' => mb_substr($input, 0, 200),
+        ]);
 
         return [];
     }
@@ -316,6 +355,12 @@ class MovementPage extends Component
      */
     private function applyBillPaymentForInvoiceTokens(BankMovement $movement, array $invoiceTokens): void
     {
+        $this->logBillPayment('apply_bill_tokens.start', [
+            'movement_id' => $movement->id,
+            'movement_type_before' => $movement->type,
+            'invoice_tokens' => $invoiceTokens,
+        ]);
+
         $invoiceIds = collect($invoiceTokens)
             ->map(fn (string $token) => (int) substr($token, 8))
             ->filter(fn ($n) => $n > 0)
@@ -323,11 +368,21 @@ class MovementPage extends Component
             ->values()
             ->all();
         if (count($invoiceIds) === 0) {
+            $this->logBillPayment('apply_bill_tokens.abort_no_invoice_ids', [
+                'movement_id' => $movement->id,
+                'invoice_tokens' => $invoiceTokens,
+            ]);
+
             return;
         }
 
         $billSlug = $this->billMovementTypeSlug();
         if ($movement->type !== $billSlug) {
+            $this->logBillPayment('apply_bill_tokens.set_movement_type', [
+                'movement_id' => $movement->id,
+                'from' => $movement->type,
+                'to' => $billSlug,
+            ]);
             $movement->update(['type' => $billSlug]);
             $movement->refresh();
         }
@@ -348,25 +403,58 @@ class MovementPage extends Component
             ->filter()
             ->values()
             ->implode(' | ');
+
+        $this->logBillPayment('apply_bill_tokens.amounts', [
+            'movement_id' => $movement->id,
+            'invoice_ids_requested' => $invoiceIds,
+            'invoices_loaded_count' => $invoices->count(),
+            'per_invoice' => $invoices->map(fn (Invoice $inv) => [
+                'id' => $inv->id,
+                'status' => $inv->status,
+                'total' => (float) $inv->total,
+                'amount_paid' => (float) $inv->amount_paid,
+                'remaining' => round(max(0, (float) $inv->total - (float) $inv->amount_paid), 2),
+            ])->values()->all(),
+            'suggested_deposit' => $suggestedDeposit,
+            'existing_deposit' => $existingDeposit,
+            'payment_pool' => $paymentPool,
+            'deposit_column' => $depositColumn,
+        ]);
+
         $movement->update([
             'category' => $categoryLabel ?: null,
             'deposit' => $depositColumn,
             'withdrawal' => null,
         ]);
+
+        $this->logBillPayment('apply_bill_tokens.movement_updated', [
+            'movement_id' => $movement->id,
+            'category_label' => $categoryLabel,
+        ]);
+
         $this->syncInvoicesForBillPayment($invoices, $paymentPool);
     }
 
     public function quickUpdateCategory(int $id, string|array $category): void
     {
+        $categoryWasArray = is_array($category);
         if (is_array($category)) {
             $category = json_encode($category);
         }
         $movement = BankMovement::findOrFail($id);
         $input = trim((string) $category);
+        $this->logBillPayment('quick_update_category.received', [
+            'movement_id' => $id,
+            'category_param_was_array' => $categoryWasArray,
+            'input_length' => strlen($input),
+            'input_preview' => mb_substr($input, 0, 300),
+        ]);
+
         $invoiceTokens = $this->parseInvoiceTokensFromCategoryInput($input);
 
         if (count($invoiceTokens) > 0) {
             $this->applyBillPaymentForInvoiceTokens($movement, $invoiceTokens);
+            $this->logBillPayment('quick_update_category.done_invoice_path', ['movement_id' => $id]);
             $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
 
             return;
@@ -374,9 +462,18 @@ class MovementPage extends Component
 
         $billSlug = $this->billMovementTypeSlug();
         if ($movement->type === $billSlug) {
+            $this->logBillPayment('quick_update_category.clear_bill_category', [
+                'movement_id' => $id,
+                'bill_slug' => $billSlug,
+            ]);
             $movement->update(['category' => null]);
         } else {
             $resolved = $this->resolveOrCreateCategory($input);
+            $this->logBillPayment('quick_update_category.normal_category', [
+                'movement_id' => $id,
+                'movement_type' => $movement->type,
+                'resolved' => $resolved,
+            ]);
             $movement->update(['category' => $resolved]);
         }
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
@@ -521,7 +618,24 @@ class MovementPage extends Component
     private function syncInvoicesForBillPayment(\Illuminate\Support\Collection $invoices, float $paymentPool): void
     {
         $pool = round(max(0, $paymentPool), 2);
-        if ($pool <= 0 || $invoices->isEmpty()) {
+        $this->logBillPayment('sync_invoices.start', [
+            'payment_pool_raw' => $paymentPool,
+            'payment_pool_rounded' => $pool,
+            'invoice_count' => $invoices->count(),
+            'invoice_ids' => $invoices->pluck('id')->values()->all(),
+        ]);
+
+        if ($invoices->isEmpty()) {
+            $this->logBillPayment('sync_invoices.abort_empty_collection', []);
+
+            return;
+        }
+
+        if ($pool <= 0) {
+            $this->logBillPayment('sync_invoices.abort_pool_zero', [
+                'hint' => 'suggested_deposit was 0 or existing deposit capped pool; invoices will not be updated',
+            ]);
+
             return;
         }
 
@@ -538,15 +652,32 @@ class MovementPage extends Component
         $sumRem = round($withBalance->sum(fn (Invoice $inv) => $remaining($inv)), 2);
 
         if ($sumRem <= 0) {
+            $this->logBillPayment('sync_invoices.abort_no_remaining_balance', [
+                'eligible_ids' => $eligible->pluck('id')->all(),
+                'statuses' => $eligible->mapWithKeys(fn (Invoice $i) => [$i->id => $i->status])->all(),
+            ]);
+
             return;
         }
 
         // Two or more invoices with balance, but bank receipt does not cover combined due:
         // split the shortfall proportionally and mark all as paid.
         if ($withBalance->count() >= 2 && $pool < $sumRem - 0.005) {
+            $this->logBillPayment('sync_invoices.branch_multi_underpay_close_all_paid', [
+                'with_balance_count' => $withBalance->count(),
+                'sum_remaining' => $sumRem,
+                'pool' => $pool,
+            ]);
             foreach ($withBalance as $invoice) {
                 $newPaid = round((float) $invoice->total, 2);
                 Invoice::whereKey($invoice->id)->update([
+                    'amount_paid' => $newPaid,
+                    'amount_remaining' => 0,
+                    'status' => 'paid',
+                ]);
+                $this->logBillPayment('sync_invoices.invoice_updated', [
+                    'invoice_id' => $invoice->id,
+                    'branch' => 'multi_underpay',
                     'amount_paid' => $newPaid,
                     'amount_remaining' => 0,
                     'status' => 'paid',
@@ -556,16 +687,32 @@ class MovementPage extends Component
             return;
         }
 
+        $this->logBillPayment('sync_invoices.branch_sequential', [
+            'with_balance_count' => $withBalance->count(),
+            'sum_remaining' => $sumRem,
+            'pool' => $pool,
+        ]);
+
         foreach ($eligible as $invoice) {
             if ($invoice->status === 'cancelled') {
+                $this->logBillPayment('sync_invoices.skip_cancelled', ['invoice_id' => $invoice->id]);
+
                 continue;
             }
             $rem = $remaining($invoice);
             if ($rem <= 0) {
+                $this->logBillPayment('sync_invoices.skip_no_remaining', ['invoice_id' => $invoice->id]);
+
                 continue;
             }
             $pay = round(min($rem, $pool), 2);
             if ($pay <= 0) {
+                $this->logBillPayment('sync_invoices.skip_pay_zero', [
+                    'invoice_id' => $invoice->id,
+                    'rem' => $rem,
+                    'pool_left' => $pool,
+                ]);
+
                 continue;
             }
             $pool = round($pool - $pay, 2);
@@ -585,7 +732,18 @@ class MovementPage extends Component
                 'amount_remaining' => $newRem,
                 'status' => $status,
             ]);
+            $this->logBillPayment('sync_invoices.invoice_updated', [
+                'invoice_id' => $invoice->id,
+                'branch' => 'sequential',
+                'pay_applied' => $pay,
+                'amount_paid' => $newPaid,
+                'amount_remaining' => $newRem,
+                'status' => $status,
+                'pool_after' => $pool,
+            ]);
             if ($pool <= 0) {
+                $this->logBillPayment('sync_invoices.sequential_pool_exhausted', []);
+
                 break;
             }
         }
