@@ -144,7 +144,7 @@
                      if (first) first.focus();
                  }
              ">
-            <table class="min-w-full w-full table-fixed divide-y divide-gray-200 dark:divide-gray-700">
+            <table class="min-w-full w-full table-fixed divide-y divide-gray-200 dark:divide-gray-700 [&_th]:min-w-0 [&_td]:min-w-0 [&_th]:overflow-hidden [&_td]:overflow-hidden">
                 <thead class="bg-gray-50 dark:bg-gray-700/50">
                     <tr>
                         <th class="w-12 px-4 py-3">
@@ -305,7 +305,9 @@
                             <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 min-w-0">
                                 <span class="block truncate" title="{{ $movement->concept }}">{{ \Illuminate\Support\Str::limit($movement->concept, 50) }}</span>
                             </td>
-                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ $movement->beneficiary ?? '—' }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 min-w-0" title="{{ $movement->beneficiary }}">
+                                <span class="block truncate">{{ $movement->beneficiary !== null && $movement->beneficiary !== '' ? $movement->beneficiary : '—' }}</span>
+                            </td>
                             <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
                                 @if ($movement->deposit && (float) $movement->deposit > 0)
                                     <span class="text-green-600 dark:text-green-400 font-medium">{{ fmt_number($movement->deposit) }} &euro;</span>
@@ -596,6 +598,7 @@
                             el.style.width = px;
                             el.style.minWidth = px;
                             el.style.maxWidth = px;
+                            el.style.overflow = 'hidden';
                         };
                         Array.from(table.tHead.rows[0].children).forEach(apply);
                         const tbody = table.tBodies[0];
@@ -645,6 +648,7 @@
                                         el.style.width = px;
                                         el.style.minWidth = px;
                                         el.style.maxWidth = px;
+                                        el.style.overflow = 'hidden';
                                     });
                                 };
                                 const onUp = () => {
