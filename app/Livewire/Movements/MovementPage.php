@@ -32,6 +32,11 @@ class MovementPage extends Component
 
     public string $bulkCategory = '';
 
+    /** Default matches running_balance (chronological by date, then id). */
+    public string $sortField = 'date';
+
+    public string $sortDirection = 'desc';
+
     #[\Livewire\Attributes\Url(as: 'bank_account_id')]
     public string $filterBankAccountId = '';
 
@@ -386,6 +391,26 @@ class MovementPage extends Component
         }
 
         return $this->applySorting($query);
+    }
+
+    /**
+     * Running balance is computed in SQL as: initial_balance + sum(deposit - withdrawal)
+     * for all movements on the same account with (date, id) <= (this row). Rows must be
+     * ordered chronologically (at least by date + id) for consecutive balances to read
+     * sensibly; the trait default used orderBy created_at (latest()), which broke that.
+     */
+    protected function applySorting($query)
+    {
+        if ($this->sortField !== '') {
+            $query->orderBy($this->sortField, $this->sortDirection);
+            if ($this->sortField !== 'id') {
+                $query->orderBy('bank_movements.id', $this->sortDirection);
+            }
+
+            return $query;
+        }
+
+        return $query->orderBy('bank_movements.date', 'desc')->orderBy('bank_movements.id', 'desc');
     }
 
     protected function getMovements()
