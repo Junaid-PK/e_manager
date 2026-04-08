@@ -513,6 +513,10 @@ class MovementPage extends Component
     /**
      * Allocate the bank deposit (payment pool) across linked invoices: cobrado (amount_paid)
      * increases by each slice; resto (amount_remaining) = total - amount_paid.
+     *
+     * When several invoices are linked and the receipt is *less* than the combined amount still
+     * due, the shortfall is split in proportion to each invoice’s remaining balance and every
+     * linked invoice with a balance is closed as paid (small bank/charges differences absorbed).
      */
     private function syncInvoicesForBillPayment(\Illuminate\Support\Collection $invoices, float $paymentPool): void
     {
@@ -521,11 +525,42 @@ class MovementPage extends Component
             return;
         }
 
-        foreach ($invoices->sortBy('id') as $invoice) {
+        $eligible = $invoices
+            ->filter(fn (Invoice $invoice) => $invoice->status !== 'cancelled')
+            ->sortBy('id')
+            ->values();
+
+        $remaining = function (Invoice $invoice): float {
+            return round(max(0, (float) $invoice->total - (float) $invoice->amount_paid), 2);
+        };
+
+        $withBalance = $eligible->filter(fn (Invoice $inv) => $remaining($inv) > 0)->values();
+        $sumRem = round($withBalance->sum(fn (Invoice $inv) => $remaining($inv)), 2);
+
+        if ($sumRem <= 0) {
+            return;
+        }
+
+        // Two or more invoices with balance, but bank receipt does not cover combined due:
+        // split the shortfall proportionally and mark all as paid.
+        if ($withBalance->count() >= 2 && $pool < $sumRem - 0.005) {
+            foreach ($withBalance as $invoice) {
+                $newPaid = round((float) $invoice->total, 2);
+                Invoice::whereKey($invoice->id)->update([
+                    'amount_paid' => $newPaid,
+                    'amount_remaining' => 0,
+                    'status' => 'paid',
+                ]);
+            }
+
+            return;
+        }
+
+        foreach ($eligible as $invoice) {
             if ($invoice->status === 'cancelled') {
                 continue;
             }
-            $rem = round(max(0, (float) $invoice->total - (float) $invoice->amount_paid), 2);
+            $rem = $remaining($invoice);
             if ($rem <= 0) {
                 continue;
             }
