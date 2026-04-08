@@ -32,11 +32,6 @@ class MovementPage extends Component
 
     public string $bulkCategory = '';
 
-    /** Default matches running_balance (chronological by date, then id). */
-    public string $sortField = 'date';
-
-    public string $sortDirection = 'desc';
-
     #[\Livewire\Attributes\Url(as: 'bank_account_id')]
     public string $filterBankAccountId = '';
 
@@ -71,6 +66,15 @@ class MovementPage extends Component
     public string $formCategory = '';
 
     public string $formNotes = '';
+
+    public function mount(): void
+    {
+        // Defaults (cannot override WithSorting $sortField/$sortDirection in the class body — PHP trait conflict).
+        if ($this->sortField === '') {
+            $this->sortField = 'date';
+            $this->sortDirection = 'desc';
+        }
+    }
 
     protected function rules(): array
     {
