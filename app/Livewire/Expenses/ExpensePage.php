@@ -343,8 +343,33 @@ class ExpensePage extends Component
     public function updateListadoField(string $kind, int $id, string $field, ?string $value): void
     {
         $value = $value ?? '';
-        // Listado is editable only for expenses rows; movement rows are read-only (edit on Movements page).
         if ($kind === 'm') {
+            if (! Gate::check('movements.edit') && ! Gate::check('expenses.edit')) {
+                Gate::authorize('expenses.edit');
+            }
+            $m = BankMovement::findOrFail($id);
+            if ($field === 'invoice_date') {
+                $m->update(['value_date' => $value !== '' ? $value : null]);
+            } elseif ($field === 'invoice_no') {
+                $m->update(['reference' => $value !== '' ? $value : null]);
+            } elseif ($field === 'description') {
+                $m->update(['concept' => $value !== '' ? $value : null]);
+            } elseif ($field === 'total_amt' || $field === 'total') {
+                $amt = max(0, $this->parseMoney($value));
+                $w = (float) ($m->withdrawal ?? 0);
+                $d = (float) ($m->deposit ?? 0);
+                if ($d > 0 && $w <= 0) {
+                    $m->update(['deposit' => $amt, 'withdrawal' => null]);
+                } else {
+                    $m->update(['withdrawal' => $amt, 'deposit' => null]);
+                }
+            } elseif (in_array($field, ['bi', 'iva', 'irpf', 'otros'], true)) {
+                $this->patchMovementExtra($m, $field, $value);
+            } else {
+                return;
+            }
+            $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
+
             return;
         }
 
@@ -752,7 +777,23 @@ class ExpensePage extends Component
 
     public function quickUpdateMovementBeneficiary(int $id, string $value): void
     {
-        // Movement rows are not edited from the expenses listado; use the Movements page.
+        if (! Gate::check('movements.edit') && ! Gate::check('expenses.edit')) {
+            Gate::authorize('expenses.edit');
+        }
+        $m = BankMovement::findOrFail($id);
+        $resolved = $value !== '' ? $this->resolveOrCreateExpenseProvider(trim($value)) : null;
+        $extra = $this->mergeListadoDefaults($m->listado_extra);
+        if ($resolved) {
+            $prov = ExpenseProvider::query()->where('name', $resolved)->with('cif')->first();
+            if ($prov?->cif) {
+                $extra['cif'] = $prov->cif->code;
+            }
+        }
+        $m->update([
+            'beneficiary' => $resolved,
+            'listado_extra' => $extra,
+        ]);
+        $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
 
     public function quickUpdateExpenseCif(int $id, string $value): void
@@ -773,7 +814,17 @@ class ExpensePage extends Component
 
     public function quickUpdateMovementCif(int $id, string $value): void
     {
-        // Movement rows are not edited from the expenses listado; use the Movements page.
+        if (! Gate::check('movements.edit') && ! Gate::check('expenses.edit')) {
+            Gate::authorize('expenses.edit');
+        }
+        $m = BankMovement::findOrFail($id);
+        $resolved = $this->resolveOrCreateExpenseCif(trim($value));
+        $extra = $this->mergeListadoDefaults($m->listado_extra);
+        $extra['cif'] = $resolved ?? '';
+        $m->listado_extra = $extra;
+        $m->save();
+        $this->linkExpenseProviderToCifFromCodes($m->beneficiary, $resolved);
+        $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
 
     /**

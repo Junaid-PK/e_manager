@@ -203,16 +203,19 @@
                         @php
                             $expenseReadonlyListado = ($row['kind'] === 'e' && !empty($row['listado_readonly']));
                             $canExpense = $row['kind'] === 'e' && auth()->user()->can('expenses.edit') && !$expenseReadonlyListado;
-                            // Movement rows (bank_movements) are display-only here; edit them on the Movements page.
+                            $canMovementListado = $row['kind'] === 'm' && (auth()->user()->can('movements.edit') || auth()->user()->can('expenses.edit'));
+                            // Expense-only inline cells (first DATE / CLIENT / etc.); keep false for movement so the first columns stay read-only there.
                             $canRow = $canExpense;
+                            $canListadoEditLine = $canExpense || $canMovementListado;
                             // Expense listado: only the first four data columns (DATE, BANK, CLIENT, TOTAL AMOUNT) are read-only; all following columns stay editable.
                             $expenseListadoCoreReadOnly = $row['kind'] === 'e';
                             $rowIsMovement = $row['kind'] === 'm';
                             $inp = 'w-full min-w-0 text-[11px] border border-gray-300 dark:border-gray-600 rounded px-1 py-0.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100';
+                            $inpMovement = 'w-full min-w-0 text-[11px] border border-white/35 rounded px-1 py-0.5 bg-sky-950/55 text-white placeholder-white/35 focus:outline-none focus:ring-1 focus:ring-emerald-400/70 focus:border-emerald-400/50';
+                            $inpListado = ($rowIsMovement && $canMovementListado) ? $inpMovement : $inp;
                             $staticSpan = $rowIsMovement ? 'text-[11px] text-white' : 'text-[11px] text-gray-700 dark:text-gray-200';
                             $staticSpanPlain = $rowIsMovement ? 'text-[11px] text-white' : 'text-[11px]';
-                            $listadoFinalized = $row['kind'] === 'e'
-                                && $row['total_amt'] !== ''
+                            $listadoFinalized = $row['total_amt'] !== ''
                                 && $row['total'] !== ''
                                 && abs((float) $row['total_amt'] - (float) $row['total']) < 0.0005;
                         @endphp
@@ -252,14 +255,18 @@
                             </td>
                             <td class="px-2 py-1 align-top">
                                 @if ($canRow && ! $expenseListadoCoreReadOnly)
-                                    <input type="number" step="0.01" value="{{ $row['total_amt'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'total_amt', $event.target.value)" @class([$inp, 'text-right', 'text-emerald-600 dark:text-emerald-400' => $listadoFinalized]) />
+                                    <input type="number" step="0.01" value="{{ $row['total_amt'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'total_amt', $event.target.value)" @class([$inp, 'text-right', 'text-emerald-300' => $listadoFinalized && $rowIsMovement, 'text-emerald-600 dark:text-emerald-400' => $listadoFinalized && ! $rowIsMovement]) />
                                 @else
-                                    <span @class([$staticSpanPlain, 'text-right block', 'text-emerald-600 dark:text-emerald-400' => $listadoFinalized])>{{ $row['total_amt'] }}</span>
+                                    <span @class([$staticSpanPlain, 'text-right block', 'text-emerald-300' => $listadoFinalized && $rowIsMovement, 'text-emerald-600 dark:text-emerald-400' => $listadoFinalized && ! $rowIsMovement])>{{ $row['total_amt'] }}</span>
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top whitespace-nowrap">
                                 @if ($row['kind'] === 'm')
-                                    <span class="{{ $staticSpanPlain }}">{{ $row['value_date'] ? \Illuminate\Support\Carbon::parse($row['value_date'])->format('d/m/Y') : '—' }}</span>
+                                    @if ($canMovementListado)
+                                        <input type="date" value="{{ $row['value_date'] }}" wire:change="updateListadoField('m', {{ $row['id'] }}, 'invoice_date', $event.target.value)" class="{{ $inpListado }}" />
+                                    @else
+                                        <span class="{{ $staticSpanPlain }}">{{ $row['value_date'] ? \Illuminate\Support\Carbon::parse($row['value_date'])->format('d/m/Y') : '—' }}</span>
+                                    @endif
                                 @else
                                     @if ($canExpense)
                                         <input type="date" value="{{ $row['value_date'] }}" wire:change="updateListadoField('e', {{ $row['id'] }}, 'invoice_date', $event.target.value)" class="{{ $inp }}" />
@@ -270,7 +277,11 @@
                             </td>
                             <td class="px-2 py-1 align-top">
                                 @if ($row['kind'] === 'm')
-                                    <span class="{{ $staticSpanPlain }} truncate block max-w-[7rem]">{{ $row['reference'] }}</span>
+                                    @if ($canMovementListado)
+                                        <input type="text" value="{{ $row['reference'] }}" wire:blur="updateListadoField('m', {{ $row['id'] }}, 'invoice_no', $event.target.value)" class="{{ $inpListado }}" />
+                                    @else
+                                        <span class="{{ $staticSpanPlain }} truncate block max-w-[7rem]">{{ $row['reference'] }}</span>
+                                    @endif
                                 @else
                                     @if ($canExpense)
                                         <input type="text" value="{{ $row['reference'] }}" wire:blur="updateListadoField('e', {{ $row['id'] }}, 'invoice_no', $event.target.value)" class="{{ $inp }}" />
@@ -281,7 +292,18 @@
                             </td>
                             <td class="px-2 py-1 align-top min-w-[8rem]">
                                 @if ($row['kind'] === 'm')
-                                    <span class="{{ $staticSpanPlain }} truncate block max-w-[8rem]">{{ $row['beneficiary'] }}</span>
+                                    @if ($canMovementListado)
+                                        <x-custom-select compact
+                                            wire:key="listado-prov-m-{{ $row['id'] }}"
+                                            :options="$expenseProviderOpts"
+                                            :value="$row['beneficiary'] ?? ''"
+                                            allow-custom
+                                            :empty-label="__('app.none')"
+                                            submit-method="quickUpdateMovementBeneficiary"
+                                            :submit-arg="$row['id']" />
+                                    @else
+                                        <span class="{{ $staticSpanPlain }} truncate block max-w-[8rem]">{{ $row['beneficiary'] }}</span>
+                                    @endif
                                 @else
                                     @if ($canExpense)
                                         <x-custom-select compact
@@ -298,7 +320,7 @@
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top min-w-[6rem]">
-                                @if ($canRow)
+                                @if ($canListadoEditLine)
                                     <x-custom-select compact
                                         wire:key="listado-cif-{{ $row['composite'] }}-{{ $row['cif'] ?? '' }}"
                                         :options="$expenseCifOpts"
@@ -313,7 +335,11 @@
                             </td>
                             <td class="px-2 py-1 align-top">
                                 @if ($row['kind'] === 'm')
-                                    <span class="{{ $staticSpanPlain }} line-clamp-2">{{ $row['concept'] }}</span>
+                                    @if ($canMovementListado)
+                                        <input type="text" value="{{ $row['concept'] }}" wire:blur="updateListadoField('m', {{ $row['id'] }}, 'description', $event.target.value)" class="{{ $inpListado }}" />
+                                    @else
+                                        <span class="{{ $staticSpanPlain }} line-clamp-2">{{ $row['concept'] }}</span>
+                                    @endif
                                 @else
                                     @if ($canExpense)
                                         <input type="text" value="{{ $row['concept'] }}" wire:blur="updateListadoField('e', {{ $row['id'] }}, 'description', $event.target.value)" class="{{ $inp }}" />
@@ -323,38 +349,38 @@
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top">
-                                @if ($canRow)
-                                    <input type="number" step="0.01" value="{{ $row['bi'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'bi', $event.target.value)" class="{{ $inp }} text-right" />
+                                @if ($canListadoEditLine)
+                                    <input type="number" step="0.01" value="{{ $row['bi'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'bi', $event.target.value)" @class([$inpListado, 'text-right']) />
                                 @else
                                     <span class="{{ $staticSpanPlain }} text-right block">{{ $row['bi'] }}</span>
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top">
-                                @if ($canRow)
-                                    <input type="number" step="0.01" value="{{ $row['iva'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'iva', $event.target.value)" class="{{ $inp }} text-right" />
+                                @if ($canListadoEditLine)
+                                    <input type="number" step="0.01" value="{{ $row['iva'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'iva', $event.target.value)" @class([$inpListado, 'text-right']) />
                                 @else
                                     <span class="{{ $staticSpanPlain }} text-right block">{{ $row['iva'] }}</span>
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top">
-                                @if ($canRow)
-                                    <input type="number" step="0.01" value="{{ $row['irpf'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'irpf', $event.target.value)" class="{{ $inp }} text-right" />
+                                @if ($canListadoEditLine)
+                                    <input type="number" step="0.01" value="{{ $row['irpf'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'irpf', $event.target.value)" @class([$inpListado, 'text-right']) />
                                 @else
                                     <span class="{{ $staticSpanPlain }} text-right block">{{ $row['irpf'] }}</span>
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top">
-                                @if ($canRow)
-                                    <input type="number" step="0.01" value="{{ $row['otros'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'otros', $event.target.value)" class="{{ $inp }} text-right" />
+                                @if ($canListadoEditLine)
+                                    <input type="number" step="0.01" value="{{ $row['otros'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'otros', $event.target.value)" @class([$inpListado, 'text-right']) />
                                 @else
                                     <span class="{{ $staticSpanPlain }} text-right block">{{ $row['otros'] }}</span>
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top">
-                                @if ($canRow)
-                                    <input type="number" step="0.01" value="{{ $row['total'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'total', $event.target.value)" @class([$inp, 'text-right font-medium', 'text-emerald-600 dark:text-emerald-400' => $listadoFinalized]) />
+                                @if ($canListadoEditLine)
+                                    <input type="number" step="0.01" value="{{ $row['total'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'total', $event.target.value)" @class([$inpListado, 'text-right font-medium', 'text-emerald-300' => $listadoFinalized && $rowIsMovement, 'text-emerald-600 dark:text-emerald-400' => $listadoFinalized && ! $rowIsMovement]) />
                                 @else
-                                    <span @class([$staticSpanPlain, 'text-right block font-medium', 'text-emerald-600 dark:text-emerald-400' => $listadoFinalized])>{{ $row['total'] }}</span>
+                                    <span @class([$staticSpanPlain, 'text-right block font-medium', 'text-emerald-300' => $listadoFinalized && $rowIsMovement, 'text-emerald-600 dark:text-emerald-400' => $listadoFinalized && ! $rowIsMovement])>{{ $row['total'] }}</span>
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top text-center">
