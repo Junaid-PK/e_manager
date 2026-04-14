@@ -2,12 +2,10 @@
 
 namespace Database\Seeders;
 
-use App\Models\BankAccount;
-use App\Models\Client;
-use App\Models\Company;
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class DatabaseSeeder extends Seeder
 {
@@ -22,6 +20,7 @@ class DatabaseSeeder extends Seeder
 
         // Seeds permissions, attaches all to the admin role, and assigns that role to the first user.
         $this->call(RolesAndPermissionsSeeder::class);
+        $this->backfillOwnedRecordUserIds();
 
         // $mon2025 = Company::create([
         //     'name' => 'MON2025',
@@ -55,5 +54,32 @@ class DatabaseSeeder extends Seeder
         // foreach ($banks as $bank) {
         //     BankAccount::create($bank);
         // }
+    }
+
+    /**
+     * Assign legacy rows (null user_id) to the first admin so ownership scopes stay consistent after migrate.
+     */
+    private function backfillOwnedRecordUserIds(): void
+    {
+        $tables = [
+            'companies', 'clients', 'projects', 'invoices', 'expenses',
+            'bank_accounts', 'bank_movements', 'credit_lines',
+        ];
+        $userId = User::query()
+            ->whereHas('roles', fn ($q) => $q->where('name', 'admin'))
+            ->orderBy('id')
+            ->value('id');
+        if (! $userId) {
+            $userId = User::query()->orderBy('id')->value('id');
+        }
+        if (! $userId) {
+            return;
+        }
+        foreach ($tables as $table) {
+            if (! Schema::hasTable($table) || ! Schema::hasColumn($table, 'user_id')) {
+                continue;
+            }
+            DB::table($table)->whereNull('user_id')->update(['user_id' => $userId]);
+        }
     }
 }

@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\OwnedByAuthenticatedUser;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class BankMovement extends Model
 {
+    use OwnedByAuthenticatedUser;
+
     protected $fillable = [
+        'user_id',
         'bank_account_id',
         'date',
         'value_date',

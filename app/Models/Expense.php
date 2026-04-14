@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\OwnedByAuthenticatedUser;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Expense extends Model
 {
+    use OwnedByAuthenticatedUser;
+
     public const CATEGORIES = [
         'Salario Bruto',
         'Seguridad Social',
@@ -31,6 +34,7 @@ class Expense extends Model
     ];
 
     protected $fillable = [
+        'user_id',
         'company_id',
         'category',
         'description',

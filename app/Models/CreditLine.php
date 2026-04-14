@@ -2,15 +2,20 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\OwnedByAuthenticatedUser;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class CreditLine extends Model
 {
+    use OwnedByAuthenticatedUser;
+
     public const ENTITY_TYPES = ['bank', 'company'];
+
     public const STATUSES = ['active', 'paid_off', 'defaulted'];
 
     protected $fillable = [
+        'user_id',
         'entity_name',
         'entity_type',
         'year',

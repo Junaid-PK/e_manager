@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\OwnedByAuthenticatedUser;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class BankAccount extends Model
 {
+    use OwnedByAuthenticatedUser;
+
     protected $fillable = [
+        'user_id',
         'bank_name',
         'account_number',
         'holder_name',
@@ -31,6 +35,6 @@ class BankAccount extends Model
 
     public function getMaskedAccountNumberAttribute(): string
     {
-        return str_repeat('*', max(0, strlen($this->account_number) - 4)) . substr($this->account_number, -4);
+        return str_repeat('*', max(0, strlen($this->account_number) - 4)).substr($this->account_number, -4);
     }
 }
