@@ -215,9 +215,18 @@
                             $inpListado = ($rowIsMovement && $canMovementListado) ? $inpMovement : $inp;
                             $staticSpan = $rowIsMovement ? 'text-[11px] text-white' : 'text-[11px] text-gray-700 dark:text-gray-200';
                             $staticSpanPlain = $rowIsMovement ? 'text-[11px] text-white' : 'text-[11px]';
-                            $listadoFinalized = $row['total_amt'] !== ''
-                                && $row['total'] !== ''
-                                && abs((float) $row['total_amt'] - (float) $row['total']) < 0.0005;
+                            $listadoAmtA = $row['total_amt'];
+                            $listadoAmtB = $row['total'];
+                            $listadoAmtFloatA = ($listadoAmtA === '' || $listadoAmtA === null)
+                                ? null
+                                : (float) str_replace([' ', ','], ['', '.'], (string) $listadoAmtA);
+                            $listadoAmtFloatB = ($listadoAmtB === '' || $listadoAmtB === null)
+                                ? null
+                                : (float) str_replace([' ', ','], ['', '.'], (string) $listadoAmtB);
+                            $listadoTotalsMatch = $listadoAmtFloatA !== null && $listadoAmtFloatB !== null
+                                && abs($listadoAmtFloatA - $listadoAmtFloatB) < 0.0005;
+                            $listadoTotalsMismatch = $listadoAmtFloatA !== null && $listadoAmtFloatB !== null
+                                && abs($listadoAmtFloatA - $listadoAmtFloatB) >= 0.0005;
                         @endphp
                         <tr @class([
                             'transition-colors',
@@ -253,11 +262,24 @@
                                     <span class="{{ $staticSpanPlain }} truncate block max-w-[8rem]">{{ $row['client'] }}</span>
                                 @endif
                             </td>
-                            <td class="px-2 py-1 align-top">
+                            <td @class([
+                                'px-2 py-1 align-top',
+                                'ring-1 ring-inset ring-emerald-400/60 bg-emerald-500/20' => $listadoTotalsMatch && $rowIsMovement,
+                                'ring-1 ring-inset ring-red-400/55 bg-red-500/20' => $listadoTotalsMismatch && $rowIsMovement,
+                                'ring-1 ring-inset ring-emerald-500/40 bg-emerald-50 dark:bg-emerald-900/25' => $listadoTotalsMatch && ! $rowIsMovement,
+                                'ring-1 ring-inset ring-red-400/45 bg-red-50 dark:bg-red-900/25' => $listadoTotalsMismatch && ! $rowIsMovement,
+                            ])>
                                 @if ($canRow && ! $expenseListadoCoreReadOnly)
-                                    <input type="number" step="0.01" value="{{ $row['total_amt'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'total_amt', $event.target.value)" @class([$inp, 'text-right', 'text-emerald-300' => $listadoFinalized && $rowIsMovement, 'text-emerald-600 dark:text-emerald-400' => $listadoFinalized && ! $rowIsMovement]) />
+                                    <input type="number" step="0.01" value="{{ $row['total_amt'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'total_amt', $event.target.value)" @class([$inp, 'text-right', '!text-emerald-300' => $listadoTotalsMatch && $rowIsMovement, '!text-red-300' => $listadoTotalsMismatch && $rowIsMovement, '!text-emerald-600 dark:!text-emerald-400' => $listadoTotalsMatch && ! $rowIsMovement, '!text-red-600 dark:!text-red-400' => $listadoTotalsMismatch && ! $rowIsMovement]) />
                                 @else
-                                    <span @class([$staticSpanPlain, 'text-right block', 'text-emerald-300' => $listadoFinalized && $rowIsMovement, 'text-emerald-600 dark:text-emerald-400' => $listadoFinalized && ! $rowIsMovement])>{{ $row['total_amt'] }}</span>
+                                    <span @class([
+                                        $staticSpanPlain,
+                                        'text-right block',
+                                        '!text-emerald-300' => $listadoTotalsMatch && $rowIsMovement,
+                                        '!text-red-300' => $listadoTotalsMismatch && $rowIsMovement,
+                                        '!text-emerald-600 dark:!text-emerald-400' => $listadoTotalsMatch && ! $rowIsMovement,
+                                        '!text-red-600 dark:!text-red-400' => $listadoTotalsMismatch && ! $rowIsMovement,
+                                    ])>{{ $row['total_amt'] }}</span>
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top whitespace-nowrap">
@@ -376,11 +398,24 @@
                                     <span class="{{ $staticSpanPlain }} text-right block">{{ $row['otros'] }}</span>
                                 @endif
                             </td>
-                            <td class="px-2 py-1 align-top">
+                            <td @class([
+                                'px-2 py-1 align-top',
+                                'ring-1 ring-inset ring-emerald-400/60 bg-emerald-500/20' => $listadoTotalsMatch && $rowIsMovement,
+                                'ring-1 ring-inset ring-red-400/55 bg-red-500/20' => $listadoTotalsMismatch && $rowIsMovement,
+                                'ring-1 ring-inset ring-emerald-500/40 bg-emerald-50 dark:bg-emerald-900/25' => $listadoTotalsMatch && ! $rowIsMovement,
+                                'ring-1 ring-inset ring-red-400/45 bg-red-50 dark:bg-red-900/25' => $listadoTotalsMismatch && ! $rowIsMovement,
+                            ])>
                                 @if ($canListadoEditLine)
-                                    <input type="number" step="0.01" value="{{ $row['total'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'total', $event.target.value)" @class([$inpListado, 'text-right font-medium', 'text-emerald-300' => $listadoFinalized && $rowIsMovement, 'text-emerald-600 dark:text-emerald-400' => $listadoFinalized && ! $rowIsMovement]) />
+                                    <input type="number" step="0.01" value="{{ $row['total'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'total', $event.target.value)" @class([$inpListado, 'text-right font-medium', '!text-emerald-300' => $listadoTotalsMatch && $rowIsMovement, '!text-red-300' => $listadoTotalsMismatch && $rowIsMovement, '!text-emerald-600 dark:!text-emerald-400' => $listadoTotalsMatch && ! $rowIsMovement, '!text-red-600 dark:!text-red-400' => $listadoTotalsMismatch && ! $rowIsMovement]) />
                                 @else
-                                    <span @class([$staticSpanPlain, 'text-right block font-medium', 'text-emerald-300' => $listadoFinalized && $rowIsMovement, 'text-emerald-600 dark:text-emerald-400' => $listadoFinalized && ! $rowIsMovement])>{{ $row['total'] }}</span>
+                                    <span @class([
+                                        $staticSpanPlain,
+                                        'text-right block font-medium',
+                                        '!text-emerald-300' => $listadoTotalsMatch && $rowIsMovement,
+                                        '!text-red-300' => $listadoTotalsMismatch && $rowIsMovement,
+                                        '!text-emerald-600 dark:!text-emerald-400' => $listadoTotalsMatch && ! $rowIsMovement,
+                                        '!text-red-600 dark:!text-red-400' => $listadoTotalsMismatch && ! $rowIsMovement,
+                                    ])>{{ $row['total'] }}</span>
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top text-center">
