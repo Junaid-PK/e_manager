@@ -149,7 +149,7 @@
                                 <div>
                                     <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">{{ __('app.map_columns') }}</h4>
                                     <div class="grid grid-cols-2 gap-3">
-                                        @foreach (['date' => __('app.date') . ' *', 'value_date' => __('app.value_date'), 'concept' => __('app.concept') . ' *', 'beneficiary' => __('app.beneficiary'), 'reference' => __('app.reference'), 'amount' => __('app.amount_signed'), 'deposit' => __('app.deposit'), 'withdrawal' => __('app.withdrawal')] as $field => $label)
+                                        @foreach (['date' => __('app.date') . ' *', 'value_date' => __('app.value_date'), 'concept' => __('app.concept') . ' *', 'beneficiary' => __('app.beneficiary'), 'reference' => __('app.reference'), 'amount' => __('app.amount_signed'), 'deposit' => __('app.deposit'), 'withdrawal' => __('app.withdrawal'), 'category' => __('app.category'), 'type' => __('app.type')] as $field => $label)
                                             <div>
                                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ $label }}</label>
                                                 <select wire:model="columnMap.{{ $field }}" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-2 py-1.5 focus:ring-emerald-500 focus:border-emerald-500">

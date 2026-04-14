@@ -2,10 +2,12 @@
 
 namespace App\Services;
 
+use App\Models\BankAccount;
 use App\Models\Client;
 use App\Models\Company;
 use App\Models\Invoice;
 use App\Models\Project;
+use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Facades\Excel;
 
 class InvoiceImportService
@@ -41,6 +43,13 @@ class InvoiceImportService
         $imported = 0;
         $errors = [];
 
+        $canonicalBankNames = BankAccount::query()
+            ->whereNotNull('bank_name')
+            ->where('bank_name', '!=', '')
+            ->distinct()
+            ->orderBy('bank_name')
+            ->pluck('bank_name');
+
         foreach ($rows as $index => $row) {
             try {
                 $mapped = $this->mapRow($row, $columnMap);
@@ -60,8 +69,9 @@ class InvoiceImportService
                 $companyId = $this->resolveOrCreateCompany($companyName);
                 $clientId = $this->resolveOrCreateClient($clientName);
 
-                if (!$companyId || !$clientId) {
-                    $errors[] = __('app.row') . ' ' . ($index + 2) . ': ' . __('app.company') . '/' . __('app.client') . ' ' . __('app.required');
+                if (! $companyId || ! $clientId) {
+                    $errors[] = __('app.row').' '.($index + 2).': '.__('app.company').'/'.__('app.client').' '.__('app.required');
+
                     continue;
                 }
 
@@ -77,8 +87,9 @@ class InvoiceImportService
                 $amountPaid = $this->parseAmount($mapped['amount_paid'] ?? null) ?? 0;
                 $amountRemaining = $this->parseAmount($mapped['amount_remaining'] ?? null) ?? max(0, round($total - $amountPaid, 2));
 
-                $status = $this->resolveStatus($mapped['status'] ?? null);
-                $paymentType = $this->resolvePaymentType($mapped['payment_type'] ?? null);
+                $status = $this->resolveImportedStatus($mapped['status'] ?? null);
+                $paymentType = $this->resolveImportedPaymentType($mapped['payment_type'] ?? null);
+                $bankNameResolved = $this->resolveImportedBankName($mapped['bank_name'] ?? null, $canonicalBankNames);
 
                 $monthValue = $this->parseMonth($mapped['month'] ?? null);
                 $projectId = $this->resolveProjectId($mapped['project_id'] ?? null, $companyId);
@@ -92,7 +103,7 @@ class InvoiceImportService
                     'date_issued' => $this->parseDate($mapped['date_issued'] ?? null) ?? $this->parseDate($mapped['month'] ?? null) ?? now()->format('Y-m-d'),
                     'date_due' => $this->parseDate($mapped['date_due'] ?? null),
                     'bank_date' => $this->parseDate($mapped['bank_date'] ?? null),
-                    'bank_name' => trim($mapped['bank_name'] ?? '') ?: null,
+                    'bank_name' => $bankNameResolved,
                     'amount' => $amount,
                     'iva_amount' => $ivaAmount,
                     'iva_rate' => $amount > 0 && $ivaAmount > 0 ? round($ivaAmount / $amount * 100, 2) : 21,
@@ -106,7 +117,7 @@ class InvoiceImportService
                 ]);
                 $imported++;
             } catch (\Exception $e) {
-                $errors[] = __('app.row') . ' ' . ($index + 2) . ': ' . $e->getMessage();
+                $errors[] = __('app.row').' '.($index + 2).': '.$e->getMessage();
             }
         }
 
@@ -121,18 +132,21 @@ class InvoiceImportService
                 $mapped[$field] = trim((string) $row[$headerIndex]);
             }
         }
+
         return $mapped;
     }
 
     private function resolveOrCreateCompany(?string $name): ?int
     {
-        if (!$name) return null;
+        if (! $name) {
+            return null;
+        }
 
         $company = Company::where('name', $name)->first()
             ?? Company::where('name', 'like', "%{$name}%")->first()
             ?? Company::whereRaw('? LIKE CONCAT(\'%\', name, \'%\')', [$name])->first();
 
-        if (!$company) {
+        if (! $company) {
             $company = Company::create(['name' => $name]);
         }
 
@@ -141,13 +155,15 @@ class InvoiceImportService
 
     private function resolveOrCreateClient(?string $name): ?int
     {
-        if (!$name) return null;
+        if (! $name) {
+            return null;
+        }
 
         $client = Client::where('name', $name)->first()
             ?? Client::where('name', 'like', "%{$name}%")->first()
             ?? Client::whereRaw('? LIKE CONCAT(\'%\', name, \'%\')', [$name])->first();
 
-        if (!$client) {
+        if (! $client) {
             $client = Client::create(['name' => $name]);
         }
 
@@ -186,17 +202,23 @@ class InvoiceImportService
 
     private function isFormula(?string $value): bool
     {
-        if ($value === null) return false;
+        if ($value === null) {
+            return false;
+        }
+
         return str_starts_with(trim($value), '=');
     }
 
     private function parseMonth(?string $value): ?string
     {
-        if (!$value) return null;
+        if (! $value) {
+            return null;
+        }
 
         if (is_numeric($value)) {
             try {
                 $date = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((int) $value);
+
                 return $date->format('M-Y');
             } catch (\Exception) {
                 return $value;
@@ -206,45 +228,96 @@ class InvoiceImportService
         return $value;
     }
 
-    private function resolveStatus(?string $value): string
+    /**
+     * Only allow invoice statuses used by the app (see InvoicePage validation). Unknown values are skipped (default pending).
+     */
+    private function resolveImportedStatus(?string $raw): string
     {
-        if (!$value) return 'pending';
-        $value = strtolower(trim($value));
+        $allowed = ['pending', 'paid', 'partial', 'overdue', 'cancelled'];
+        $t = trim((string) ($raw ?? ''));
+        if ($t === '') {
+            return 'pending';
+        }
+        $lower = mb_strtolower($t);
+        foreach ($allowed as $a) {
+            if ($a === $lower) {
+                return $a;
+            }
+        }
+        $synonym = $this->mapInvoiceStatusSynonym($lower);
 
-        $map = [
-            'yes' => 'paid', 'si' => 'paid', 'sí' => 'paid',
-            'paid' => 'paid', 'pagado' => 'paid', 'pagada' => 'paid',
-            'no' => 'pending', 'pending' => 'pending', 'pendiente' => 'pending',
-            'partial' => 'partial', 'parcial' => 'partial',
-            'overdue' => 'overdue', 'vencido' => 'overdue', 'vencida' => 'overdue',
-            'cancelled' => 'cancelled', 'cancelado' => 'cancelled', 'cancelada' => 'cancelled',
-        ];
-
-        return $map[$value] ?? 'pending';
+        return ($synonym !== null && in_array($synonym, $allowed, true)) ? $synonym : 'pending';
     }
 
-    private function resolvePaymentType(?string $value): ?string
+    private function mapInvoiceStatusSynonym(string $lower): ?string
     {
-        if (!$value) return null;
-        $value = strtolower(trim($value));
-
         $map = [
-            'confirming' => 'confirming',
-            'cheque' => 'cheque',
-            'transfer' => 'transfer', 'transferencia' => 'transfer',
-            'cash' => 'cash', 'efectivo' => 'cash',
+            'yes' => 'paid', 'si' => 'paid', 'sí' => 'paid',
+            'pagado' => 'paid', 'pagada' => 'paid',
+            'no' => 'pending', 'pendiente' => 'pending',
+            'parcial' => 'partial',
+            'vencido' => 'overdue', 'vencida' => 'overdue',
+            'cancelado' => 'cancelled', 'cancelada' => 'cancelled',
         ];
 
-        return $map[$value] ?? 'other';
+        return $map[$lower] ?? null;
+    }
+
+    /**
+     * Only allow payment types defined on Invoice::PAYMENT_TYPES. Unknown values are skipped (null).
+     */
+    private function resolveImportedPaymentType(?string $raw): ?string
+    {
+        $allowed = Invoice::PAYMENT_TYPES;
+        $t = trim((string) ($raw ?? ''));
+        if ($t === '') {
+            return null;
+        }
+        $lower = mb_strtolower($t);
+        foreach ($allowed as $a) {
+            if ($a === $lower) {
+                return $a;
+            }
+        }
+        $synonym = [
+            'transferencia' => 'transfer',
+            'efectivo' => 'cash',
+        ];
+        $canonical = $synonym[$lower] ?? null;
+
+        return ($canonical !== null && in_array($canonical, $allowed, true)) ? $canonical : null;
+    }
+
+    /**
+     * Only accept bank names that exist on bank_accounts.bank_name (case-insensitive). Unknown values are skipped (null).
+     */
+    private function resolveImportedBankName(?string $raw, Collection $knownNames): ?string
+    {
+        $t = trim((string) ($raw ?? ''));
+        if ($t === '') {
+            return null;
+        }
+        $lower = mb_strtolower($t);
+        foreach ($knownNames as $name) {
+            if (mb_strtolower((string) $name) === $lower) {
+                return (string) $name;
+            }
+        }
+
+        return null;
     }
 
     private function parseDate(?string $value): ?string
     {
-        if (!$value) return null;
+        if (! $value) {
+            return null;
+        }
 
         foreach (['d/m/Y', 'd-m-Y', 'Y-m-d', 'd.m.Y', 'm/d/Y', 'M-y', 'M-Y'] as $format) {
             $date = \DateTime::createFromFormat($format, $value);
-            if ($date) return $date->format('Y-m-d');
+            if ($date) {
+                return $date->format('Y-m-d');
+            }
         }
 
         if (is_numeric($value)) {
@@ -256,7 +329,9 @@ class InvoiceImportService
 
     private function parseAmount(?string $value): ?float
     {
-        if ($value === null || $value === '') return null;
+        if ($value === null || $value === '') {
+            return null;
+        }
 
         if (is_numeric($value)) {
             return abs((float) $value);
@@ -274,6 +349,7 @@ class InvoiceImportService
         }
 
         $amount = (float) $value;
+
         return $amount != 0 ? abs($amount) : 0;
     }
 }

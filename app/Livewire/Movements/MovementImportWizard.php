@@ -15,15 +15,21 @@ class MovementImportWizard extends Component
     use WithFileUploads;
 
     public bool $show = false;
+
     public string $activeTab = 'csv';
+
     public int $step = 1;
 
     public $csvFile;
+
     public $pdfFile;
+
     public int $bankAccountId = 0;
 
     public array $csvHeaders = [];
+
     public array $csvPreviewRows = [];
+
     public array $columnMap = [
         'date' => '',
         'value_date' => '',
@@ -33,12 +39,16 @@ class MovementImportWizard extends Component
         'amount' => '',
         'deposit' => '',
         'withdrawal' => '',
+        'category' => '',
+        'type' => '',
     ];
 
     public array $pdfMovements = [];
+
     public array $pdfSelected = [];
 
     public int $importedCount = 0;
+
     public array $importErrors = [];
 
     #[On('openImportWizard')]
@@ -74,12 +84,13 @@ class MovementImportWizard extends Component
         $this->validate(['csvFile' => 'required|file|mimes:csv,xlsx,xls,txt', 'bankAccountId' => 'required|exists:bank_accounts,id']);
 
         $path = $this->csvFile->getRealPath();
-        $service = new CsvImportService();
+        $service = new CsvImportService;
         $result = $service->parseFile($path);
 
         $this->csvHeaders = $result['headers'];
         $this->csvPreviewRows = array_slice($result['rows'], 0, 10);
         $this->autoMapAmountColumn();
+        $this->autoMapCategoryAndTypeColumns();
         $this->step = 2;
     }
 
@@ -100,6 +111,7 @@ class MovementImportWizard extends Component
                     }
                     if ($sample !== null) {
                         $this->columnMap['amount'] = $header;
+
                         return;
                     }
                 }
@@ -110,8 +122,22 @@ class MovementImportWizard extends Component
                 $cell = trim((string) ($row[$idx] ?? ''));
                 if ($cell !== '' && (preg_match('/^[+\-]\s*[\d,.]/', $cell) || preg_match('/^\([\d,.\s]+\)$/', $cell))) {
                     $this->columnMap['amount'] = $header;
+
                     return;
                 }
+            }
+        }
+    }
+
+    private function autoMapCategoryAndTypeColumns(): void
+    {
+        foreach ($this->csvHeaders as $header) {
+            $h = strtolower(trim((string) $header));
+            if (($this->columnMap['category'] ?? '') === '' && (str_contains($h, 'categor') || str_contains($h, 'category'))) {
+                $this->columnMap['category'] = $header;
+            }
+            if (($this->columnMap['type'] ?? '') === '' && ($h === 'type' || str_contains($h, 'tipo') || preg_match('/\btype\b/', $h))) {
+                $this->columnMap['type'] = $header;
             }
         }
     }
@@ -121,7 +147,7 @@ class MovementImportWizard extends Component
         $this->validate(['bankAccountId' => 'required|exists:bank_accounts,id']);
 
         $path = $this->csvFile->getRealPath();
-        $service = new CsvImportService();
+        $service = new CsvImportService;
 
         $indexMap = [];
         foreach ($this->columnMap as $field => $headerName) {
@@ -144,7 +170,7 @@ class MovementImportWizard extends Component
         $this->validate(['pdfFile' => 'required|file|mimes:pdf', 'bankAccountId' => 'required|exists:bank_accounts,id']);
 
         $path = $this->pdfFile->getRealPath();
-        $service = new PdfParserService();
+        $service = new PdfParserService;
         $this->pdfMovements = $service->parseBankStatement($path);
         $this->pdfSelected = array_keys($this->pdfMovements);
         $this->step = 2;
@@ -154,7 +180,9 @@ class MovementImportWizard extends Component
     {
         $imported = 0;
         foreach ($this->pdfSelected as $index) {
-            if (!isset($this->pdfMovements[$index])) continue;
+            if (! isset($this->pdfMovements[$index])) {
+                continue;
+            }
 
             $m = $this->pdfMovements[$index];
             BankMovement::create([
