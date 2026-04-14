@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
         // ]);
 
         // Seeds permissions, attaches all to the admin role, and assigns that role to the first user.
-        $this->call(RolesAndPermissionsSeeder::class);
+        // $this->call(RolesAndPermissionsSeeder::class);
         $this->backfillOwnedRecordUserIds();
 
         // $mon2025 = Company::create([
