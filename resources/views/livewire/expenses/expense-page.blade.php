@@ -205,10 +205,16 @@
                             $canExpense = $row['kind'] === 'e' && auth()->user()->can('expenses.edit') && !$expenseReadonlyListado;
                             // Movement rows (bank_movements) are display-only here; edit them on the Movements page.
                             $canRow = $canExpense;
+                            // Expense listado: only the first four data columns (DATE, BANK, CLIENT, TOTAL AMOUNT) are read-only; all following columns stay editable.
+                            $expenseListadoCoreReadOnly = $row['kind'] === 'e';
                             $rowIsMovement = $row['kind'] === 'm';
                             $inp = 'w-full min-w-0 text-[11px] border border-gray-300 dark:border-gray-600 rounded px-1 py-0.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100';
                             $staticSpan = $rowIsMovement ? 'text-[11px] text-white' : 'text-[11px] text-gray-700 dark:text-gray-200';
                             $staticSpanPlain = $rowIsMovement ? 'text-[11px] text-white' : 'text-[11px]';
+                            $listadoFinalized = $row['kind'] === 'e'
+                                && $row['total_amt'] !== ''
+                                && $row['total'] !== ''
+                                && abs((float) $row['total_amt'] - (float) $row['total']) < 0.0005;
                         @endphp
                         <tr @class([
                             'transition-colors',
@@ -220,7 +226,7 @@
                                 <input type="checkbox" wire:model.live="selected" value="{{ $row['composite'] }}" @class(['rounded text-emerald-600 focus:ring-emerald-500', 'border-white/40 bg-white/10 dark:bg-white/10 dark:border-white/40' => $rowIsMovement, 'border-gray-300 dark:border-gray-600 dark:bg-gray-700' => ! $rowIsMovement])>
                             </td>
                             <td class="px-2 py-1 align-top whitespace-nowrap">
-                                @if ($canRow)
+                                @if ($canRow && ! $expenseListadoCoreReadOnly)
                                     <input type="date" value="{{ $row['date'] }}" wire:change="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'date', $event.target.value)" class="{{ $inp }}" />
                                 @else
                                     <span class="{{ $staticSpan }}">{{ $row['date'] ? \Illuminate\Support\Carbon::parse($row['date'])->format('d/m/Y') : '—' }}</span>
@@ -230,25 +236,25 @@
                                 @if ($row['kind'] === 'm')
                                     <span class="{{ $staticSpanPlain }}">{{ $row['bank_name'] }}</span>
                                 @else
-                                    @if ($canExpense)
+                                    @if ($canExpense && ! $expenseListadoCoreReadOnly)
                                         <input type="text" value="{{ $row['bank_name'] }}" wire:blur="updateListadoField('e', {{ $row['id'] }}, 'bank', $event.target.value)" class="{{ $inp }}" />
                                     @else
-                                        <span class="text-[11px]">{{ $row['bank_name'] }}</span>
+                                        <span class="{{ $staticSpanPlain }}">{{ $row['bank_name'] }}</span>
                                     @endif
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top">
-                                @if ($canRow)
+                                @if ($canRow && ! $expenseListadoCoreReadOnly)
                                     <input type="text" value="{{ $row['client'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'client', $event.target.value)" class="{{ $inp }}" />
                                 @else
                                     <span class="{{ $staticSpanPlain }} truncate block max-w-[8rem]">{{ $row['client'] }}</span>
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top">
-                                @if ($canRow)
-                                    <input type="number" step="0.01" value="{{ $row['total_amt'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'total_amt', $event.target.value)" class="{{ $inp }} text-right" />
+                                @if ($canRow && ! $expenseListadoCoreReadOnly)
+                                    <input type="number" step="0.01" value="{{ $row['total_amt'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'total_amt', $event.target.value)" @class([$inp, 'text-right', 'text-emerald-600 dark:text-emerald-400' => $listadoFinalized]) />
                                 @else
-                                    <span class="{{ $staticSpanPlain }} text-right block">{{ $row['total_amt'] }}</span>
+                                    <span @class([$staticSpanPlain, 'text-right block', 'text-emerald-600 dark:text-emerald-400' => $listadoFinalized])>{{ $row['total_amt'] }}</span>
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top whitespace-nowrap">
@@ -346,9 +352,9 @@
                             </td>
                             <td class="px-2 py-1 align-top">
                                 @if ($canRow)
-                                    <input type="number" step="0.01" value="{{ $row['total'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'total', $event.target.value)" class="{{ $inp }} text-right font-medium" />
+                                    <input type="number" step="0.01" value="{{ $row['total'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'total', $event.target.value)" @class([$inp, 'text-right font-medium', 'text-emerald-600 dark:text-emerald-400' => $listadoFinalized]) />
                                 @else
-                                    <span class="{{ $staticSpanPlain }} text-right block font-medium">{{ $row['total'] }}</span>
+                                    <span @class([$staticSpanPlain, 'text-right block font-medium', 'text-emerald-600 dark:text-emerald-400' => $listadoFinalized])>{{ $row['total'] }}</span>
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top text-center">
