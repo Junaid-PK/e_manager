@@ -47,14 +47,24 @@
                         <a href="{{ route('expense-listado-config') }}" wire:navigate class="text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline">{{ __('app.expense_listado_config') }}</a>
                     @endcan
                 </div>
-                @can('expenses.create')
-                    <button type="button" wire:click="addNewExpenseRow" class="inline-flex shrink-0 items-center justify-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                        </svg>
-                        {{ __('app.new_expense') }}
-                    </button>
-                @endcan
+                <div class="flex flex-wrap items-center gap-2">
+                    @can('expenses.export')
+                        <button type="button" wire:click="exportToExcel" class="inline-flex shrink-0 items-center justify-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                            </svg>
+                            {{ __('app.export_excel') }}
+                        </button>
+                    @endcan
+                    @can('expenses.create')
+                        <button type="button" wire:click="addNewExpenseRow" class="inline-flex shrink-0 items-center justify-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                            </svg>
+                            {{ __('app.new_expense') }}
+                        </button>
+                    @endcan
+                </div>
             </div>
             <div class="flex flex-col lg:flex-row lg:items-center gap-3">
                 <div class="relative flex-1 max-w-sm">

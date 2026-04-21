@@ -13,18 +13,18 @@ class RolesAndPermissionsSeeder extends Seeder
      * Permission matrix: module => actions
      */
     private array $matrix = [
-        'dashboard'         => ['view'],
-        'invoices'          => ['view', 'create', 'edit', 'delete', 'export'],
-        'movements'         => ['view', 'create', 'edit', 'delete', 'export'],
-        'bank_accounts'     => ['view', 'create', 'edit', 'delete'],
-        'expenses'          => ['view', 'create', 'edit', 'delete'],
-        'credit_lines'      => ['view', 'create', 'edit', 'delete'],
+        'dashboard' => ['view'],
+        'invoices' => ['view', 'create', 'edit', 'delete', 'export'],
+        'movements' => ['view', 'create', 'edit', 'delete', 'export'],
+        'bank_accounts' => ['view', 'create', 'edit', 'delete'],
+        'expenses' => ['view', 'create', 'edit', 'delete', 'export'],
+        'credit_lines' => ['view', 'create', 'edit', 'delete'],
         'companies_clients' => ['view', 'create', 'edit', 'delete'],
-        'reports'           => ['view'],
-        'reminders'         => ['view', 'create', 'edit', 'delete'],
-        'settings'          => ['view', 'edit'],
-        'users'             => ['view', 'create', 'edit', 'delete'],
-        'roles'             => ['view'],
+        'reports' => ['view'],
+        'reminders' => ['view', 'create', 'edit', 'delete'],
+        'settings' => ['view', 'edit'],
+        'users' => ['view', 'create', 'edit', 'delete'],
+        'roles' => ['view'],
     ];
 
     public function run(): void

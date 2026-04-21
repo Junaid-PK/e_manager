@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Expenses;
 
+use App\Exports\ExpenseListadoExport;
 use App\Livewire\Traits\WithBulkActions;
 use App\Livewire\Traits\WithFiltering;
 use App\Livewire\Traits\WithSorting;
@@ -17,9 +18,11 @@ use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ExpensePage extends Component
 {
@@ -616,6 +619,17 @@ class ExpensePage extends Component
             'movement_count' => $movementCount,
             'row_count' => $expenseCount + $movementCount,
         ];
+    }
+
+    public function exportToExcel()
+    {
+        Gate::authorize('expenses.export');
+        $rows = $this->getMergedRowsCollection();
+        $filename = 'expenses-listado-'.date('Y-m-d-His').'-'.uniqid().'.xlsx';
+        Storage::disk('local')->makeDirectory('exports');
+        Excel::store(new ExpenseListadoExport($rows), 'exports/'.$filename, 'local');
+
+        return redirect(URL::temporarySignedRoute('export.download', now()->addMinutes(5), ['file' => $filename]));
     }
 
     private function mergeListadoDefaults(?array $extra): array
