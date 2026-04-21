@@ -241,9 +241,10 @@ $hasNav          = $navRow !== null && $navCol !== null;
             @keydown.arrow-up.prevent="open && moveCursor(-1)"
             @keydown.tab.prevent="navNext()"
             @keydown.shift.tab.prevent="navPrev()"
-            class="{{ $compact ? 'w-full max-w-[10rem] text-left text-xs border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 pl-2 pr-7' : 'w-full text-left text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 pl-3 pr-8' }} focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 truncate relative">
-        <span x-text="label()" class="block truncate"></span>
-        <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-1.5 text-gray-500">
+            class="{{ $compact ? 'w-full max-w-[10rem] text-left text-xs border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 !text-gray-900 dark:!text-gray-100 py-1 pl-2 pr-7' : 'w-full text-left text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 !text-gray-900 dark:!text-gray-100 py-2 pl-3 pr-8' }} focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 truncate relative">
+        {{-- !text on button: listado movement rows use [&_button]:text-white on <tr>, which beats non-! text utilities on white trigger bg --}}
+        <span x-text="label()" class="block truncate !text-inherit"></span>
+        <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-1.5 !text-gray-500 dark:!text-gray-400">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
         </span>
     </button>
