@@ -241,7 +241,7 @@ $hasNav          = $navRow !== null && $navCol !== null;
             @keydown.arrow-up.prevent="open && moveCursor(-1)"
             @keydown.tab.prevent="navNext()"
             @keydown.shift.tab.prevent="navPrev()"
-            class="{{ $compact ? 'w-full max-w-[10rem] text-left text-xs border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 pl-2 pr-7' : 'w-full text-left text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 pl-3 pr-8' }} focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 truncate relative">
+            class="{{ $compact ? 'w-full max-w-[10rem] text-left text-xs border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 pl-2 pr-7' : 'w-full text-left text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 pl-3 pr-8' }} focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 truncate relative">
         <span x-text="label()" class="block truncate"></span>
         <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-1.5 text-gray-500">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
@@ -259,7 +259,7 @@ $hasNav          = $navRow !== null && $navCol !== null;
          x-transition:leave="transition ease-in duration-75"
          x-transition:leave-start="opacity-100 scale-100"
          x-transition:leave-end="opacity-0 scale-95"
-         class="fixed z-[9999] rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-xl flex flex-col"
+         class="fixed z-[9999] rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-xl flex flex-col text-gray-900 dark:text-gray-100"
          style="display: none;"
          x-bind:style="'top:' + panelTop + 'px;left:' + panelLeft + 'px;min-width:' + panelW + 'px;max-width:min(100vw - 16px, 22rem)'"
          @keydown.arrow-down.prevent="moveCursor(1)"
@@ -277,7 +277,7 @@ $hasNav          = $navRow !== null && $navCol !== null;
                    @keydown.tab.prevent="navNext()"
                    @keydown.shift.tab.prevent="navPrev()"
                    placeholder="{{ __('app.search') }}…"
-                   class="w-full text-xs border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-2 py-1.5 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+                   class="w-full text-xs border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 !text-gray-900 dark:!text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 px-2 py-1.5 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
         </div>
 
         {{-- Options list --}}
@@ -287,7 +287,7 @@ $hasNav          = $navRow !== null && $navCol !== null;
             @if($emptyLabel !== null)
             <button type="button" role="option" @click="pick('')"
                     x-show="!search"
-                    class="block w-full text-left px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 shrink-0">
+                    class="block w-full text-left px-3 py-1.5 text-xs !text-gray-600 dark:!text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 shrink-0">
                 {{ $emptyLabel }}
             </button>
             @endif
@@ -298,19 +298,19 @@ $hasNav          = $navRow !== null && $navCol !== null;
                         @click="pick(@js($opt['value']))"
                         x-show="!search || @js(mb_strtolower($opt['label'])).includes(search.toLowerCase())"
                         :class="(isHighlighted(@js($opt['value']))
-                            ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
-                            : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700') + (isSelected(@js($opt['value'])) ? ' font-semibold' : '')"
+                            ? 'bg-emerald-50 dark:bg-emerald-900/30 !text-emerald-800 dark:!text-emerald-300'
+                            : '!text-gray-900 dark:!text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700') + (isSelected(@js($opt['value'])) ? ' font-semibold' : '')"
                         class="block w-full shrink-0 text-left px-3 py-1.5 text-xs truncate">
                     {{ $opt['label'] }}
                 </button>
             @endforeach
-            <p x-show="filtered.length === 0" class="px-3 py-2 text-xs text-gray-400 dark:text-gray-500 select-none">{{ __('app.no_results') }}</p>
+            <p x-show="filtered.length === 0" class="px-3 py-2 text-xs !text-gray-500 dark:!text-gray-400 select-none">{{ __('app.no_results') }}</p>
         </div>
 
         <template x-if="multiple">
             <div class="p-2 border-t border-gray-100 dark:border-gray-700 shrink-0">
                 <button type="button" @click="submitMultiple()"
-                        class="w-full text-xs font-medium px-2 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700">
+                        class="w-full text-xs font-medium px-2 py-1.5 rounded-md bg-emerald-600 !text-white hover:bg-emerald-700">
                     {{ __('app.apply') }}
                 </button>
             </div>
@@ -326,9 +326,9 @@ $hasNav          = $navRow !== null && $navCol !== null;
                            @keydown.tab.prevent="navNext()"
                            @keydown.shift.tab.prevent="navPrev()"
                            placeholder="{{ __('app.add_new') }}"
-                           class="min-w-0 flex-1 text-xs border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-2 py-1.5 focus:ring-1 focus:ring-emerald-500 outline-none">
+                           class="min-w-0 flex-1 text-xs border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 !text-gray-900 dark:!text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 px-2 py-1.5 focus:ring-1 focus:ring-emerald-500 outline-none">
                     <button type="button" @click="saveCustom()"
-                            class="shrink-0 text-xs font-medium px-2 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700">
+                            class="shrink-0 text-xs font-medium px-2 py-1.5 rounded-md bg-emerald-600 !text-white hover:bg-emerald-700">
                         {{ __('app.save') }}
                     </button>
                 </div>
