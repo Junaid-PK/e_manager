@@ -92,6 +92,7 @@
                     <option value="25">25 {{ __('app.per_page') }}</option>
                     <option value="50">50 {{ __('app.per_page') }}</option>
                     <option value="100">100 {{ __('app.per_page') }}</option>
+                    <option value="1000">1000 {{ __('app.per_page') }}</option>
                 </select>
             </div>
 
