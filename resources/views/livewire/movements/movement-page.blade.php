@@ -393,6 +393,21 @@
                             </td>
                         </tr>
                     @endforelse
+                    <tr class="bg-gray-50 dark:bg-gray-900/40 border-t-2 border-gray-200 dark:border-gray-700">
+                        <td colspan="7" class="px-4 py-3 text-sm font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-200">
+                            {{ __('app.total') }}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-right whitespace-nowrap font-semibold text-green-700 dark:text-green-400">
+                            {{ fmt_number($movementTotals['deposit'] ?? 0) }} &euro;
+                        </td>
+                        <td class="px-4 py-3 text-sm text-right whitespace-nowrap font-semibold text-red-700 dark:text-red-400">
+                            {{ fmt_number($movementTotals['withdrawal'] ?? 0) }} &euro;
+                        </td>
+                        <td class="px-4 py-3 text-sm text-right whitespace-nowrap font-semibold text-gray-900 dark:text-gray-100">
+                            {{ fmt_number($movementTotals['balance'] ?? 0) }} &euro;
+                        </td>
+                        <td class="px-4 py-3"></td>
+                    </tr>
                 </tbody>
             </table>
         </div>

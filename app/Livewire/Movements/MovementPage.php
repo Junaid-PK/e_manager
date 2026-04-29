@@ -869,9 +869,24 @@ class MovementPage extends Component
             ->all();
     }
 
+    /**
+     * Totals for the currently filtered movement set, across all filtered rows and not only the current page.
+     */
+    private function filteredMovementTotals(): array
+    {
+        $movements = $this->buildQuery()->get();
+
+        return [
+            'deposit' => round((float) $movements->sum(fn ($movement) => (float) ($movement->deposit ?? 0)), 2),
+            'withdrawal' => round((float) $movements->sum(fn ($movement) => (float) ($movement->withdrawal ?? 0)), 2),
+            'balance' => round((float) $movements->sum(fn ($movement) => (float) ($movement->running_balance ?? $movement->balance ?? 0)), 2),
+        ];
+    }
+
     public function render()
     {
         $movements = $this->getMovements();
+        $movementTotals = $this->filteredMovementTotals();
         $balanceBookRows = $this->balanceBookRows();
         $balanceBookTotal = round(collect($balanceBookRows)->sum('balance'), 2);
         $filterBankId = (int) $this->filterBankAccountId;
@@ -915,6 +930,7 @@ class MovementPage extends Component
             'movementTypes' => MovementType::orderBy('sort_order')->orderBy('name')->get(),
             'movementCategories' => MovementCategory::orderBy('sort_order')->orderBy('name')->get(),
             'pendingInvoiceOptions' => $pendingInvoiceOptions,
+            'movementTotals' => $movementTotals,
             'balanceBookRows' => $balanceBookRows,
             'balanceBookTotal' => $balanceBookTotal,
             'balanceBookDisplay' => $balanceBookDisplay,
