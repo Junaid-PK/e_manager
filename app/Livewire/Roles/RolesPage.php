@@ -28,7 +28,7 @@ class RolesPage extends Component
         'invoices' => ['view', 'create', 'edit', 'delete', 'export'],
         'movements' => ['view', 'create', 'edit', 'delete', 'export'],
         'bank_accounts' => ['view', 'create', 'edit', 'delete'],
-        'expenses' => ['view', 'create', 'edit', 'delete', 'export'],
+        'expenses' => ['view', 'create', 'edit', 'delete', 'export', 'access_all'],
         'credit_lines' => ['view', 'create', 'edit', 'delete'],
         'companies_clients' => ['view', 'create', 'edit', 'delete'],
         'reports' => ['view'],
@@ -100,8 +100,17 @@ class RolesPage extends Component
             $role->name = $this->roleName;
             $role->save();
 
-            // Sync permissions by name → resolve to IDs
-            $permissionIds = Permission::whereIn('name', $this->rolePermissions)->pluck('id');
+            // Older databases may miss newly added permission rows; create selected ones on demand.
+            $selectedPermissions = collect($this->rolePermissions)
+                ->filter(fn ($name) => is_string($name) && $name !== '')
+                ->unique()
+                ->values();
+
+            foreach ($selectedPermissions as $permissionName) {
+                Permission::firstOrCreate(['name' => $permissionName]);
+            }
+
+            $permissionIds = Permission::whereIn('name', $selectedPermissions)->pluck('id');
             $role->permissions()->sync($permissionIds);
         });
 
@@ -159,7 +168,7 @@ class RolesPage extends Component
         return view('livewire.roles.roles-page', [
             'roles' => Role::withCount('users')->orderBy('name')->get(),
             'permissionMatrix' => $this->getPermissionMatrix(),
-            'allActions' => ['view', 'create', 'edit', 'delete', 'export'],
+            'allActions' => ['view', 'create', 'edit', 'delete', 'export', 'access_all'],
         ])->layout('layouts.app');
     }
 }

@@ -204,6 +204,7 @@ return [
     'to' => 'To',
     'date_range' => 'Date Range',
     'clear_filters' => 'Clear Filters',
+    'access_all' => 'Access All',
     'total_records_shown' => 'Total records shown',
     'apply' => 'Apply',
     'reset' => 'Reset',

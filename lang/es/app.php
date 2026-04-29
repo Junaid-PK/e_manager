@@ -205,6 +205,7 @@ return [
     'date_range' => 'Rango de Fechas',
     'total_records_shown' => 'Total registros mostrados',
     'clear_filters' => 'Limpiar Filtros',
+    'access_all' => 'Acceso Total',
     'apply' => 'Aplicar',
     'reset' => 'Restablecer',
     'companies_clients' => 'Empresas y Clientes',

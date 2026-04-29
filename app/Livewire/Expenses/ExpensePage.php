@@ -102,6 +102,65 @@ class ExpensePage extends Component
         ];
     }
 
+    private function canAccessAllExpenses(): bool
+    {
+        return Gate::allows('expenses.access_all');
+    }
+
+    private function expenseQuery()
+    {
+        $query = Expense::query();
+
+        if ($this->canAccessAllExpenses()) {
+            $query->withoutGlobalScope('ownedByUser');
+        }
+
+        return $query;
+    }
+
+    private function movementQuery()
+    {
+        $query = BankMovement::query();
+
+        if ($this->canAccessAllExpenses()) {
+            $query->withoutGlobalScope('ownedByUser');
+        }
+
+        return $query;
+    }
+
+    private function companyQuery()
+    {
+        $query = Company::query();
+
+        if ($this->canAccessAllExpenses()) {
+            $query->withoutGlobalScope('ownedByUser');
+        }
+
+        return $query;
+    }
+
+    private function bankAccountQuery()
+    {
+        $query = BankAccount::query();
+
+        if ($this->canAccessAllExpenses()) {
+            $query->withoutGlobalScope('ownedByUser');
+        }
+
+        return $query;
+    }
+
+    private function findExpenseForExpensesAccess(int $id): Expense
+    {
+        return $this->expenseQuery()->findOrFail($id);
+    }
+
+    private function findMovementForExpensesAccess(int $id): BankMovement
+    {
+        return $this->movementQuery()->findOrFail($id);
+    }
+
     public function updatedFilterCompanyId(): void
     {
         $this->resetPage();
@@ -188,7 +247,7 @@ class ExpensePage extends Component
 
     public function edit(int $id): void
     {
-        $expense = Expense::findOrFail($id);
+        $expense = $this->findExpenseForExpensesAccess($id);
         if ($expense->listado_readonly) {
             $this->dispatch('notify', type: 'error', message: __('app.expense_readonly'));
 
@@ -243,7 +302,7 @@ class ExpensePage extends Component
             $data['receipt_path'] = $this->formReceipt->store('receipts', 'public');
         }
 
-        $expense = Expense::findOrFail($this->editingId);
+        $expense = $this->findExpenseForExpensesAccess($this->editingId);
         if ($expense->listado_readonly) {
             return;
         }
@@ -281,10 +340,10 @@ class ExpensePage extends Component
         $id = (int) $idStr;
         if ($kind === 'e') {
             Gate::authorize('expenses.delete');
-            Expense::findOrFail($id)->delete();
+            $this->findExpenseForExpensesAccess($id)->delete();
         } elseif ($kind === 'm') {
             Gate::authorize('movements.delete');
-            BankMovement::findOrFail($id)->delete();
+            $this->findMovementForExpensesAccess($id)->delete();
         }
         $this->showDeleteModal = false;
         $this->deleteTarget = '';
@@ -304,11 +363,11 @@ class ExpensePage extends Component
         }
         if ($expenseIds !== []) {
             Gate::authorize('expenses.delete');
-            Expense::whereIn('id', $expenseIds)->delete();
+            $this->expenseQuery()->whereIn('id', $expenseIds)->delete();
         }
         if ($movementIds !== []) {
             Gate::authorize('movements.delete');
-            BankMovement::whereIn('id', $movementIds)->delete();
+            $this->movementQuery()->whereIn('id', $movementIds)->delete();
         }
         $this->deselectAll();
         $this->dispatch('notify', type: 'success', message: __('app.deleted_successfully'));
@@ -326,7 +385,7 @@ class ExpensePage extends Component
             ->values()
             ->all();
         if ($expenseIds !== []) {
-            Expense::whereIn('id', $expenseIds)->where('listado_readonly', false)->update(['category' => $this->bulkCategory]);
+            $this->expenseQuery()->whereIn('id', $expenseIds)->where('listado_readonly', false)->update(['category' => $this->bulkCategory]);
         }
         $this->showCategoryModal = false;
         $this->bulkCategory = '';
@@ -336,7 +395,7 @@ class ExpensePage extends Component
 
     public function openReceiptPreview(int $id): void
     {
-        $expense = Expense::findOrFail($id);
+        $expense = $this->findExpenseForExpensesAccess($id);
         if ($expense->receipt_path) {
             $this->previewReceiptUrl = Storage::disk('public')->url($expense->receipt_path);
             $this->showReceiptPreview = true;
@@ -350,7 +409,7 @@ class ExpensePage extends Component
             if (! Gate::check('movements.edit') && ! Gate::check('expenses.edit')) {
                 Gate::authorize('expenses.edit');
             }
-            $m = BankMovement::findOrFail($id);
+            $m = $this->findMovementForExpensesAccess($id);
             if ($field === 'invoice_date') {
                 $m->update(['value_date' => $value !== '' ? $value : null]);
             } elseif ($field === 'invoice_no') {
@@ -377,7 +436,7 @@ class ExpensePage extends Component
         }
 
         Gate::authorize('expenses.edit');
-        $e = Expense::findOrFail($id);
+        $e = $this->findExpenseForExpensesAccess($id);
         if ($e->listado_readonly) {
             return;
         }
@@ -454,7 +513,9 @@ class ExpensePage extends Component
 
     protected function baseExpenseQuery()
     {
-        $query = Expense::query()->with(['company']);
+        $query = $this->expenseQuery()->with([
+            'company' => fn ($q) => $this->canAccessAllExpenses() ? $q->withoutGlobalScope('ownedByUser') : $q,
+        ]);
 
         return $this->applyExpenseFilters($query);
     }
@@ -507,7 +568,9 @@ class ExpensePage extends Component
 
     protected function filteredMovementsQuery()
     {
-        $query = BankMovement::query()->with('bankAccount')->whereIn('type', ['buy', 'compra']);
+        $query = $this->movementQuery()->with([
+            'bankAccount' => fn ($q) => $this->canAccessAllExpenses() ? $q->withoutGlobalScope('ownedByUser') : $q,
+        ])->whereIn('type', ['buy', 'compra']);
 
         if ($this->search) {
             $search = $this->search;
@@ -585,7 +648,7 @@ class ExpensePage extends Component
 
     protected function getCategorySummary(): array
     {
-        $query = Expense::query();
+        $query = $this->expenseQuery();
         $this->applyExpenseFilters($query);
 
         return $query->selectRaw('category, SUM(amount) as total_amount')
@@ -600,7 +663,7 @@ class ExpensePage extends Component
      */
     protected function getListadoStats(): array
     {
-        $expenseQ = Expense::query();
+        $expenseQ = $this->expenseQuery();
         $this->applyExpenseFilters($expenseQ);
         $expenseTotal = (float) (clone $expenseQ)->sum('amount');
         $expenseCount = (int) (clone $expenseQ)->count();
@@ -770,7 +833,7 @@ class ExpensePage extends Component
     public function quickUpdateExpenseVendor(int $id, string $value): void
     {
         Gate::authorize('expenses.edit');
-        $e = Expense::findOrFail($id);
+        $e = $this->findExpenseForExpensesAccess($id);
         if ($e->listado_readonly) {
             return;
         }
@@ -794,7 +857,7 @@ class ExpensePage extends Component
         if (! Gate::check('movements.edit') && ! Gate::check('expenses.edit')) {
             Gate::authorize('expenses.edit');
         }
-        $m = BankMovement::findOrFail($id);
+        $m = $this->findMovementForExpensesAccess($id);
         $resolved = $value !== '' ? $this->resolveOrCreateExpenseProvider(trim($value)) : null;
         $extra = $this->mergeListadoDefaults($m->listado_extra);
         if ($resolved) {
@@ -813,7 +876,7 @@ class ExpensePage extends Component
     public function quickUpdateExpenseCif(int $id, string $value): void
     {
         Gate::authorize('expenses.edit');
-        $e = Expense::findOrFail($id);
+        $e = $this->findExpenseForExpensesAccess($id);
         if ($e->listado_readonly) {
             return;
         }
@@ -831,7 +894,7 @@ class ExpensePage extends Component
         if (! Gate::check('movements.edit') && ! Gate::check('expenses.edit')) {
             Gate::authorize('expenses.edit');
         }
-        $m = BankMovement::findOrFail($id);
+        $m = $this->findMovementForExpensesAccess($id);
         $resolved = $this->resolveOrCreateExpenseCif(trim($value));
         $extra = $this->mergeListadoDefaults($m->listado_extra);
         $extra['cif'] = $resolved ?? '';
@@ -909,8 +972,8 @@ class ExpensePage extends Component
     {
         return view('livewire.expenses.expense-page', [
             'unifiedRows' => $this->getUnifiedPaginator(),
-            'bankAccounts' => BankAccount::orderBy('bank_name')->get(),
-            'companies' => Company::orderBy('name')->get(),
+            'bankAccounts' => $this->bankAccountQuery()->orderBy('bank_name')->get(),
+            'companies' => $this->companyQuery()->orderBy('name')->get(),
             'categorySummary' => $this->getCategorySummary(),
             'listadoStats' => $this->getListadoStats(),
             'expenseProviderOpts' => $this->expenseProviderSelectOptions(),

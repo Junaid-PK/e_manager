@@ -113,6 +113,25 @@ class RolesManagerTest extends TestCase
         $this->assertTrue($role->permissions->contains('name', 'invoices.edit'));
     }
 
+    public function test_saveRole_creates_missing_selected_permissions_before_syncing(): void
+    {
+        $this->actingAs($this->admin);
+        $role = Role::create(['name' => 'editor']);
+
+        $this->assertDatabaseMissing('permissions', ['name' => 'expenses.export']);
+
+        Livewire::test(RolesPage::class)
+            ->call('editRole', $role->id)
+            ->set('roleName', 'editor')
+            ->set('rolePermissions', ['expenses.export'])
+            ->call('saveRole')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('permissions', ['name' => 'expenses.export']);
+        $role->refresh();
+        $this->assertTrue($role->permissions->contains('name', 'expenses.export'));
+    }
+
     public function test_saveRole_prevents_renaming_admin_role(): void
     {
         $this->actingAs($this->admin);

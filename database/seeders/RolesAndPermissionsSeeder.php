@@ -17,7 +17,7 @@ class RolesAndPermissionsSeeder extends Seeder
         'invoices' => ['view', 'create', 'edit', 'delete', 'export'],
         'movements' => ['view', 'create', 'edit', 'delete', 'export'],
         'bank_accounts' => ['view', 'create', 'edit', 'delete'],
-        'expenses' => ['view', 'create', 'edit', 'delete', 'export'],
+        'expenses' => ['view', 'create', 'edit', 'delete', 'export', 'access_all'],
         'credit_lines' => ['view', 'create', 'edit', 'delete'],
         'companies_clients' => ['view', 'create', 'edit', 'delete'],
         'reports' => ['view'],
