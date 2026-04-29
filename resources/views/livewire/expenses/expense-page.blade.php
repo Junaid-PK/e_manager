@@ -239,6 +239,13 @@
                                 && abs($listadoAmtFloatA - $listadoAmtFloatB) < 0.0005;
                             $listadoTotalsMismatch = $listadoAmtFloatA !== null && $listadoAmtFloatB !== null
                                 && abs($listadoAmtFloatA - $listadoAmtFloatB) >= 0.0005;
+                            $clientDisplay = trim((string) ($row['client'] ?? ''));
+                            foreach (['Transferencia Inmediata A Favor De', 'Transferencia A Favor De'] as $clientPrefix) {
+                                if (\Illuminate\Support\Str::startsWith(mb_strtolower($clientDisplay), mb_strtolower($clientPrefix))) {
+                                    $clientDisplay = trim(mb_substr($clientDisplay, mb_strlen($clientPrefix)));
+                                    break;
+                                }
+                            }
                         @endphp
                         <tr @class([
                             'transition-colors',
@@ -271,7 +278,7 @@
                                 @if ($canRow && ! $expenseListadoCoreReadOnly)
                                     <input type="text" value="{{ $row['client'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'client', $event.target.value)" class="{{ $inp }}" />
                                 @else
-                                    <span class="{{ $staticSpanPlain }} block whitespace-normal break-words leading-4">{{ $row['client'] }}</span>
+                                    <span class="{{ $staticSpanPlain }} block whitespace-normal break-words leading-4">{{ $clientDisplay }}</span>
                                 @endif
                             </td>
                             <td @class([
