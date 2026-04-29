@@ -666,6 +666,14 @@
                             handle.className = 'column-resize-handle absolute top-0 right-0 bottom-0 w-1.5 z-20 cursor-col-resize select-none hover:bg-emerald-500/35';
                             handle.setAttribute('aria-hidden', 'true');
                             handle.title = 'Drag to resize column';
+                            handle.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                            });
+                            handle.addEventListener('dblclick', (e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                            });
                             th.appendChild(handle);
                             handle.addEventListener('mousedown', (e) => {
                                 e.stopPropagation();
