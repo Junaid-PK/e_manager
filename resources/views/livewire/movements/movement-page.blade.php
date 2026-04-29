@@ -308,7 +308,16 @@
                        @cell-next="moveNext($event.detail.row, $event.detail.col)"
                        @cell-prev="movePrev($event.detail.row, $event.detail.col)">
                     @forelse ($movements as $movement)
-                        @php $rowIdx = $loop->index; @endphp
+                        @php
+                            $rowIdx = $loop->index;
+                            $beneficiaryDisplay = trim((string) ($movement->beneficiary ?? ''));
+                            foreach (['Transferencia Inmediata A Favor De', 'Transferencia A Favor De', 'TRANSFERENCIA A', 'TRANSFERENCIA de'] as $beneficiaryPrefix) {
+                                if (\Illuminate\Support\Str::startsWith(mb_strtolower($beneficiaryDisplay), mb_strtolower($beneficiaryPrefix))) {
+                                    $beneficiaryDisplay = trim(mb_substr($beneficiaryDisplay, mb_strlen($beneficiaryPrefix)));
+                                    break;
+                                }
+                            }
+                        @endphp
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors {{ $movement->deposit && (float) $movement->deposit > 0 ? 'border-l-4 border-l-green-500' : '' }} {{ $movement->withdrawal && (float) $movement->withdrawal > 0 ? 'border-l-4 border-l-red-500' : '' }}" wire:key="movement-{{ $movement->id }}">
                             <td class="px-4 py-3">
                                 <input type="checkbox" wire:model.live="selected" value="{{ $movement->id }}" class="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 dark:bg-gray-700">
@@ -343,7 +352,7 @@
                                 <span class="block truncate" title="{{ $movement->concept }}">{{ \Illuminate\Support\Str::limit($movement->concept, 50) }}</span>
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 min-w-0" title="{{ $movement->beneficiary }}">
-                                <span class="block truncate">{{ $movement->beneficiary !== null && $movement->beneficiary !== '' ? $movement->beneficiary : '—' }}</span>
+                                <span class="block truncate">{{ $beneficiaryDisplay !== '' ? $beneficiaryDisplay : '—' }}</span>
                             </td>
                             <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
                                 @if ($movement->deposit && (float) $movement->deposit > 0)

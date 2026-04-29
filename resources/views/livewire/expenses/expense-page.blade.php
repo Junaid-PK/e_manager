@@ -240,7 +240,7 @@
                             $listadoTotalsMismatch = $listadoAmtFloatA !== null && $listadoAmtFloatB !== null
                                 && abs($listadoAmtFloatA - $listadoAmtFloatB) >= 0.0005;
                             $clientDisplay = trim((string) ($row['client'] ?? ''));
-                            foreach (['Transferencia Inmediata A Favor De', 'Transferencia A Favor De', 'TRANSFERENCIA A'] as $clientPrefix) {
+                            foreach (['Transferencia Inmediata A Favor De', 'Transferencia A Favor De', 'TRANSFERENCIA A', 'TRANSFERENCIA de'] as $clientPrefix) {
                                 if (\Illuminate\Support\Str::startsWith(mb_strtolower($clientDisplay), mb_strtolower($clientPrefix))) {
                                     $clientDisplay = trim(mb_substr($clientDisplay, mb_strlen($clientPrefix)));
                                     break;
