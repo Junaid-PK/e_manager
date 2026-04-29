@@ -183,8 +183,10 @@
             </div>
         @endif
 
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+        <div class="overflow-x-auto"
+             x-data="expenseTableColumns('expenses-listado', @js(auth()->id()))"
+             x-init="init()">
+            <table class="min-w-full w-full table-fixed divide-y divide-gray-200 dark:divide-gray-700 [&_th]:min-w-0 [&_td]:min-w-0 [&_th]:overflow-hidden [&_td]:overflow-hidden">
                 <thead class="bg-sky-800 text-white">
                     <tr>
                         <th class="w-10 px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider">
@@ -269,7 +271,7 @@
                                 @if ($canRow && ! $expenseListadoCoreReadOnly)
                                     <input type="text" value="{{ $row['client'] }}" wire:blur="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'client', $event.target.value)" class="{{ $inp }}" />
                                 @else
-                                    <span class="{{ $staticSpanPlain }} truncate block max-w-[8rem]">{{ $row['client'] }}</span>
+                                    <span class="{{ $staticSpanPlain }} block whitespace-normal break-words leading-4">{{ $row['client'] }}</span>
                                 @endif
                             </td>
                             <td @class([
@@ -737,4 +739,160 @@
             <option value="{{ $cat }}">
         @endforeach
     </datalist>
+
+    @once
+        <script>
+            if (!window.expenseTableColumns) {
+                window.expenseTableColumns = (tableKey, userId) => ({
+                    tableKey,
+                    userId,
+                    init() {
+                        const self = this;
+                        this.$nextTick(() => self.setupAndApply());
+                        const hookKey = '__expenseColWidthHook__' + this.tableKey + '__' + this.userId;
+                        if (window.Livewire && !window[hookKey]) {
+                            window[hookKey] = true;
+                            window.Livewire.hook('message.processed', () => setTimeout(() => self.setupAndApply(), 0));
+                        }
+                    },
+                    widthsStorageKey() {
+                        return 'colWidths:' + this.tableKey + ':' + this.userId;
+                    },
+                    loadWidths() {
+                        try {
+                            const raw = localStorage.getItem(this.widthsStorageKey());
+                            if (!raw) return null;
+                            const parsed = JSON.parse(raw);
+                            if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+                            return parsed;
+                        } catch (e) {
+                            return null;
+                        }
+                    },
+                    saveWidths(map) {
+                        try {
+                            localStorage.setItem(this.widthsStorageKey(), JSON.stringify(map));
+                        } catch (e) {
+                        }
+                    },
+                    persistColumnWidths() {
+                        const table = this.$el.querySelector('table');
+                        if (!table || !table.tHead || !table.tHead.rows[0]) return;
+                        const headerCells = Array.from(table.tHead.rows[0].children);
+                        const map = {};
+                        headerCells.forEach((th) => {
+                            const id = parseInt(th.dataset.colId, 10);
+                            if (!Number.isInteger(id)) return;
+                            map[id] = Math.round(th.getBoundingClientRect().width);
+                        });
+                        this.saveWidths(map);
+                    },
+                    ensureIds() {
+                        const table = this.$el.querySelector('table');
+                        if (!table || !table.tHead || !table.tHead.rows[0]) return;
+                        const headerCells = Array.from(table.tHead.rows[0].children);
+                        headerCells.forEach((cell, idx) => {
+                            if (!cell.dataset.colId) cell.dataset.colId = String(idx);
+                        });
+                        const tbody = table.tBodies[0];
+                        if (!tbody) return;
+                        Array.from(tbody.rows).forEach((tr) => {
+                            Array.from(tr.children).forEach((td, idx) => {
+                                if (!td.dataset.colId) td.dataset.colId = String(idx);
+                            });
+                        });
+                    },
+                    applyColumnWidths() {
+                        const table = this.$el.querySelector('table');
+                        if (!table || !table.tHead || !table.tHead.rows[0]) return;
+                        const widths = this.loadWidths();
+                        if (!widths) return;
+                        const minW = 40;
+                        const apply = (el) => {
+                            const id = parseInt(el.dataset.colId, 10);
+                            if (!Number.isInteger(id)) return;
+                            const w = widths[id];
+                            if (w == null || w < minW) return;
+                            const px = w + 'px';
+                            el.style.width = px;
+                            el.style.minWidth = px;
+                            el.style.maxWidth = px;
+                            el.style.overflow = 'hidden';
+                        };
+                        Array.from(table.tHead.rows[0].children).forEach(apply);
+                        const tbody = table.tBodies[0];
+                        if (!tbody) return;
+                        Array.from(tbody.rows).forEach((tr) => {
+                            Array.from(tr.children).forEach(apply);
+                        });
+                    },
+                    setupColumnResize() {
+                        const table = this.$el.querySelector('table');
+                        if (!table || !table.tHead || !table.tHead.rows[0]) return;
+                        const headerRow = table.tHead.rows[0];
+                        const tbody = table.tBodies[0];
+                        Array.from(headerRow.children).forEach((th) => {
+                            if (th.querySelector('.column-resize-handle')) return;
+                            th.style.position = 'relative';
+                            const handle = document.createElement('span');
+                            handle.className = 'column-resize-handle absolute top-0 right-0 bottom-0 w-1.5 z-20 cursor-col-resize select-none hover:bg-white/20';
+                            handle.setAttribute('aria-hidden', 'true');
+                            handle.title = 'Drag to resize column';
+                            th.appendChild(handle);
+                            handle.addEventListener('mousedown', (e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                const colId = parseInt(th.dataset.colId, 10);
+                                if (!Number.isInteger(colId)) return;
+                                const startX = e.clientX;
+                                const startW = th.getBoundingClientRect().width;
+                                const minW = 48;
+                                const cellsForCol = () => {
+                                    const heads = Array.from(headerRow.children).filter((c) => parseInt(c.dataset.colId, 10) === colId);
+                                    const bodies = [];
+                                    if (tbody) {
+                                        Array.from(tbody.rows).forEach((tr) => {
+                                            Array.from(tr.children).forEach((td) => {
+                                                if (parseInt(td.dataset.colId, 10) === colId) bodies.push(td);
+                                            });
+                                        });
+                                    }
+                                    return [...heads, ...bodies];
+                                };
+                                const onMove = (ev) => {
+                                    const dx = ev.clientX - startX;
+                                    const newW = Math.max(minW, Math.round(startW + dx));
+                                    const px = newW + 'px';
+                                    cellsForCol().forEach((el) => {
+                                        el.style.width = px;
+                                        el.style.minWidth = px;
+                                        el.style.maxWidth = px;
+                                        el.style.overflow = 'hidden';
+                                    });
+                                };
+                                const onUp = () => {
+                                    document.removeEventListener('mousemove', onMove);
+                                    document.removeEventListener('mouseup', onUp);
+                                    document.body.style.cursor = '';
+                                    document.body.style.userSelect = '';
+                                    this.persistColumnWidths();
+                                };
+                                document.addEventListener('mousemove', onMove);
+                                document.addEventListener('mouseup', onUp);
+                                document.body.style.cursor = 'col-resize';
+                                document.body.style.userSelect = 'none';
+                            });
+                        });
+                    },
+                    setupAndApply() {
+                        const table = this.$el.querySelector('table');
+                        if (!table || !table.tHead || !table.tHead.rows[0] || !table.tBodies || !table.tBodies[0]) return;
+                        this.ensureIds();
+                        this.applyColumnWidths();
+                        this.setupColumnResize();
+                    }
+                });
+            }
+        </script>
+    @endonce
 </div>
