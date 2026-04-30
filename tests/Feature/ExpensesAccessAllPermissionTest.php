@@ -85,7 +85,39 @@ class ExpensesAccessAllPermissionTest extends TestCase
         $this->actingAs($user);
 
         Livewire::test(ExpensePage::class)
+            ->set('filterUserId', '')
             ->assertSee('Visible own expense')
             ->assertSee('Visible other expense');
+    }
+
+    public function test_expenses_page_defaults_user_filter_to_logged_in_user(): void
+    {
+        $user = $this->makeUserWithPermissions(['expenses.view', 'expenses.access_all']);
+        $otherUser = User::factory()->create();
+
+        Expense::create([
+            'user_id' => $user->id,
+            'category' => 'Restaurante',
+            'description' => 'Visible own expense',
+            'amount' => 10,
+            'date' => '2026-04-01',
+            'payment_method' => 'cash',
+        ]);
+
+        Expense::create([
+            'user_id' => $otherUser->id,
+            'category' => 'Dieta',
+            'description' => 'Hidden by default other expense',
+            'amount' => 20,
+            'date' => '2026-04-02',
+            'payment_method' => 'cash',
+        ]);
+
+        $this->actingAs($user);
+
+        Livewire::test(ExpensePage::class)
+            ->assertSet('filterUserId', (string) $user->id)
+            ->assertSee('Visible own expense')
+            ->assertDontSee('Hidden by default other expense');
     }
 }

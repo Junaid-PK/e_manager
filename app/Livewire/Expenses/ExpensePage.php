@@ -12,6 +12,7 @@ use App\Models\Company;
 use App\Models\Expense;
 use App\Models\ExpenseCif;
 use App\Models\ExpenseProvider;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
@@ -45,6 +46,8 @@ class ExpensePage extends Component
     public string $deleteTarget = '';
 
     public string $filterCompanyId = '';
+
+    public string $filterUserId = '';
 
     public string $filterCategory = '';
 
@@ -100,6 +103,11 @@ class ExpensePage extends Component
             'formRecurringFrequency' => 'nullable|in:monthly,quarterly,yearly',
             'formNotes' => 'nullable|string|max:5000',
         ];
+    }
+
+    public function mount(): void
+    {
+        $this->filterUserId = auth()->check() ? (string) auth()->id() : '';
     }
 
     private function canAccessAllExpenses(): bool
@@ -166,6 +174,11 @@ class ExpensePage extends Component
         $this->resetPage();
     }
 
+    public function updatedFilterUserId(): void
+    {
+        $this->resetPage();
+    }
+
     public function updatedFilterCategory(): void
     {
         $this->resetPage();
@@ -214,6 +227,7 @@ class ExpensePage extends Component
         $today = now()->format('Y-m-d');
         $category = Expense::CATEGORIES[0] ?? '—';
         $expense = Expense::create([
+            'user_id' => auth()->id(),
             'company_id' => null,
             'category' => $category,
             'description' => '—',
@@ -497,6 +511,7 @@ class ExpensePage extends Component
     {
         $this->search = '';
         $this->filterCompanyId = '';
+        $this->filterUserId = auth()->check() ? (string) auth()->id() : '';
         $this->filterCategory = '';
         $this->filterPaymentMethod = '';
         $this->filterRecurring = '';
@@ -522,6 +537,10 @@ class ExpensePage extends Component
 
     private function applyExpenseFilters($query)
     {
+        if ($this->filterUserId !== '') {
+            $query->where('user_id', (int) $this->filterUserId);
+        }
+
         if ($this->search) {
             $search = $this->search;
             $query->where(function ($q) use ($search) {
@@ -571,6 +590,10 @@ class ExpensePage extends Component
         $query = $this->movementQuery()->with([
             'bankAccount' => fn ($q) => $this->canAccessAllExpenses() ? $q->withoutGlobalScope('ownedByUser') : $q,
         ])->whereIn('type', ['buy', 'compra']);
+
+        if ($this->filterUserId !== '') {
+            $query->where('user_id', (int) $this->filterUserId);
+        }
 
         if ($this->search) {
             $search = $this->search;
@@ -970,10 +993,15 @@ class ExpensePage extends Component
 
     public function render()
     {
+        $userOptions = $this->canAccessAllExpenses()
+            ? User::query()->orderBy('name')->get()
+            : User::query()->whereKey(auth()->id())->get();
+
         return view('livewire.expenses.expense-page', [
             'unifiedRows' => $this->getUnifiedPaginator(),
             'bankAccounts' => $this->bankAccountQuery()->orderBy('bank_name')->get(),
             'companies' => $this->companyQuery()->orderBy('name')->get(),
+            'expenseUsers' => $userOptions,
             'categorySummary' => $this->getCategorySummary(),
             'listadoStats' => $this->getListadoStats(),
             'expenseProviderOpts' => $this->expenseProviderSelectOptions(),
