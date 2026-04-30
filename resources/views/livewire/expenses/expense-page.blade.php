@@ -103,6 +103,12 @@
                        list="expense-category-list"
                        placeholder="{{ __('app.category') }}"
                        class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 px-3 focus:ring-emerald-500 focus:border-emerald-500 w-40">
+                <select wire:model.live="filterTrim" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 pl-3 pr-8 focus:ring-emerald-500 focus:border-emerald-500">
+                    <option value="">Trim</option>
+                    @foreach ($trimOptions as $trimOption)
+                        <option value="{{ $trimOption }}">{{ $trimOption }}</option>
+                    @endforeach
+                </select>
                 <select wire:model.live="filterPaymentMethod" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 pl-3 pr-8 focus:ring-emerald-500 focus:border-emerald-500">
                     <option value="">{{ __('app.all_payment_methods') }}</option>
                     <option value="cash">{{ __('app.cash') }}</option>
@@ -137,7 +143,7 @@
                        type="text"
                        placeholder="{{ __('app.vendor') }}"
                        class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 px-3 focus:ring-emerald-500 focus:border-emerald-500 w-40">
-                @if ($search || $filterCompanyId || $filterBankAccountId || ($filterUserId !== '' && $filterUserId !== (string) auth()->id()) || $filterCategory || $filterPaymentMethod || $filterRecurring !== '' || $filterVendor || $dateFrom || $dateTo)
+                @if ($search || $filterCompanyId || $filterBankAccountId || ($filterUserId !== '' && $filterUserId !== (string) auth()->id()) || $filterCategory || $filterTrim || $filterPaymentMethod || $filterRecurring !== '' || $filterVendor || $dateFrom || $dateTo)
                     <button wire:click="clearFilters" class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -156,7 +162,7 @@
             </div>
         </div>
 
-        @if ($search || $filterCompanyId || $filterBankAccountId || ($filterUserId !== '' && $filterUserId !== (string) auth()->id()) || $filterCategory || $filterPaymentMethod || $filterRecurring !== '' || $filterVendor || $dateFrom || $dateTo)
+        @if ($search || $filterCompanyId || $filterBankAccountId || ($filterUserId !== '' && $filterUserId !== (string) auth()->id()) || $filterCategory || $filterTrim || $filterPaymentMethod || $filterRecurring !== '' || $filterVendor || $dateFrom || $dateTo)
             <div class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
                 {{ __('app.total_records_shown') }}: {{ $unifiedRows->total() }}
             </div>
@@ -212,6 +218,7 @@
                         <th class="px-2 py-2 text-right text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap">TOTAL AMOUNT</th>
                         <th class="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap">DATE</th>
                         <th class="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap min-w-[5rem]">Nº FACTURA</th>
+                        <th class="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap min-w-[4rem]">TRIM</th>
                         <th class="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap min-w-[6rem]">PROVEEDOR</th>
                         <th class="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap">CIF</th>
                         <th class="px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider min-w-[8rem]">CONCEPTO</th>
@@ -343,6 +350,18 @@
                                     @else
                                         <span class="text-[11px]">{{ $row['reference'] }}</span>
                                     @endif
+                                @endif
+                            </td>
+                            <td class="px-2 py-1 align-top">
+                                @if ($canListadoEditLine)
+                                    <select wire:change="updateListadoField('{{ $row['kind'] }}', {{ $row['id'] }}, 'trim', $event.target.value)" class="{{ $rowIsMovement ? $inpMovement : $inp }}">
+                                        <option value="">—</option>
+                                        @foreach ($trimOptions as $trimOption)
+                                            <option value="{{ $trimOption }}" @selected(($row['trim'] ?? '') === $trimOption)>{{ $trimOption }}</option>
+                                        @endforeach
+                                    </select>
+                                @else
+                                    <span class="{{ $staticSpanPlain }}">{{ ($row['trim'] ?? '') !== '' ? $row['trim'] : '—' }}</span>
                                 @endif
                             </td>
                             <td class="px-2 py-1 align-top min-w-[8rem]">

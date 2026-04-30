@@ -53,6 +53,8 @@ class ExpensePage extends Component
 
     public string $filterCategory = '';
 
+    public string $filterTrim = '';
+
     public string $filterPaymentMethod = '';
 
     public string $filterRecurring = '';
@@ -187,6 +189,11 @@ class ExpensePage extends Component
     }
 
     public function updatedFilterCategory(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterTrim(): void
     {
         $this->resetPage();
     }
@@ -435,6 +442,8 @@ class ExpensePage extends Component
                 $m->update(['value_date' => $value !== '' ? $value : null]);
             } elseif ($field === 'invoice_no') {
                 $m->update(['reference' => $value !== '' ? $value : null]);
+            } elseif ($field === 'trim') {
+                $this->patchMovementExtra($m, $field, $value);
             } elseif ($field === 'description') {
                 $m->update(['concept' => $value !== '' ? $value : null]);
             } elseif ($field === 'total_amt' || $field === 'total') {
@@ -485,6 +494,8 @@ class ExpensePage extends Component
             $extra['invoice_no'] = $value;
             $e->listado_extra = $extra;
             $e->save();
+        } elseif ($field === 'trim') {
+            $this->patchExpenseExtra($e, $field, $value);
         } elseif ($field === 'vendor') {
             $resolved = $value !== '' ? $this->resolveOrCreateExpenseProvider(trim($value)) : null;
             $extra = $this->mergeListadoDefaults($e->listado_extra);
@@ -521,6 +532,7 @@ class ExpensePage extends Component
         $this->filterBankAccountId = '';
         $this->filterUserId = auth()->check() ? (string) auth()->id() : '';
         $this->filterCategory = '';
+        $this->filterTrim = '';
         $this->filterPaymentMethod = '';
         $this->filterRecurring = '';
         $this->filterVendor = '';
@@ -573,6 +585,10 @@ class ExpensePage extends Component
 
         if ($this->filterCategory) {
             $query->where('category', 'like', "%{$this->filterCategory}%");
+        }
+
+        if ($this->filterTrim !== '') {
+            $query->where('listado_extra->trim', $this->filterTrim);
         }
 
         if ($this->filterPaymentMethod) {
@@ -629,6 +645,10 @@ class ExpensePage extends Component
 
         if ($this->filterCategory) {
             $query->where('category', 'like', "%{$this->filterCategory}%");
+        }
+
+        if ($this->filterTrim !== '') {
+            $query->where('listado_extra->trim', $this->filterTrim);
         }
 
         if ($this->filterVendor) {
@@ -746,6 +766,7 @@ class ExpensePage extends Component
             'cif' => '',
             'invoice_date' => null,
             'invoice_no' => '',
+            'trim' => '',
             'bank' => '',
             'bi' => null,
             'iva' => null,
@@ -776,7 +797,11 @@ class ExpensePage extends Component
     private function patchMovementExtra(BankMovement $m, string $key, string $value): void
     {
         $extra = $this->mergeListadoDefaults($m->listado_extra);
-        $extra[$key] = $value === '' ? null : $this->parseMoney($value);
+        if ($key === 'trim') {
+            $extra[$key] = $value;
+        } else {
+            $extra[$key] = $value === '' ? null : $this->parseMoney($value);
+        }
         $m->listado_extra = $extra;
         $m->save();
     }
@@ -784,7 +809,11 @@ class ExpensePage extends Component
     private function patchExpenseExtra(Expense $e, string $key, string $value): void
     {
         $extra = $this->mergeListadoDefaults($e->listado_extra);
-        $extra[$key] = $value === '' ? null : $this->parseMoney($value);
+        if ($key === 'trim') {
+            $extra[$key] = $value;
+        } else {
+            $extra[$key] = $value === '' ? null : $this->parseMoney($value);
+        }
         $e->listado_extra = $extra;
         $e->save();
     }
@@ -807,6 +836,7 @@ class ExpensePage extends Component
             'total_amt' => $this->formatOptionalMoney($total),
             'value_date' => $m->value_date?->format('Y-m-d') ?? ($m->date?->format('Y-m-d') ?? ''),
             'reference' => $m->reference ?? '',
+            'trim' => $extra['trim'] ?? '',
             'beneficiary' => $m->beneficiary ?? '',
             'cif' => ($extra['cif'] ?? '') !== '' ? mb_strtoupper((string) $extra['cif']) : '',
             'concept' => $m->concept ?? '',
@@ -842,6 +872,7 @@ class ExpensePage extends Component
             'total_amt' => $this->formatOptionalMoney($amt),
             'value_date' => $invoiceDate ? (string) $invoiceDate : ($e->date?->format('Y-m-d') ?? ''),
             'reference' => $extra['invoice_no'] ?? '',
+            'trim' => $extra['trim'] ?? '',
             'beneficiary' => $e->vendor ?? '',
             'cif' => ($extra['cif'] ?? '') !== '' ? mb_strtoupper((string) $extra['cif']) : '',
             'concept' => $e->description ?? '',
@@ -1012,6 +1043,15 @@ class ExpensePage extends Component
             ->all();
     }
 
+    private function trimOptions(): array
+    {
+        return collect(['1T', '2T', '3T', '4T'])
+            ->concat(range(1, 12))
+            ->map(fn ($value) => (string) $value)
+            ->values()
+            ->all();
+    }
+
     private function selectedBankName(): ?string
     {
         if ($this->filterBankAccountId === '') {
@@ -1038,6 +1078,7 @@ class ExpensePage extends Component
             'listadoStats' => $this->getListadoStats(),
             'expenseProviderOpts' => $this->expenseProviderSelectOptions(),
             'expenseCifOpts' => $this->expenseCifSelectOptions(),
+            'trimOptions' => $this->trimOptions(),
         ])->layout('layouts.app');
     }
 }
