@@ -47,6 +47,8 @@ class ExpensePage extends Component
 
     public string $filterCompanyId = '';
 
+    public string $filterBankAccountId = '';
+
     public string $filterUserId = '';
 
     public string $filterCategory = '';
@@ -170,6 +172,11 @@ class ExpensePage extends Component
     }
 
     public function updatedFilterCompanyId(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterBankAccountId(): void
     {
         $this->resetPage();
     }
@@ -511,6 +518,7 @@ class ExpensePage extends Component
     {
         $this->search = '';
         $this->filterCompanyId = '';
+        $this->filterBankAccountId = '';
         $this->filterUserId = auth()->check() ? (string) auth()->id() : '';
         $this->filterCategory = '';
         $this->filterPaymentMethod = '';
@@ -539,6 +547,15 @@ class ExpensePage extends Component
     {
         if ($this->filterUserId !== '') {
             $query->where('user_id', (int) $this->filterUserId);
+        }
+
+        if ($this->filterBankAccountId !== '') {
+            $bankName = $this->selectedBankName();
+            if ($bankName === null) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->where('listado_extra->bank', $bankName);
+            }
         }
 
         if ($this->search) {
@@ -593,6 +610,10 @@ class ExpensePage extends Component
 
         if ($this->filterUserId !== '') {
             $query->where('user_id', (int) $this->filterUserId);
+        }
+
+        if ($this->filterBankAccountId !== '') {
+            $query->where('bank_account_id', (int) $this->filterBankAccountId);
         }
 
         if ($this->search) {
@@ -989,6 +1010,17 @@ class ExpensePage extends Component
             ->map(fn (ExpenseCif $c) => ['value' => $c->code, 'label' => $c->code])
             ->values()
             ->all();
+    }
+
+    private function selectedBankName(): ?string
+    {
+        if ($this->filterBankAccountId === '') {
+            return null;
+        }
+
+        return $this->bankAccountQuery()
+            ->whereKey((int) $this->filterBankAccountId)
+            ->value('bank_name');
     }
 
     public function render()
