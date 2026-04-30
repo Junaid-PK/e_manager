@@ -106,7 +106,9 @@ class BankAccountPage extends Component
 
     protected function getAccounts()
     {
-        $query = BankAccount::query();
+        $query = BankAccount::query()
+            ->withSum('movements as total_deposits', 'deposit')
+            ->withSum('movements as total_withdrawals', 'withdrawal');
 
         if ($this->search) {
             $query->where(function ($q) {
@@ -116,7 +118,14 @@ class BankAccountPage extends Component
             });
         }
 
-        return $query->orderBy('bank_name')->get();
+        return $query->orderBy('bank_name')->get()->map(function (BankAccount $account) {
+            $initialBalance = (float) ($account->initial_balance ?? 0);
+            $totalDeposits = (float) ($account->total_deposits ?? 0);
+            $totalWithdrawals = (float) ($account->total_withdrawals ?? 0);
+            $account->actual_balance = round($initialBalance + $totalDeposits - $totalWithdrawals, 2);
+
+            return $account;
+        });
     }
 
     private function resetForm(): void

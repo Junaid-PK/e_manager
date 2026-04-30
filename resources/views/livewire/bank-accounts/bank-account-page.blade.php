@@ -38,8 +38,12 @@
                             <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded">{{ $account->currency }}</span>
                         </div>
                         <div class="mb-3">
-                            <p class="text-2xl font-bold {{ (float) $account->current_balance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' }}">
-                                {{ fmt_number($account->current_balance) }} &euro;
+                            <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('app.current_balance') }}</p>
+                            <p class="text-2xl font-bold {{ (float) $account->actual_balance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' }}">
+                                {{ fmt_number($account->actual_balance) }} &euro;
+                            </p>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                {{ __('app.initial_balance') }}: {{ fmt_number($account->initial_balance) }} &euro;
                             </p>
                         </div>
                         <p class="text-xs text-gray-400 dark:text-gray-500">{{ $account->holder_name }}</p>
