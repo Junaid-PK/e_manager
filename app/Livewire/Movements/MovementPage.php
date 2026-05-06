@@ -11,6 +11,8 @@ use App\Models\BankMovement;
 use App\Models\Invoice;
 use App\Models\MovementCategory;
 use App\Models\MovementType;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -152,6 +154,7 @@ class MovementPage extends Component
     {
         Gate::authorize('movements.export');
         $movements = $this->buildQuery()->get();
+        $this->attachRunningBalances($movements);
         $filename = 'movements-'.date('Y-m-d-His').'-'.uniqid().'.xlsx';
         Storage::disk('local')->makeDirectory('exports');
         Excel::store(new MovementExport($movements), 'exports/'.$filename, 'local');
@@ -556,11 +559,9 @@ class MovementPage extends Component
 
     protected function buildQuery()
     {
-        $query = BankMovement::with('bankAccount')->select('bank_movements.*')->selectRaw(
-            '(SELECT ba.initial_balance FROM bank_accounts ba WHERE ba.id = bank_movements.bank_account_id) + '.
-            '(SELECT COALESCE(SUM(COALESCE(m2.deposit,0) - COALESCE(m2.withdrawal,0)), 0) FROM bank_movements m2 '.
-            'WHERE m2.bank_account_id = bank_movements.bank_account_id AND (m2.date < bank_movements.date OR (m2.date = bank_movements.date AND m2.id <= bank_movements.id))) as running_balance'
-        );
+        $query = BankMovement::query()
+            ->with(['bankAccount:id,bank_name'])
+            ->select('bank_movements.*');
 
         if ($this->search) {
             $query->where(function ($q) {
@@ -623,7 +624,46 @@ class MovementPage extends Component
 
     protected function getMovements()
     {
-        return $this->buildQuery()->paginate($this->perPage);
+        $movements = $this->buildQuery()->paginate($this->perPage);
+        $this->attachRunningBalances($movements->getCollection());
+
+        return $movements;
+    }
+
+    private function attachRunningBalances(EloquentCollection $movements): void
+    {
+        if ($movements->isEmpty()) {
+            return;
+        }
+
+        $movementIds = $movements->pluck('id')->filter()->values()->all();
+        $accountIds = $movements->pluck('bank_account_id')->filter()->unique()->values()->all();
+
+        if ($movementIds === [] || $accountIds === []) {
+            return;
+        }
+
+        $windowedBalances = DB::table('bank_movements as bm')
+            ->join('bank_accounts as ba', 'ba.id', '=', 'bm.bank_account_id')
+            ->whereIn('bm.bank_account_id', $accountIds)
+            ->select('bm.id')
+            ->selectRaw(
+                'ba.initial_balance + '.
+                'SUM(COALESCE(bm.deposit, 0) - COALESCE(bm.withdrawal, 0)) '.
+                'OVER (PARTITION BY bm.bank_account_id ORDER BY bm.date, bm.id) AS running_balance'
+            );
+
+        $runningBalances = DB::query()
+            ->fromSub($windowedBalances, 'movement_balances')
+            ->whereIn('id', $movementIds)
+            ->pluck('running_balance', 'id');
+
+        $movements->each(function (BankMovement $movement) use ($runningBalances): void {
+            $movement->setAttribute(
+                'running_balance',
+                round((float) ($runningBalances[$movement->id] ?? $movement->balance ?? 0), 2)
+            );
+        });
     }
 
     private function resolveOrCreateCategory(string $value): ?string
@@ -874,12 +914,24 @@ class MovementPage extends Component
      */
     private function filteredMovementTotals(): array
     {
-        $movements = $this->buildQuery()->get();
+        $totalsQuery = (clone $this->buildQuery())
+            ->reorder()
+            ->toBase();
+        $totalsQuery->columns = null;
+        $totalsQuery->bindings['select'] = [];
+
+        $totals = $totalsQuery
+            ->selectRaw('COALESCE(SUM(deposit), 0) as deposit')
+            ->selectRaw('COALESCE(SUM(withdrawal), 0) as withdrawal')
+            ->first();
+
+        $deposit = round((float) ($totals->deposit ?? 0), 2);
+        $withdrawal = round((float) ($totals->withdrawal ?? 0), 2);
 
         return [
-            'deposit' => round((float) $movements->sum(fn ($movement) => (float) ($movement->deposit ?? 0)), 2),
-            'withdrawal' => round((float) $movements->sum(fn ($movement) => (float) ($movement->withdrawal ?? 0)), 2),
-            'balance' => round((float) $movements->sum(fn ($movement) => (float) ($movement->running_balance ?? $movement->balance ?? 0)), 2),
+            'deposit' => $deposit,
+            'withdrawal' => $withdrawal,
+            'balance' => round($deposit - $withdrawal, 2),
         ];
     }
 
