@@ -7,14 +7,11 @@ use Maatwebsite\Excel\Concerns\FromArray;
 class DashboardStatsExport implements FromArray
 {
     public function __construct(
-        private array $movementCategoryStats,
-        private array $movementTypeStats,
-        private array $invoiceProjectStats,
-        private array $invoicePaymentTypeStats,
+        private array $reportMonths,
+        private array $executiveReport,
+        private array $costBreakdown,
         private string $dateFrom,
-        private string $dateTo,
-        private string $movementCategory,
-        private string $invoiceProject
+        private string $dateTo
     ) {}
 
     public function array(): array
@@ -23,31 +20,25 @@ class DashboardStatsExport implements FromArray
         $rows[] = [__('app.dashboard'), __('app.from'), $this->dateFrom ?: '-', __('app.to'), $this->dateTo ?: '-'];
         $rows[] = [];
 
-        $rows[] = [__('app.movements'), __('app.category'), $this->movementCategory ?: __('app.all')];
-        $rows[] = [__('app.category'), __('app.count'), __('app.deposits'), __('app.withdrawals'), __('app.net')];
-        foreach ($this->movementCategoryStats as $item) {
-            $rows[] = [$item['name'] ?? '', $item['count'] ?? 0, $item['deposits'] ?? 0, $item['withdrawals'] ?? 0, $item['net'] ?? 0];
+        $monthHeaders = array_map(fn ($month) => $month['label'] ?? '', $this->reportMonths);
+
+        $rows[] = [__('app.dashboard_executive_report')];
+        $rows[] = array_merge([__('app.metric'), __('app.total')], $monthHeaders);
+        foreach ($this->executiveReport as $item) {
+            $rows[] = array_merge(
+                [$item['label'] ?? '', $item['total'] ?? 0],
+                $item['monthly'] ?? []
+            );
         }
         $rows[] = [];
 
-        $rows[] = [__('app.movements'), __('app.type')];
-        $rows[] = [__('app.type'), __('app.count'), __('app.deposits'), __('app.withdrawals'), __('app.net')];
-        foreach ($this->movementTypeStats as $item) {
-            $rows[] = [$item['name'] ?? '', $item['count'] ?? 0, $item['deposits'] ?? 0, $item['withdrawals'] ?? 0, $item['net'] ?? 0];
-        }
-        $rows[] = [];
-
-        $rows[] = [__('app.invoices'), __('app.project'), $this->invoiceProject ?: __('app.all')];
-        $rows[] = [__('app.project'), __('app.count'), __('app.total'), __('app.amount_remaining')];
-        foreach ($this->invoiceProjectStats as $item) {
-            $rows[] = [$item['name'] ?? '', $item['count'] ?? 0, $item['total'] ?? 0, $item['remaining'] ?? 0];
-        }
-        $rows[] = [];
-
-        $rows[] = [__('app.invoices'), __('app.payment_type')];
-        $rows[] = [__('app.payment_type'), __('app.count'), __('app.total'), __('app.amount_remaining')];
-        foreach ($this->invoicePaymentTypeStats as $item) {
-            $rows[] = [$item['name'] ?? '', $item['count'] ?? 0, $item['total'] ?? 0, $item['remaining'] ?? 0];
+        $rows[] = [__('app.dashboard_cost_structure')];
+        $rows[] = array_merge([__('app.category'), __('app.total')], $monthHeaders);
+        foreach ($this->costBreakdown as $item) {
+            $rows[] = array_merge(
+                [$item['label'] ?? '', $item['total'] ?? 0],
+                $item['monthly'] ?? []
+            );
         }
 
         return $rows;
