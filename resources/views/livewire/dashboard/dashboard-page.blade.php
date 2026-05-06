@@ -14,9 +14,6 @@
             <a href="{{ route('expenses') }}" class="inline-flex items-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
                 {{ __('app.expenses') }}
             </a>
-            <button wire:click="exportStatsToExcel" class="inline-flex items-center rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-sky-800">
-                {{ __('app.export') }} Excel
-            </button>
         </div>
     </div>
 </x-slot>
@@ -31,6 +28,11 @@
                 <p class="mt-3 max-w-2xl text-sm text-white/80">
                     The table below is designed for the same decision flow as your spreadsheet: revenue first, cost structure second, then margin and cash movement.
                 </p>
+                <div class="mt-5 flex flex-wrap items-center gap-3">
+                    <button wire:click="exportStatsToExcel" class="inline-flex items-center rounded-xl bg-white px-4 py-2 text-sm font-semibold text-sky-800 transition-colors hover:bg-sky-50">
+                        {{ __('app.export') }} Excel
+                    </button>
+                </div>
             </div>
             <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
                 <label class="rounded-2xl border border-white/20 bg-white/10 p-3 backdrop-blur">

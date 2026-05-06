@@ -11,7 +11,7 @@ use App\Models\BankMovement;
 use App\Models\Invoice;
 use App\Models\MovementCategory;
 use App\Models\MovementType;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use App\Services\BankMovementBalanceService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -69,6 +69,8 @@ class MovementPage extends Component
     public string $formCategory = '';
 
     public string $formNotes = '';
+
+    private ?array $cachedBalanceBookRows = null;
 
     public function mount(): void
     {
@@ -222,6 +224,7 @@ class MovementPage extends Component
 
         if ($this->editingId) {
             $movement = BankMovement::findOrFail($this->editingId);
+            $originalBankAccountId = (int) $movement->bank_account_id;
             $movement->update($data);
             if ($resolvedCategory['invoice_id'] !== null) {
                 $invoice = Invoice::findOrFail($resolvedCategory['invoice_id']);
@@ -233,6 +236,7 @@ class MovementPage extends Component
                 ]);
                 $this->syncInvoicesForBillPayment(collect([$invoice]), $pool);
             }
+            $this->refreshBalancesForAccounts([$originalBankAccountId, (int) $movement->bank_account_id]);
             $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
         } else {
             $data['import_source'] = 'manual';
@@ -247,6 +251,7 @@ class MovementPage extends Component
                 ]);
                 $this->syncInvoicesForBillPayment(collect([$invoice]), $pool);
             }
+            $this->refreshBalancesForAccounts([(int) $created->bank_account_id]);
             $this->dispatch('notify', type: 'success', message: __('app.created_successfully'));
         }
 
@@ -264,7 +269,10 @@ class MovementPage extends Component
     {
         Gate::authorize('movements.delete');
         if ($this->editingId) {
-            BankMovement::findOrFail($this->editingId)->delete();
+            $movement = BankMovement::findOrFail($this->editingId);
+            $accountId = (int) $movement->bank_account_id;
+            $movement->delete();
+            $this->refreshBalancesForAccounts([$accountId]);
             $this->dispatch('notify', type: 'success', message: __('app.deleted_successfully'));
         }
         $this->showDeleteModal = false;
@@ -274,7 +282,13 @@ class MovementPage extends Component
     public function deleteSelected(): void
     {
         Gate::authorize('movements.delete');
+        $accountIds = BankMovement::query()
+            ->whereIn('id', $this->selected)
+            ->pluck('bank_account_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
         BankMovement::whereIn('id', $this->selected)->delete();
+        $this->refreshBalancesForAccounts($accountIds);
         $this->deselectAll();
         $this->dispatch('notify', type: 'success', message: __('app.deleted_successfully'));
     }
@@ -506,6 +520,7 @@ class MovementPage extends Component
 
         if (count($invoiceTokens) > 0) {
             $this->applyBillPaymentForInvoiceTokens($movement, $invoiceTokens);
+            $this->refreshBalancesForAccounts([(int) $movement->bank_account_id]);
             $this->logBillPayment('quick_update_category.done_invoice_path', ['movement_id' => $id]);
             $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
 
@@ -624,46 +639,7 @@ class MovementPage extends Component
 
     protected function getMovements()
     {
-        $movements = $this->buildQuery()->paginate($this->perPage);
-        $this->attachRunningBalances($movements->getCollection());
-
-        return $movements;
-    }
-
-    private function attachRunningBalances(EloquentCollection $movements): void
-    {
-        if ($movements->isEmpty()) {
-            return;
-        }
-
-        $movementIds = $movements->pluck('id')->filter()->values()->all();
-        $accountIds = $movements->pluck('bank_account_id')->filter()->unique()->values()->all();
-
-        if ($movementIds === [] || $accountIds === []) {
-            return;
-        }
-
-        $windowedBalances = DB::table('bank_movements as bm')
-            ->join('bank_accounts as ba', 'ba.id', '=', 'bm.bank_account_id')
-            ->whereIn('bm.bank_account_id', $accountIds)
-            ->select('bm.id')
-            ->selectRaw(
-                'ba.initial_balance + '.
-                'SUM(COALESCE(bm.deposit, 0) - COALESCE(bm.withdrawal, 0)) '.
-                'OVER (PARTITION BY bm.bank_account_id ORDER BY bm.date, bm.id) AS running_balance'
-            );
-
-        $runningBalances = DB::query()
-            ->fromSub($windowedBalances, 'movement_balances')
-            ->whereIn('id', $movementIds)
-            ->pluck('running_balance', 'id');
-
-        $movements->each(function (BankMovement $movement) use ($runningBalances): void {
-            $movement->setAttribute(
-                'running_balance',
-                round((float) ($runningBalances[$movement->id] ?? $movement->balance ?? 0), 2)
-            );
-        });
+        return $this->buildQuery()->simplePaginate($this->perPage);
     }
 
     private function resolveOrCreateCategory(string $value): ?string
@@ -886,25 +862,18 @@ class MovementPage extends Component
      */
     private function balanceBookRows(): array
     {
-        $nets = BankMovement::query()
-            ->select('bank_account_id')
-            ->selectRaw('COALESCE(SUM(COALESCE(deposit, 0) - COALESCE(withdrawal, 0)), 0) as net')
-            ->groupBy('bank_account_id')
-            ->pluck('net', 'bank_account_id');
+        if ($this->cachedBalanceBookRows !== null) {
+            return $this->cachedBalanceBookRows;
+        }
 
-        return BankAccount::query()
+        return $this->cachedBalanceBookRows = BankAccount::query()
             ->orderBy('bank_name')
-            ->get()
-            ->map(function (BankAccount $ba) use ($nets) {
-                $initial = (float) ($ba->initial_balance ?? 0);
-                $net = (float) ($nets[$ba->id] ?? 0);
-
-                return [
-                    'id' => $ba->id,
-                    'name' => $ba->bank_name,
-                    'balance' => round($initial + $net, 2),
-                ];
-            })
+            ->get(['id', 'bank_name', 'current_balance'])
+            ->map(fn (BankAccount $ba) => [
+                'id' => $ba->id,
+                'name' => $ba->bank_name,
+                'balance' => round((float) ($ba->current_balance ?? 0), 2),
+            ])
             ->values()
             ->all();
     }
@@ -937,6 +906,7 @@ class MovementPage extends Component
 
     public function render()
     {
+        $this->cachedBalanceBookRows = null;
         $movements = $this->getMovements();
         $movementTotals = $this->filteredMovementTotals();
         $balanceBookRows = $this->balanceBookRows();
@@ -978,7 +948,7 @@ class MovementPage extends Component
 
         return view('livewire.movements.movement-page', [
             'movements' => $movements,
-            'bankAccounts' => BankAccount::orderBy('bank_name')->get(),
+            'bankAccounts' => BankAccount::query()->orderBy('bank_name')->get(['id', 'bank_name']),
             'movementTypes' => MovementType::orderBy('sort_order')->orderBy('name')->get(),
             'movementCategories' => MovementCategory::orderBy('sort_order')->orderBy('name')->get(),
             'pendingInvoiceOptions' => $pendingInvoiceOptions,
@@ -987,5 +957,14 @@ class MovementPage extends Component
             'balanceBookTotal' => $balanceBookTotal,
             'balanceBookDisplay' => $balanceBookDisplay,
         ])->layout('layouts.app');
+    }
+
+    /**
+     * @param  array<int>  $accountIds
+     */
+    private function refreshBalancesForAccounts(array $accountIds): void
+    {
+        app(BankMovementBalanceService::class)->recalculateAccounts($accountIds);
+        $this->cachedBalanceBookRows = null;
     }
 }

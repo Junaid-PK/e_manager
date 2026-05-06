@@ -4,6 +4,7 @@ namespace App\Livewire\Movements;
 
 use App\Models\BankAccount;
 use App\Models\BankMovement;
+use App\Services\BankMovementBalanceService;
 use App\Services\CsvImportService;
 use App\Services\PdfParserService;
 use Livewire\Attributes\On;
@@ -160,6 +161,7 @@ class MovementImportWizard extends Component
         }
 
         $result = $service->importMappedData($path, $indexMap, $this->bankAccountId);
+        app(BankMovementBalanceService::class)->recalculateAccount($this->bankAccountId);
         $this->importedCount = $result['imported'];
         $this->importErrors = $result['errors'];
         $this->step = 3;
@@ -199,6 +201,7 @@ class MovementImportWizard extends Component
             $imported++;
         }
 
+        app(BankMovementBalanceService::class)->recalculateAccount($this->bankAccountId);
         $this->importedCount = $imported;
         $this->step = 3;
     }
