@@ -359,6 +359,10 @@ return [
     'records_imported' => 'registros importados',
     'import_types_hint' => 'Excel con columnas: Nombre, Color (opcional), Orden (opcional)',
     'import_categories_hint' => 'Excel con columnas: Nombre, Categoría Padre (opcional), Orden (opcional)',
+    'import_providers_hint' => 'CSV o Excel con columnas como: CIF, Nombre / Razón Social, Orden (opcional). Los proveedores existentes se reutilizan y se vinculan al CIF importado.',
+    'import_cifs_hint' => 'CSV o Excel con una columna CIF, o poniendo el CIF en la primera columna. El orden es opcional.',
+    'providers_import_summary' => ':providers proveedores guardados o actualizados y :cifs CIF creados.',
+    'cifs_import_summary' => ':count CIF guardados o actualizados.',
     'required' => 'obligatorio',
 
     'no_active_reminders' => 'Sin recordatorios activos',

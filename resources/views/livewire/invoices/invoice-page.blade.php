@@ -108,6 +108,14 @@
                         <option value="{{ $client->id }}">{{ $client->name }}</option>
                     @endforeach
                 </select>
+                <select wire:model.live="filterUserId" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 pl-3 pr-8 focus:ring-emerald-500 focus:border-emerald-500">
+                    @if (count($invoiceUsers) > 1)
+                        <option value="">{{ __('app.all') }} {{ __('app.users') }}</option>
+                    @endif
+                    @foreach ($invoiceUsers as $invoiceUser)
+                        <option value="{{ $invoiceUser->id }}">{{ $invoiceUser->name }}</option>
+                    @endforeach
+                </select>
 
                 <select wire:model.live="filterPaymentType" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 pl-3 pr-8 focus:ring-emerald-500 focus:border-emerald-500">
                     <option value="">{{ __('app.all') }} {{ __('app.payment_type') }}</option>
@@ -128,7 +136,7 @@
                 <input wire:model.live="dateFrom" type="date" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 px-3 focus:ring-emerald-500 focus:border-emerald-500">
                 <input wire:model.live="dateTo" type="date" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 px-3 focus:ring-emerald-500 focus:border-emerald-500">
 
-                @if ($search || $filterStatus || $filterCompanyId || $filterClientId || $filterPaymentType || $filterBankName || $filterMonth || $dateFrom || $dateTo)
+                @if ($search || $filterStatus || $filterCompanyId || $filterClientId || ($filterUserId !== '' && $filterUserId !== (string) auth()->id()) || $filterPaymentType || $filterBankName || $filterMonth || $dateFrom || $dateTo)
                     <button wire:click="clearFilters" class="inline-flex items-center px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5 mr-1">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -146,7 +154,7 @@
             </div>
         </div>
 
-        @if ($search || $filterStatus || $filterCompanyId || $filterClientId || $filterPaymentType || $filterBankName || $filterMonth || $dateFrom || $dateTo)
+        @if ($search || $filterStatus || $filterCompanyId || $filterClientId || ($filterUserId !== '' && $filterUserId !== (string) auth()->id()) || $filterPaymentType || $filterBankName || $filterMonth || $dateFrom || $dateTo)
             <div class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
                 {{ __('app.total_records_shown') }}: {{ $invoices->total() }}
             </div>

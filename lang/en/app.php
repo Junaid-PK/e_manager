@@ -360,6 +360,10 @@ return [
     'records_imported' => 'records imported',
     'import_types_hint' => 'Excel with columns: Name, Color (optional), Sort Order (optional)',
     'import_categories_hint' => 'Excel with columns: Name, Parent Category (optional), Sort Order (optional)',
+    'import_providers_hint' => 'CSV or Excel with columns like: CIF, Name / Business Name, Sort Order (optional). Existing providers are reused and linked to the imported CIF.',
+    'import_cifs_hint' => 'CSV or Excel with a CIF column, or put the CIF in the first column. Sort Order is optional.',
+    'providers_import_summary' => ':providers providers saved or updated and :cifs CIFs created.',
+    'cifs_import_summary' => ':count CIFs saved or updated.',
     'required' => 'required',
 
     'no_active_reminders' => 'No active reminders',

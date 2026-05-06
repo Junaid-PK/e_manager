@@ -15,8 +15,10 @@ use App\Models\ExpenseProvider;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
@@ -548,9 +550,7 @@ class ExpensePage extends Component
 
     protected function baseExpenseQuery()
     {
-        $query = $this->expenseQuery()->with([
-            'company' => fn ($q) => $this->canAccessAllExpenses() ? $q->withoutGlobalScope('ownedByUser') : $q,
-        ]);
+        $query = $this->expenseQuery();
 
         return $this->applyExpenseFilters($query);
     }
@@ -620,9 +620,7 @@ class ExpensePage extends Component
 
     protected function filteredMovementsQuery()
     {
-        $query = $this->movementQuery()->with([
-            'bankAccount' => fn ($q) => $this->canAccessAllExpenses() ? $q->withoutGlobalScope('ownedByUser') : $q,
-        ])->whereIn('type', ['buy', 'compra']);
+        $query = $this->movementQuery()->whereIn('type', ['buy', 'compra']);
 
         if ($this->filterUserId !== '') {
             $query->where('user_id', (int) $this->filterUserId);
@@ -666,34 +664,42 @@ class ExpensePage extends Component
         return $query;
     }
 
+    protected function unifiedReferenceQuery()
+    {
+        $movementRefs = (clone $this->filteredMovementsQuery())
+            ->reorder()
+            ->toBase()
+            ->selectRaw("'m' as kind, id, date as sort_date");
+        $expenseRefs = (clone $this->baseExpenseQuery())
+            ->reorder()
+            ->toBase()
+            ->selectRaw("'e' as kind, id, date as sort_date");
+
+        return DB::query()
+            ->fromSub($movementRefs->unionAll($expenseRefs), 'expense_rows');
+    }
+
     protected function getMergedRowsCollection(): Collection
     {
-        $rows = collect();
-        foreach ($this->filteredMovementsQuery()->orderByDesc('date')->orderByDesc('id')->get() as $m) {
-            $rows->push($this->mapMovementRow($m));
-        }
-        foreach ($this->baseExpenseQuery()->orderByDesc('date')->orderByDesc('id')->get() as $e) {
-            $rows->push($this->mapExpenseRow($e));
-        }
-
-        return $rows->sortByDesc(fn (array $r) => $r['sort_key'])->values();
+        return $this->hydrateUnifiedRows(
+            $this->unifiedReferenceQuery()
+                ->orderByDesc('sort_date')
+                ->orderByDesc('id')
+                ->get()
+        );
     }
 
     protected function getUnifiedPaginator(): LengthAwarePaginator
     {
-        $coll = $this->getMergedRowsCollection();
         $perPage = max(1, (int) $this->perPage);
-        $page = max(1, (int) $this->getPage('page'));
-        $total = $coll->count();
-        $slice = $coll->slice(($page - 1) * $perPage, $perPage)->values();
+        $refs = $this->unifiedReferenceQuery()
+            ->orderByDesc('sort_date')
+            ->orderByDesc('id')
+            ->paginate($perPage, ['kind', 'id', 'sort_date']);
 
-        return new \Illuminate\Pagination\LengthAwarePaginator(
-            $slice,
-            $total,
-            $perPage,
-            $page,
-            ['path' => Paginator::resolveCurrentPath(), 'pageName' => 'page']
-        );
+        $refs->setCollection($this->hydrateUnifiedRows($refs->getCollection()));
+
+        return $refs;
     }
 
     protected function getPageItemIds(): array
@@ -705,8 +711,11 @@ class ExpensePage extends Component
 
     protected function getAllItemIds(): array
     {
-        return $this->getMergedRowsCollection()
-            ->map(fn (array $r) => $r['composite'])
+        return $this->unifiedReferenceQuery()
+            ->orderByDesc('sort_date')
+            ->orderByDesc('id')
+            ->get(['kind', 'id'])
+            ->map(fn ($r) => $r->kind.':'.$r->id)
             ->toArray();
     }
 
@@ -1061,6 +1070,48 @@ class ExpensePage extends Component
         return $this->bankAccountQuery()
             ->whereKey((int) $this->filterBankAccountId)
             ->value('bank_name');
+    }
+
+    private function hydrateUnifiedRows(Collection $refs): Collection
+    {
+        if ($refs->isEmpty()) {
+            return collect();
+        }
+
+        $expenseIds = $refs->where('kind', 'e')->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
+        $movementIds = $refs->where('kind', 'm')->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
+
+        $expenses = $expenseIds === []
+            ? new EloquentCollection()
+            : $this->expenseQuery()
+                ->with([
+                    'company' => fn ($q) => $this->canAccessAllExpenses() ? $q->withoutGlobalScope('ownedByUser') : $q,
+                ])
+                ->whereIn('id', $expenseIds)
+                ->get()
+                ->keyBy('id');
+
+        $movements = $movementIds === []
+            ? new EloquentCollection()
+            : $this->movementQuery()
+                ->with([
+                    'bankAccount' => fn ($q) => $this->canAccessAllExpenses() ? $q->withoutGlobalScope('ownedByUser') : $q,
+                ])
+                ->whereIn('id', $movementIds)
+                ->get()
+                ->keyBy('id');
+
+        return $refs->map(function ($ref) use ($expenses, $movements) {
+            if ($ref->kind === 'e') {
+                $expense = $expenses->get((int) $ref->id);
+
+                return $expense ? $this->mapExpenseRow($expense) : null;
+            }
+
+            $movement = $movements->get((int) $ref->id);
+
+            return $movement ? $this->mapMovementRow($movement) : null;
+        })->filter()->values();
     }
 
     public function render()

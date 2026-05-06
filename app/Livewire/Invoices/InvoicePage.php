@@ -12,6 +12,7 @@ use App\Models\Company;
 use App\Models\Invoice;
 use App\Models\PaymentReminder;
 use App\Models\Project;
+use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
@@ -62,6 +63,8 @@ class InvoicePage extends Component
     public string $filterCompanyId = '';
 
     public string $filterClientId = '';
+
+    public string $filterUserId = '';
 
     public string $filterMonth = '';
 
@@ -129,6 +132,16 @@ class InvoicePage extends Component
         ];
     }
 
+    public function mount(): void
+    {
+        $this->filterUserId = auth()->check() ? (string) auth()->id() : '';
+    }
+
+    private function canAccessAllInvoices(): bool
+    {
+        return (bool) auth()->user()?->isAdmin();
+    }
+
     public function updatedFilterStatus(): void
     {
         $this->resetPage();
@@ -140,6 +153,11 @@ class InvoicePage extends Component
     }
 
     public function updatedFilterClientId(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterUserId(): void
     {
         $this->resetPage();
     }
@@ -495,6 +513,7 @@ class InvoicePage extends Component
         $this->filterStatus = '';
         $this->filterCompanyId = '';
         $this->filterClientId = '';
+        $this->filterUserId = auth()->check() ? (string) auth()->id() : '';
         $this->filterMonth = '';
         $this->filterPaymentType = '';
         $this->filterBankName = '';
@@ -545,6 +564,10 @@ class InvoicePage extends Component
             $query->where('client_id', $this->filterClientId);
         }
 
+        if ($this->filterUserId !== '') {
+            $query->where('user_id', (int) $this->filterUserId);
+        }
+
         if ($this->filterMonth) {
             $query->where('month', 'like', "%{$this->filterMonth}%");
         }
@@ -571,7 +594,33 @@ class InvoicePage extends Component
     protected function buildQuery()
     {
         return $this->applySorting(
-            $this->baseInvoiceQuery()->with(['company', 'client', 'project'])
+            $this->baseInvoiceQuery()
+                ->select([
+                    'id',
+                    'company_id',
+                    'client_id',
+                    'project_id',
+                    'invoice_number',
+                    'month',
+                    'date_issued',
+                    'date_due',
+                    'bank_date',
+                    'bank_name',
+                    'amount',
+                    'iva_amount',
+                    'retention_amount',
+                    'total',
+                    'amount_paid',
+                    'amount_remaining',
+                    'status',
+                    'payment_type',
+                    'notes',
+                ])
+                ->with([
+                    'company:id,name',
+                    'client:id,name',
+                    'project:id,name',
+                ])
         );
     }
 
@@ -650,12 +699,17 @@ class InvoicePage extends Component
 
     public function render()
     {
+        $invoiceUsers = $this->canAccessAllInvoices()
+            ? User::query()->orderBy('name')->get(['id', 'name'])
+            : User::query()->whereKey(auth()->id())->get(['id', 'name']);
+
         return view('livewire.invoices.invoice-page', [
             'invoices' => $this->getInvoices(),
             'invoiceStats' => $this->getInvoiceStats(),
-            'allCompanies' => Company::query()->orderBy('name')->get(),
-            'clients' => Client::orderBy('name')->get(),
-            'bankAccounts' => BankAccount::orderBy('bank_name')->get(),
+            'allCompanies' => Company::query()->orderBy('name')->get(['id', 'name']),
+            'clients' => Client::orderBy('name')->get(['id', 'name']),
+            'bankAccounts' => BankAccount::orderBy('bank_name')->get(['id', 'bank_name']),
+            'invoiceUsers' => $invoiceUsers,
         ])->layout('layouts.app');
     }
 }

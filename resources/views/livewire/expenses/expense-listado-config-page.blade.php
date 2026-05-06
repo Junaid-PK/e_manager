@@ -23,10 +23,16 @@
                         <input wire:model.live.debounce.300ms="searchProviders" type="text" placeholder="{{ __('app.search') }}" class="block w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-emerald-500 focus:border-emerald-500">
                     </div>
                     @can('expenses.edit')
-                        <button type="button" wire:click="createProvider" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                            {{ __('app.add') }}
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button type="button" wire:click="openImport('providers')" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>
+                                {{ __('app.import') }}
+                            </button>
+                            <button type="button" wire:click="createProvider" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                                {{ __('app.add') }}
+                            </button>
+                        </div>
                     @endcan
                 </div>
             </div>
@@ -80,10 +86,16 @@
                         <input wire:model.live.debounce.300ms="searchCifs" type="text" placeholder="{{ __('app.search') }}" class="block w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-emerald-500 focus:border-emerald-500">
                     </div>
                     @can('expenses.edit')
-                        <button type="button" wire:click="createCif" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                            {{ __('app.add') }}
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button type="button" wire:click="openImport('cifs')" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>
+                                {{ __('app.import') }}
+                            </button>
+                            <button type="button" wire:click="createCif" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                                {{ __('app.add') }}
+                            </button>
+                        </div>
                     @endcan
                 </div>
             </div>
@@ -200,6 +212,41 @@
                     <button type="button" wire:click="$set('showDeleteModal', false)" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600">{{ __('app.cancel') }}</button>
                     <button type="button" wire:click="delete" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700">{{ __('app.delete') }}</button>
                 </div>
+            </div>
+        </div>
+    @endif
+
+    @if ($showImportModal)
+        <div class="fixed inset-0 z-50 flex items-center justify-center" @keydown.escape.window="$set('showImportModal', false)">
+            <div class="absolute inset-0 bg-black/50" wire:click="$set('showImportModal', false)"></div>
+            <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 w-full max-w-md mx-4 p-6"
+                 x-data
+                 x-show="$wire.showImportModal"
+                 x-transition>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                    {{ __('app.import') }} {{ $importTarget === 'providers' ? __('app.expense_providers') : __('app.expense_cifs') }}
+                </h3>
+                <form wire:submit="processImport" class="space-y-4">
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        @if ($importTarget === 'providers')
+                            {{ __('app.import_providers_hint') }}
+                        @else
+                            {{ __('app.import_cifs_hint') }}
+                        @endif
+                    </p>
+                    <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
+                        <input type="file" wire:model="importFile" accept=".csv,.xlsx,.xls,.txt,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-emerald-50 file:text-emerald-700 dark:file:bg-emerald-900/30 dark:file:text-emerald-400 hover:file:bg-emerald-100 dark:hover:file:bg-emerald-900/50">
+                        @error('importFile') <p class="mt-2 text-xs text-red-500">{{ $message }}</p> @enderror
+                        <div wire:loading wire:target="importFile" class="mt-2 text-sm text-gray-500">{{ __('app.loading') }}...</div>
+                    </div>
+                    <div class="flex items-center justify-end space-x-3">
+                        <button type="button" wire:click="$set('showImportModal', false)" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">{{ __('app.cancel') }}</button>
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50" {{ !$importFile ? 'disabled' : '' }}>
+                            <span wire:loading.remove wire:target="processImport">{{ __('app.import') }}</span>
+                            <span wire:loading wire:target="processImport">{{ __('app.loading') }}...</span>
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     @endif
