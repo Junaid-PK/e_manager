@@ -297,10 +297,23 @@ class MovementPage extends Component
     {
         $slug = $this->resolveOrCreateMovementType(trim($type));
         $movement = BankMovement::findOrFail($id);
-        if ((string) $movement->type === $slug) {
+        $previousType = (string) $movement->type;
+
+        if ($previousType === $slug) {
+            $this->skipRender();
+
             return;
         }
+
         $movement->update(['type' => $slug]);
+
+        // For ordinary type changes the inline control already reflects the new value,
+        // so rerendering the full page is wasted work. Only rerender when bill mode
+        // toggles because that row's category editor changes behavior and option source.
+        if ($previousType !== 'bill' && $slug !== 'bill') {
+            $this->skipRender();
+        }
+
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
 
@@ -538,6 +551,8 @@ class MovementPage extends Component
                 'bill_slug' => $billSlug,
             ]);
             if ($movement->category === null) {
+                $this->skipRender();
+
                 return;
             }
             $movement->update(['category' => null]);
@@ -549,9 +564,12 @@ class MovementPage extends Component
                 'resolved' => $resolved,
             ]);
             if ((string) ($movement->category ?? '') === (string) ($resolved ?? '')) {
+                $this->skipRender();
+
                 return;
             }
             $movement->update(['category' => $resolved]);
+            $this->skipRender();
         }
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
