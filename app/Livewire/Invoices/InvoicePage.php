@@ -322,9 +322,16 @@ class InvoicePage extends Component
 
     public function quickUpdatePaymentType(int $id, string $type): void
     {
+        $invoice = Invoice::findOrFail($id);
         $type = trim($type);
         if ($type === '') {
-            Invoice::findOrFail($id)->update(['payment_type' => null]);
+            if ($invoice->payment_type === null) {
+                $this->skipRender();
+
+                return;
+            }
+
+            $invoice->update(['payment_type' => null]);
         } else {
             // Use known slug if it matches, otherwise store the custom value as-is
             $slug = in_array($type, Invoice::PAYMENT_TYPES) ? $type : $this->resolvePaymentTypeSlug($type);
@@ -332,14 +339,33 @@ class InvoicePage extends Component
             if (! in_array($slug, Invoice::PAYMENT_TYPES)) {
                 $slug = $type;
             }
-            Invoice::findOrFail($id)->update(['payment_type' => $slug]);
+
+            if ((string) ($invoice->payment_type ?? '') === $slug) {
+                $this->skipRender();
+
+                return;
+            }
+
+            $invoice->update(['payment_type' => $slug]);
         }
+
+        $this->skipRender();
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
 
     public function quickUpdateBankName(int $id, string $name): void
     {
-        Invoice::findOrFail($id)->update(['bank_name' => trim($name) ?: null]);
+        $invoice = Invoice::findOrFail($id);
+        $resolved = trim($name) ?: null;
+
+        if (($invoice->bank_name ?? null) === $resolved) {
+            $this->skipRender();
+
+            return;
+        }
+
+        $invoice->update(['bank_name' => $resolved]);
+        $this->skipRender();
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
 
@@ -404,7 +430,16 @@ class InvoicePage extends Component
 
     public function quickStatusUpdate(int $id, string $status): void
     {
-        Invoice::findOrFail($id)->update(['status' => $status]);
+        $invoice = Invoice::findOrFail($id);
+
+        if ((string) $invoice->status === $status) {
+            $this->skipRender();
+
+            return;
+        }
+
+        $invoice->update(['status' => $status]);
+        $this->skipRender();
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
 

@@ -923,16 +923,30 @@ class ExpensePage extends Component
         }
         $resolved = $this->resolveOrCreateExpenseProvider(trim($value));
         $extra = $this->mergeListadoDefaults($e->listado_extra);
+        $previousVendor = $e->vendor;
+        $previousCif = (string) ($extra['cif'] ?? '');
         $p = $resolved
             ? ExpenseProvider::query()->where('name', $resolved)->with('cif')->first()
             : null;
         if ($p?->cif) {
             $extra['cif'] = $p->cif->code;
         }
+
+        if (($previousVendor ?? null) === $resolved && $previousCif === (string) ($extra['cif'] ?? '')) {
+            $this->skipRender();
+
+            return;
+        }
+
         $e->update([
             'vendor' => $resolved,
             'listado_extra' => $extra,
         ]);
+
+        if ($previousCif === (string) ($extra['cif'] ?? '')) {
+            $this->skipRender();
+        }
+
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
 
@@ -944,16 +958,30 @@ class ExpensePage extends Component
         $m = $this->findMovementForExpensesAccess($id);
         $resolved = $value !== '' ? $this->resolveOrCreateExpenseProvider(trim($value)) : null;
         $extra = $this->mergeListadoDefaults($m->listado_extra);
+        $previousBeneficiary = $m->beneficiary;
+        $previousCif = (string) ($extra['cif'] ?? '');
         if ($resolved) {
             $prov = ExpenseProvider::query()->where('name', $resolved)->with('cif')->first();
             if ($prov?->cif) {
                 $extra['cif'] = $prov->cif->code;
             }
         }
+
+        if (($previousBeneficiary ?? null) === $resolved && $previousCif === (string) ($extra['cif'] ?? '')) {
+            $this->skipRender();
+
+            return;
+        }
+
         $m->update([
             'beneficiary' => $resolved,
             'listado_extra' => $extra,
         ]);
+
+        if ($previousCif === (string) ($extra['cif'] ?? '')) {
+            $this->skipRender();
+        }
+
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
 
@@ -966,10 +994,18 @@ class ExpensePage extends Component
         }
         $resolved = $this->resolveOrCreateExpenseCif(trim($value));
         $extra = $this->mergeListadoDefaults($e->listado_extra);
+
+        if ((string) ($extra['cif'] ?? '') === (string) ($resolved ?? '')) {
+            $this->skipRender();
+
+            return;
+        }
+
         $extra['cif'] = $resolved ?? '';
         $e->listado_extra = $extra;
         $e->save();
         $this->linkExpenseProviderToCifFromCodes($e->vendor, $resolved);
+        $this->skipRender();
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
 
@@ -981,10 +1017,18 @@ class ExpensePage extends Component
         $m = $this->findMovementForExpensesAccess($id);
         $resolved = $this->resolveOrCreateExpenseCif(trim($value));
         $extra = $this->mergeListadoDefaults($m->listado_extra);
+
+        if ((string) ($extra['cif'] ?? '') === (string) ($resolved ?? '')) {
+            $this->skipRender();
+
+            return;
+        }
+
         $extra['cif'] = $resolved ?? '';
         $m->listado_extra = $extra;
         $m->save();
         $this->linkExpenseProviderToCifFromCodes($m->beneficiary, $resolved);
+        $this->skipRender();
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
 
