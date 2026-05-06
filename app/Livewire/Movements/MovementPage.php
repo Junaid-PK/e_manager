@@ -296,7 +296,11 @@ class MovementPage extends Component
     public function quickUpdateType(int $id, string $type): void
     {
         $slug = $this->resolveOrCreateMovementType(trim($type));
-        BankMovement::findOrFail($id)->update(['type' => $slug]);
+        $movement = BankMovement::findOrFail($id);
+        if ((string) $movement->type === $slug) {
+            return;
+        }
+        $movement->update(['type' => $slug]);
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
 
@@ -533,6 +537,9 @@ class MovementPage extends Component
                 'movement_id' => $id,
                 'bill_slug' => $billSlug,
             ]);
+            if ($movement->category === null) {
+                return;
+            }
             $movement->update(['category' => null]);
         } else {
             $resolved = $this->resolveOrCreateCategory($input);
@@ -541,6 +548,9 @@ class MovementPage extends Component
                 'movement_type' => $movement->type,
                 'resolved' => $resolved,
             ]);
+            if ((string) ($movement->category ?? '') === (string) ($resolved ?? '')) {
+                return;
+            }
             $movement->update(['category' => $resolved]);
         }
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));

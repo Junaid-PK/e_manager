@@ -34,6 +34,7 @@ $hasNav          = $navRow !== null && $navCol !== null;
      @scroll.window.passive="open && placePanel()"
      x-data="{
     open: false,
+    submitting: false,
     uid: Math.random().toString(36).slice(2),
     search: '',
     customInput: '',
@@ -105,26 +106,47 @@ $hasNav          = $navRow !== null && $navCol !== null;
             this.selectedValues = [];
         }
     },
+    async callSubmit(value) {
+        if (!this.submitMethod || this.submitting) return;
+        this.submitting = true;
+        try {
+            if (this.submitArg !== null && this.submitArg !== '') await $wire.call(this.submitMethod, this.submitArg, value);
+            else await $wire.call(this.submitMethod, value);
+        } finally {
+            this.submitting = false;
+        }
+    },
     isSelected(v) {
         const value = String(v ?? '');
         if (this.multiple) return this.selectedValues.includes(value);
         return this.selected === value;
     },
-    pick(v) {
+    async pick(v) {
+        const nextValue = String(v ?? '');
+        if (this.submitting) return;
+        if (!this.multiple && this.selected === nextValue) {
+            this.search = '';
+            this.customInput = '';
+            this.cursor = -1;
+            this.open = false;
+            if (this.navRow !== null) {
+                this.dispatchNav('cell-next');
+            } else {
+                this.$refs.trigger?.focus();
+            }
+            return;
+        }
         if (this.multiple) {
             this.toggleSelected(v);
             return;
         }
-        this.selected = v;
+        this.selected = nextValue;
         this.search = '';
         this.customInput = '';
         this.cursor = -1;
         this.open = false;
-        if (this.wireModel) $wire.set(this.wireModel, v);
-        if (this.submitMethod) {
-            if (this.submitArg !== null && this.submitArg !== '') $wire.call(this.submitMethod, this.submitArg, v);
-            else $wire.call(this.submitMethod, v);
-        }
+        if (this.wireModel) $wire.set(this.wireModel, nextValue);
+        await this.callSubmit(nextValue);
         if (this.navRow !== null) {
             this.dispatchNav('cell-next');
         } else {
@@ -143,17 +165,23 @@ $hasNav          = $navRow !== null && $navCol !== null;
         if (idx === -1) this.selectedValues.push(value);
         else this.selectedValues.splice(idx, 1);
     },
-    submitMultiple() {
+    async submitMultiple() {
+        if (this.submitting) return;
         const payload = JSON.stringify(this.selectedValues);
+        if (this.selected === payload) {
+            this.search = '';
+            this.cursor = -1;
+            this.open = false;
+            if (this.navRow !== null) this.dispatchNav('cell-next');
+            else this.$refs.trigger?.focus();
+            return;
+        }
         this.selected = payload;
         this.search = '';
         this.cursor = -1;
         this.open = false;
         if (this.wireModel) $wire.set(this.wireModel, payload);
-        if (this.submitMethod) {
-            if (this.submitArg !== null && this.submitArg !== '') $wire.call(this.submitMethod, this.submitArg, payload);
-            else $wire.call(this.submitMethod, payload);
-        }
+        await this.callSubmit(payload);
         if (this.navRow !== null) this.dispatchNav('cell-next');
         else this.$refs.trigger?.focus();
     },
@@ -245,7 +273,11 @@ $hasNav          = $navRow !== null && $navCol !== null;
         {{-- !text on button: listado movement rows use [&_button]:text-white on <tr>, which beats non-! text utilities on white trigger bg --}}
         <span x-text="label()" class="block truncate !text-inherit"></span>
         <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-1.5 !text-gray-500 dark:!text-gray-400">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+            <svg x-show="!submitting" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+            <svg x-show="submitting" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+                <path class="opacity-75" d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>
+            </svg>
         </span>
     </button>
     @endif
