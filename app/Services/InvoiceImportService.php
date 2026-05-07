@@ -85,7 +85,7 @@ class InvoiceImportService
                     : ($this->parseAmount($totalRaw) ?? round($amount + $ivaAmount - $retentionAmount, 2));
 
                 $amountPaid = $this->parseAmount($mapped['amount_paid'] ?? null) ?? 0;
-                $amountRemaining = $this->parseAmount($mapped['amount_remaining'] ?? null) ?? max(0, round($total - $amountPaid, 2));
+                $amountRemaining = $this->parseAmount($mapped['amount_remaining'] ?? null) ?? round($total - $amountPaid, 2);
 
                 $status = $this->resolveImportedStatus($mapped['status'] ?? null);
                 $paymentType = $this->resolveImportedPaymentType($mapped['payment_type'] ?? null);
@@ -93,7 +93,10 @@ class InvoiceImportService
 
                 $monthValue = $this->parseMonth($mapped['month'] ?? null);
                 $projectId = $this->resolveProjectId($mapped['project_id'] ?? null, $companyId);
-
+                \Log::info('Importing IVA', [
+                    'raw_value' => $mapped['iva_amount'],
+                    'parsed_value' => $ivaAmount,
+                ]);
                 Invoice::create([
                     'company_id' => $companyId,
                     'client_id' => $clientId,
@@ -106,9 +109,9 @@ class InvoiceImportService
                     'bank_name' => $bankNameResolved,
                     'amount' => $amount,
                     'iva_amount' => $ivaAmount,
-                    'iva_rate' => $amount > 0 && $ivaAmount > 0 ? round($ivaAmount / $amount * 100, 2) : 21,
+                    'iva_rate' => $amount != 0.0 && $ivaAmount != 0.0 ? round(abs($ivaAmount / $amount) * 100, 2) : 21,
                     'retention_amount' => $retentionAmount,
-                    'retention_rate' => $amount > 0 && $retentionAmount > 0 ? round($retentionAmount / $amount * 100, 2) : 0,
+                    'retention_rate' => $amount != 0.0 && $retentionAmount != 0.0 ? round(abs($retentionAmount / $amount) * 100, 2) : 0,
                     'total' => $total,
                     'amount_paid' => $amountPaid,
                     'amount_remaining' => $amountRemaining,
@@ -334,15 +337,20 @@ class InvoiceImportService
         }
 
         if (is_numeric($value)) {
-            return abs((float) $value);
+            return (float) $value;
         }
 
-        $value = str_replace([' ', '€', '$', "\xC2\xA0"], '', $value);
+        $raw = trim($value);
+        $negative = $this->isNegativeAmount($raw);
+        $value = str_replace([' ', '€', '$', "\xC2\xA0"], '', $raw);
+        $value = preg_replace('/^[+\-]\s*/', '', $value);
+        $value = preg_replace('/\s*[+\-]\s*$/', '', $value);
+        $value = trim($value, " \t\n\r\0\x0B()");
 
-        if (preg_match('/^-?\d{1,3}(\.\d{3})*(,\d{1,2})?$/', $value)) {
+        if (preg_match('/^\d{1,3}(\.\d{3})*(,\d{1,2})?$/', $value)) {
             $value = str_replace('.', '', $value);
             $value = str_replace(',', '.', $value);
-        } elseif (preg_match('/^-?\d{1,3}(,\d{3})*(\.\d{1,2})?$/', $value)) {
+        } elseif (preg_match('/^\d{1,3}(,\d{3})*(\.\d{1,2})?$/', $value)) {
             $value = str_replace(',', '', $value);
         } else {
             $value = str_replace(',', '', $value);
@@ -350,6 +358,19 @@ class InvoiceImportService
 
         $amount = (float) $value;
 
-        return $amount != 0 ? abs($amount) : 0;
+        if ($amount == 0.0) {
+            return 0.0;
+        }
+
+        return $negative ? -abs($amount) : $amount;
+    }
+
+    private function isNegativeAmount(string $raw): bool
+    {
+        $normalized = str_replace([' ', '€', '$', "\xC2\xA0"], '', trim($raw));
+
+        return preg_match('/^\-/', $normalized) === 1
+            || preg_match('/\-\s*$/', $normalized) === 1
+            || preg_match('/^\(.*\)$/', $normalized) === 1;
     }
 }

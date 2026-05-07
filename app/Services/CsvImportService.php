@@ -154,9 +154,10 @@ class CsvImportService
             return ['deposit' => null, 'withdrawal' => null];
         }
         $raw = trim($value);
-        $negative = preg_match('/^\-/', $raw) || preg_match('/^\(\s*[\d,.\s]+\s*\)$/', $raw);
+        $negative = $this->isNegativeAmount($raw);
         $value = str_replace([' ', '€', '$', "\xC2\xA0"], '', $raw);
         $value = preg_replace('/^[+\-]\s*/', '', $value);
+        $value = preg_replace('/\s*[+\-]\s*$/', '', $value);
         $value = trim($value, " \t\n\r\0\x0B()");
         if (preg_match('/^\d{1,3}(\.\d{3})*(,\d{1,2})?$/', $value)) {
             $value = str_replace('.', '', $value);
@@ -181,6 +182,15 @@ class CsvImportService
         }
 
         return ['deposit' => $deposit, 'withdrawal' => $withdrawal];
+    }
+
+    private function isNegativeAmount(string $raw): bool
+    {
+        $normalized = str_replace([' ', '€', '$', "\xC2\xA0"], '', trim($raw));
+
+        return preg_match('/^\-/', $normalized) === 1
+            || preg_match('/\-\s*$/', $normalized) === 1
+            || preg_match('/^\(.*\)$/', $normalized) === 1;
     }
 
     private function parseDate(?string $value): ?string
