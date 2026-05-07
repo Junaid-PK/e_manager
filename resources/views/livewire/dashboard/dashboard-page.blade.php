@@ -43,6 +43,17 @@
                     <span class="text-[11px] font-semibold uppercase tracking-[0.25em] text-white/70">{{ __('app.to') }}</span>
                     <input type="date" wire:model.live="statsDateTo" class="mt-2 w-full rounded-xl border-white/15 bg-white/10 text-sm text-white placeholder:text-white/40 focus:border-white/30 focus:ring-white/30">
                 </label>
+                @if ($users->isNotEmpty())
+                    <label class="rounded-2xl border border-white/20 bg-white/10 p-3 backdrop-blur">
+                        <span class="text-[11px] font-semibold uppercase tracking-[0.25em] text-white/70">{{ __('app.users') }}</span>
+                        <select wire:model.live="filterUserId" class="mt-2 w-full rounded-xl border-white/15 bg-white/10 text-sm text-white focus:border-white/30 focus:ring-white/30">
+                            <option value="" class="text-slate-900">{{ __('app.all') }} {{ __('app.users') }}</option>
+                            @foreach ($users as $user)
+                                <option value="{{ $user->id }}" class="text-slate-900">{{ $user->name }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                @endif
             </div>
         </div>
     </section>
@@ -201,38 +212,75 @@
         </div>
     </section>
 
-    <section class="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <div class="border-b border-slate-200 bg-[linear-gradient(90deg,var(--report-orange),#f39a4a)] px-5 py-4 text-slate-950 dark:border-slate-700">
-            <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-900/70">Cost Structure</p>
-            <h3 class="mt-1 text-xl font-black tracking-tight">Category lines by month</h3>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="min-w-full border-collapse">
-                <thead>
-                    <tr class="bg-slate-100 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                        <th class="sticky left-0 z-10 border-b border-slate-200 bg-slate-100 px-4 py-3 text-left dark:border-slate-700 dark:bg-slate-800">Category</th>
-                        <th class="border-b border-slate-200 px-4 py-3 text-right dark:border-slate-700">Total</th>
-                        @foreach ($reportMonths as $month)
-                            <th class="border-b border-slate-200 px-4 py-3 text-right dark:border-slate-700">{{ $month['label'] }}</th>
-                        @endforeach
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($costBreakdown as $row)
-                        <tr class="border-b border-slate-200 text-sm text-slate-800 dark:border-slate-700 dark:text-slate-100">
-                            <th class="sticky left-0 z-10 border-r border-slate-200 bg-white px-4 py-3 text-left font-medium dark:border-slate-700 dark:bg-slate-900">{{ $row['label'] }}</th>
-                            <td class="px-4 py-3 text-right font-semibold">{{ fmt_number($row['total']) }} &euro;</td>
-                            @foreach ($row['monthly'] as $value)
-                                <td class="px-4 py-3 text-right tabular-nums {{ $value > 0 ? '' : 'text-slate-300 dark:text-slate-600' }}">{{ $value > 0 ? fmt_number($value) . ' €' : '—' }}</td>
+    <section class="grid gap-6 xl:grid-cols-2">
+        <div class="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="border-b border-slate-200 bg-[linear-gradient(90deg,var(--report-orange),#f39a4a)] px-5 py-4 text-slate-950 dark:border-slate-700">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-900/70">Cost Structure</p>
+                <h3 class="mt-1 text-xl font-black tracking-tight">Category lines by month</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                            <th class="sticky left-0 z-10 border-b border-slate-200 bg-slate-100 px-4 py-3 text-left dark:border-slate-700 dark:bg-slate-800">Category</th>
+                            <th class="border-b border-slate-200 px-4 py-3 text-right dark:border-slate-700">Total</th>
+                            @foreach ($reportMonths as $month)
+                                <th class="border-b border-slate-200 px-4 py-3 text-right dark:border-slate-700">{{ $month['label'] }}</th>
                             @endforeach
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="{{ count($reportMonths) + 2 }}" class="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400">{{ __('app.no_results') }}</td>
+                    </thead>
+                    <tbody>
+                        @forelse ($costBreakdown as $row)
+                            <tr class="border-b border-slate-200 text-sm text-slate-800 dark:border-slate-700 dark:text-slate-100">
+                                <th class="sticky left-0 z-10 border-r border-slate-200 bg-white px-4 py-3 text-left font-medium dark:border-slate-700 dark:bg-slate-900">{{ $row['label'] }}</th>
+                                <td class="px-4 py-3 text-right font-semibold">{{ fmt_number($row['total']) }} &euro;</td>
+                                @foreach ($row['monthly'] as $value)
+                                    <td class="px-4 py-3 text-right tabular-nums {{ $value > 0 ? '' : 'text-slate-300 dark:text-slate-600' }}">{{ $value > 0 ? fmt_number($value) . ' €' : '—' }}</td>
+                                @endforeach
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="{{ count($reportMonths) + 2 }}" class="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400">{{ __('app.no_results') }}</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="border-b border-slate-200 bg-[linear-gradient(90deg,#f2b94b,#ef7f2d)] px-5 py-4 text-slate-950 dark:border-slate-700">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-900/70">Cost Structure</p>
+                <h3 class="mt-1 text-xl font-black tracking-tight">Types lines by month</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                            <th class="sticky left-0 z-10 border-b border-slate-200 bg-slate-100 px-4 py-3 text-left dark:border-slate-700 dark:bg-slate-800">{{ __('app.type') }}</th>
+                            <th class="border-b border-slate-200 px-4 py-3 text-right dark:border-slate-700">Total</th>
+                            @foreach ($reportMonths as $month)
+                                <th class="border-b border-slate-200 px-4 py-3 text-right dark:border-slate-700">{{ $month['label'] }}</th>
+                            @endforeach
                         </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @forelse ($typeBreakdown as $row)
+                            <tr class="border-b border-slate-200 text-sm text-slate-800 dark:border-slate-700 dark:text-slate-100">
+                                <th class="sticky left-0 z-10 border-r border-slate-200 bg-white px-4 py-3 text-left font-medium dark:border-slate-700 dark:bg-slate-900">{{ $row['label'] }}</th>
+                                <td class="px-4 py-3 text-right font-semibold">{{ fmt_number($row['total']) }} &euro;</td>
+                                @foreach ($row['monthly'] as $value)
+                                    <td class="px-4 py-3 text-right tabular-nums {{ $value > 0 ? '' : 'text-slate-300 dark:text-slate-600' }}">{{ $value > 0 ? fmt_number($value) . ' €' : '—' }}</td>
+                                @endforeach
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="{{ count($reportMonths) + 2 }}" class="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400">{{ __('app.no_results') }}</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
     </section>
 </div>

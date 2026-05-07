@@ -11,6 +11,7 @@ use App\Models\Company;
 use App\Models\Expense;
 use App\Models\Invoice;
 use App\Models\PaymentReminder;
+use App\Models\User;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
@@ -26,6 +27,7 @@ class DashboardPage extends Component
 {
     public string $statsDateFrom = '';
     public string $statsDateTo = '';
+    public string $filterUserId = '';
     public string $selectedMovementCategory = '';
     public string $selectedInvoiceProject = '';
 
@@ -33,6 +35,7 @@ class DashboardPage extends Component
     {
         $this->statsDateFrom = now()->startOfYear()->format('Y-m-d');
         $this->statsDateTo = now()->endOfMonth()->format('Y-m-d');
+        $this->filterUserId = $this->canAccessAllDashboard() ? '' : (string) auth()->id();
     }
 
     public function render()
@@ -43,31 +46,39 @@ class DashboardPage extends Component
         $executiveReport = $this->buildExecutiveReport($reportMonths, $period['from'], $period['to']);
         $dashboardHighlights = $this->buildDashboardHighlights($executiveReport);
         $costBreakdown = $this->buildCostBreakdown($reportMonths, $period['from'], $period['to']);
+        $typeBreakdown = $this->buildTypeBreakdown($reportMonths, $period['from'], $period['to']);
 
-        $bankAccounts = BankAccount::orderBy('bank_name')->get();
+        $bankAccounts = $this->applyOwnerFilter(BankAccount::query())
+            ->orderBy('bank_name')
+            ->get();
         $totalBankBalance = $bankAccounts->sum('current_balance');
-        $overdueInvoices = Invoice::with('client')
+        $overdueInvoices = $this->applyOwnerFilter(Invoice::with('client'))
                             ->where('status', 'pending')
                             ->where('date_due', '<', $now)
                             ->orderBy('date_due')
                             ->limit(5)
                             ->get();
-        $upcomingReminders = PaymentReminder::with('remindable')
+        $upcomingReminders = $this->applyOwnerFilterToReminders(PaymentReminder::with('remindable'))
                                 ->active()
                                 ->orderBy('reminder_date')
                                 ->limit(5)
                                 ->get();
+        $users = $this->canAccessAllDashboard()
+            ? User::query()->orderBy('name')->get(['id', 'name'])
+            : collect();
 
         return view('livewire.dashboard.dashboard-page', compact(
             'reportMonths',
             'executiveReport',
             'dashboardHighlights',
             'costBreakdown',
+            'typeBreakdown',
             'bankAccounts',
             'totalBankBalance',
             'overdueInvoices',
             'upcomingReminders',
             'period',
+            'users',
         ));
     }
 
@@ -130,42 +141,42 @@ class DashboardPage extends Component
     {
         $monthKeys = collect($reportMonths)->pluck('key')->all();
         $invoiceTotals = $this->monthlyTotals(
-            Invoice::query(),
+            $this->applyOwnerFilter(Invoice::query()),
             'date_issued',
             'total',
             $from,
             $to
         );
         $expenseTotals = $this->monthlyTotals(
-            Expense::query(),
+            $this->applyOwnerFilter(Expense::query()),
             'date',
             'amount',
             $from,
             $to
         );
         $purchaseMovementTotals = $this->monthlyTotals(
-            BankMovement::query()->whereIn('type', ['buy', 'compra']),
+            $this->applyOwnerFilter(BankMovement::query()->whereIn('type', ['buy', 'compra'])),
             'date',
             'CASE WHEN COALESCE(withdrawal, 0) > 0 THEN withdrawal ELSE COALESCE(deposit, 0) END',
             $from,
             $to
         );
         $cashInTotals = $this->monthlyTotals(
-            BankMovement::query(),
+            $this->applyOwnerFilter(BankMovement::query()),
             'date',
             'deposit',
             $from,
             $to
         );
         $cashOutTotals = $this->monthlyTotals(
-            BankMovement::query(),
+            $this->applyOwnerFilter(BankMovement::query()),
             'date',
             'withdrawal',
             $from,
             $to
         );
         $collectedTotals = $this->monthlyTotals(
-            Invoice::query(),
+            $this->applyOwnerFilter(Invoice::query()),
             'date_issued',
             'amount_paid',
             $from,
@@ -215,7 +226,7 @@ class DashboardPage extends Component
         $collected = (float) ($byKey->get('collected')['total'] ?? 0);
         $collectionRate = $billing > 0 ? round($collected / $billing * 100, 1) : 0.0;
         $marginRate = $billing > 0 ? round($margin / $billing * 100, 1) : 0.0;
-        $outstanding = (float) Invoice::query()
+        $outstanding = (float) $this->applyOwnerFilter(Invoice::query())
             ->whereIn('status', ['pending', 'partial'])
             ->sum('amount_remaining');
 
@@ -265,7 +276,7 @@ class DashboardPage extends Component
         $totals = [];
         $monthExpr = $this->monthBucketExpression('date');
 
-        $expenseRows = $this->applyDateRange(Expense::query(), 'date', $from, $to)
+        $expenseRows = $this->applyDateRange($this->applyOwnerFilter(Expense::query()), 'date', $from, $to)
             ->selectRaw("COALESCE(NULLIF(category, ''), ?) as category_label", [__('app.none')])
             ->selectRaw("{$monthExpr} as ym")
             ->selectRaw('COALESCE(SUM(amount), 0) as total_amount')
@@ -277,7 +288,7 @@ class DashboardPage extends Component
             $totals[$category][$row->ym] = round((float) $row->total_amount, 2);
         }
 
-        $movementRows = $this->applyDateRange(BankMovement::query()->whereIn('type', ['buy', 'compra']), 'date', $from, $to)
+        $movementRows = $this->applyDateRange($this->applyOwnerFilter(BankMovement::query()->whereIn('type', ['buy', 'compra'])), 'date', $from, $to)
             ->selectRaw("COALESCE(NULLIF(category, ''), ?) as category_label", [__('app.none')])
             ->selectRaw("{$monthExpr} as ym")
             ->selectRaw('COALESCE(SUM(CASE WHEN COALESCE(withdrawal, 0) > 0 THEN withdrawal ELSE COALESCE(deposit, 0) END), 0) as total_amount')
@@ -297,6 +308,48 @@ class DashboardPage extends Component
 
                 return [
                     'label' => $category,
+                    'monthly' => $monthly,
+                    'total' => round(array_sum($monthly), 2),
+                ];
+            })
+            ->sortByDesc('total')
+            ->take(14)
+            ->values()
+            ->all();
+    }
+
+    private function buildTypeBreakdown(array $reportMonths, Carbon $from, Carbon $to): array
+    {
+        $monthKeys = collect($reportMonths)->pluck('key')->all();
+        $typeLabels = MovementType::query()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->mapWithKeys(fn (MovementType $type) => [(string) $type->slug => (string) $type->name])
+            ->all();
+
+        $monthExpr = $this->monthBucketExpression('date');
+        $rows = $this->applyDateRange($this->applyOwnerFilter(BankMovement::query()), 'date', $from, $to)
+            ->selectRaw("COALESCE(NULLIF(type, ''), ?) as type_slug", [__('app.none')])
+            ->selectRaw("{$monthExpr} as ym")
+            ->selectRaw('COALESCE(SUM(CASE WHEN COALESCE(withdrawal, 0) > 0 THEN withdrawal ELSE COALESCE(deposit, 0) END), 0) as total_amount')
+            ->groupBy('type_slug', 'ym')
+            ->get();
+
+        $totals = [];
+        foreach ($rows as $row) {
+            $typeSlug = (string) $row->type_slug;
+            $totals[$typeSlug][$row->ym] = round((float) $row->total_amount, 2);
+        }
+
+        return collect($totals)
+            ->map(function (array $values, string $typeSlug) use ($monthKeys, $typeLabels) {
+                $monthly = collect($monthKeys)
+                    ->map(fn (string $monthKey) => round((float) ($values[$monthKey] ?? 0), 2))
+                    ->all();
+
+                return [
+                    'label' => $typeLabels[$typeSlug] ?? str($typeSlug)->replace('_', ' ')->headline()->toString(),
                     'monthly' => $monthly,
                     'total' => round(array_sum($monthly), 2),
                 ];
@@ -339,5 +392,32 @@ class DashboardPage extends Component
         }
 
         return $query;
+    }
+
+    private function canAccessAllDashboard(): bool
+    {
+        return (bool) auth()->user()?->isAdmin();
+    }
+
+    private function applyOwnerFilter(Builder $query): Builder
+    {
+        if ($this->filterUserId !== '') {
+            $query->where($query->getModel()->getTable().'.user_id', (int) $this->filterUserId);
+        }
+
+        return $query;
+    }
+
+    private function applyOwnerFilterToReminders(Builder $query): Builder
+    {
+        if ($this->filterUserId === '') {
+            return $query;
+        }
+
+        return $query->whereHasMorph(
+            'remindable',
+            [Invoice::class, Expense::class],
+            fn (Builder $remindableQuery) => $remindableQuery->where('user_id', (int) $this->filterUserId)
+        );
     }
 }
