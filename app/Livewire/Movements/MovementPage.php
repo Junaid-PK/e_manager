@@ -155,8 +155,11 @@ class MovementPage extends Component
     public function exportToExcel()
     {
         Gate::authorize('movements.export');
-        $movements = $this->buildQuery()->get();
-        $this->attachRunningBalances($movements);
+        $movements = $this->buildQuery()->get()->each(function (BankMovement $movement): void {
+            if (! isset($movement->running_balance) && $movement->balance !== null) {
+                $movement->running_balance = $movement->balance;
+            }
+        });
         $filename = 'movements-'.date('Y-m-d-His').'-'.uniqid().'.xlsx';
         Storage::disk('local')->makeDirectory('exports');
         Excel::store(new MovementExport($movements), 'exports/'.$filename, 'local');
