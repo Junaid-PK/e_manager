@@ -336,8 +336,18 @@
                                 <input type="checkbox" wire:model.live="selected" value="{{ $invoice->id }}" class="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 dark:bg-gray-700">
                             </td>
                             <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">{{ $invoice->invoice_number }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 max-w-[220px]">{{ $invoice->project?->name ?? '—' }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->client?->name ?? '—' }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 max-w-[220px]">
+                                <div>{{ $invoice->project?->name ?? '—' }}</div>
+                                @if ($invoice->project?->location)
+                                    <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ $invoice->project->location }}</div>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                                <div>{{ $invoice->client?->name ?? '—' }}</div>
+                                @if ($invoice->client?->tax_id)
+                                    <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ $invoice->client->tax_id }}</div>
+                                @endif
+                            </td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->month ?? '—' }}</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-right">{{ fmt_number($invoice->amount) }} &euro;</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-right">{{ fmt_number($invoice->iva_amount) }} &euro;</td>
@@ -537,10 +547,17 @@
                                 </select>
                                 @error('formClientId') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                             </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.project') }}</label>
-                                <input wire:model="formProjectName" type="text" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
-                                @error('formProjectName') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.project') }}</label>
+                                    <input wire:model="formProjectName" type="text" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                    @error('formProjectName') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.location') }}</label>
+                                    <input wire:model="formProjectLocation" type="text" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                    @error('formProjectLocation') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                                </div>
                             </div>
                             <div class="grid grid-cols-2 gap-4">
                                 <div>

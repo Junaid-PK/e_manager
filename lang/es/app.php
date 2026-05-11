@@ -118,8 +118,10 @@ return [
     'overdue' => 'Vencido',
     'cancelled' => 'Cancelado',
     'active' => 'Activo',
+    'inactive' => 'Inactivo',
 
     'name' => 'Nombre',
+    'code' => 'Código',
     'email' => 'Email',
     'phone' => 'Teléfono',
     'address' => 'Dirección',
@@ -143,6 +145,7 @@ return [
     'retention_rate' => 'Tipo Retención',
     'month' => 'Mes',
     'tax_id' => 'NIF/CIF',
+    'location' => 'Ubicación',
     'contact_person' => 'Persona de Contacto',
 
     'bank_name' => 'Nombre del Banco',
@@ -235,6 +238,7 @@ return [
     'add_new' => 'Añadir Nuevo',
     'new_client' => 'Nuevo Cliente',
     'new_company' => 'Nueva Empresa',
+    'new_project' => 'Nuevo Proyecto',
     'add_category' => 'Añadir Categoría',
     'import_csv' => 'Importar CSV/Excel',
     'import_pdf' => 'Importar PDF',
@@ -247,8 +251,9 @@ return [
     'no_invoices' => 'No hay facturas aún. Crea tu primera factura.',
     'no_movements' => 'No hay movimientos aún. Añade un movimiento o importa desde tu banco.',
     'no_expenses' => 'No hay gastos aún. Empieza a registrar tus gastos.',
-    'no_companies' => 'No hay empresas aún. Añade tu primera empresa.',
-    'no_clients' => 'No hay clientes aún. Añade tu primer cliente.',
+    'no_companies' => 'No hay empresas todavía. Añade tu primera empresa.',
+    'no_clients' => 'No hay clientes todavía. Añade tu primer cliente.',
+    'no_projects' => 'No hay proyectos todavía. Añade tu primer proyecto.',
     'no_reminders' => 'No hay recordatorios. ¡Estás al día!',
 
     'new_account' => 'Nueva Cuenta',

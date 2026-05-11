@@ -25,14 +25,26 @@
                     <span>{{ __('app.clients') }}</span>
                 </span>
             </button>
+            <button wire:click="switchTab('projects')"
+                    class="px-6 py-3 text-sm font-medium border-b-2 transition-colors duration-150 focus:outline-none
+                           {{ $activeTab === 'projects' ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400 dark:border-emerald-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300' }}">
+                <span class="flex items-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 0-1.06.44l-2.122 2.12a1.5 1.5 0 0 1-1.061.44H4.5" />
+                    </svg>
+                    <span>{{ __('app.projects') }}</span>
+                </span>
+            </button>
         </nav>
     </div>
 
     <div>
         @if ($activeTab === 'companies')
             @livewire('companies-clients.company-table', key('company-table'))
-        @else
+        @elseif ($activeTab === 'clients')
             @livewire('companies-clients.client-table', key('client-table'))
+        @else
+            @livewire('companies-clients.project-table', key('project-table'))
         @endif
     </div>
 </div>

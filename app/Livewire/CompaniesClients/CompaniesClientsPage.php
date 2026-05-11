@@ -10,7 +10,9 @@ class CompaniesClientsPage extends Component
 
     public function switchTab(string $tab): void
     {
-        $this->activeTab = $tab;
+        if (in_array($tab, ['companies', 'clients', 'projects'])) {
+            $this->activeTab = $tab;
+        }
     }
 
     public function render()

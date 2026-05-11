@@ -118,8 +118,10 @@ return [
     'overdue' => 'Overdue',
     'cancelled' => 'Cancelled',
     'active' => 'Active',
+    'inactive' => 'Inactive',
 
     'name' => 'Name',
+    'code' => 'Code',
     'email' => 'Email',
     'phone' => 'Phone',
     'address' => 'Address',
@@ -143,6 +145,7 @@ return [
     'retention_rate' => 'Retention Rate',
     'month' => 'Month',
     'tax_id' => 'Tax ID',
+    'location' => 'Location',
     'contact_person' => 'Contact Person',
 
     'bank_name' => 'Bank Name',
@@ -235,6 +238,7 @@ return [
     'add_new' => 'Add New',
     'new_client' => 'New Client',
     'new_company' => 'New Company',
+    'new_project' => 'New Project',
     'add_category' => 'Add Category',
     'import_csv' => 'Import CSV/Excel',
     'import_pdf' => 'Import PDF',
@@ -249,6 +253,7 @@ return [
     'no_expenses' => 'No expenses yet. Start tracking your expenses.',
     'no_companies' => 'No companies yet. Add your first company.',
     'no_clients' => 'No clients yet. Add your first client.',
+    'no_projects' => 'No projects yet. Add your first project.',
     'no_reminders' => 'No reminders. You\'re all caught up!',
 
     'new_account' => 'New Account',

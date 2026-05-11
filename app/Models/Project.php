@@ -17,6 +17,7 @@ class Project extends Model
         'name',
         'code',
         'description',
+        'location',
         'status',
     ];
 
