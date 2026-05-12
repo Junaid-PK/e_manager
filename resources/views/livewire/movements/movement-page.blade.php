@@ -236,6 +236,7 @@
                                 @endif
                             </span>
                         </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.invoices') }}</th>
                         <th wire:click="sortBy('concept')" class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none group {{ $sortField === 'concept' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400' }}">
                             <span class="flex items-center space-x-1">
                                 <span>{{ __('app.concept') }}</span>
@@ -329,16 +330,48 @@
                                     :nav-col="0" />
                             </td>
                             <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[7rem] align-top">
-                                <x-custom-select compact
-                                    wire:key="cat-{{ $movement->id }}-{{ $movement->type }}"
-                                    :options="$categoryOpts"
-                                    :value="$movement->category ?? ''"
-                                    placeholder="—"
-                                    allow-custom
-                                    submit-method="quickUpdateCategory"
-                                    :submit-arg="$movement->id"
-                                    :nav-row="$rowIdx"
-                                    :nav-col="1" />
+                                @if (in_array((string) $movement->type, ['bill', 'factura'], true))
+                                    <span class="inline-flex min-h-9 items-center text-sm text-gray-400 dark:text-gray-500">—</span>
+                                @else
+                                    <x-custom-select compact
+                                        wire:key="cat-{{ $movement->id }}-{{ $movement->type }}"
+                                        :options="$categoryOpts"
+                                        :value="$movement->category ?? ''"
+                                        placeholder="—"
+                                        allow-custom
+                                        submit-method="quickUpdateCategory"
+                                        :submit-arg="$movement->id"
+                                        :nav-row="$rowIdx"
+                                        :nav-col="1" />
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 min-w-[15rem] align-top">
+                                @if (! empty($movement->linked_invoices_display))
+                                    <div class="space-y-2">
+                                        @foreach ($movement->linked_invoices_display as $invoice)
+                                            <div class="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3 py-2 dark:border-emerald-800/70 dark:bg-emerald-950/30">
+                                                <div class="flex items-start justify-between gap-3">
+                                                    <div class="min-w-0">
+                                                        <p class="truncate text-sm font-medium text-emerald-900 dark:text-emerald-200">{{ $invoice['invoice_number'] }}</p>
+                                                        <p class="truncate text-xs text-emerald-700/80 dark:text-emerald-300/80">{{ $invoice['client_name'] !== '' ? $invoice['client_name'] : '—' }}</p>
+                                                    </div>
+                                                    @if (! empty($invoice['id']))
+                                                        <a href="{{ route('invoices', ['edit' => $invoice['id']]) }}" target="_blank" rel="noopener" class="inline-flex shrink-0 items-center rounded-lg border border-emerald-300/80 px-2 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-100 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/40">
+                                                            {{ __('app.edit') }}
+                                                        </a>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                        @can('movements.edit')
+                                            <button wire:click="edit({{ $movement->id }})" class="inline-flex items-center text-xs font-medium text-emerald-600 transition-colors hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
+                                                {{ __('app.change') }}
+                                            </button>
+                                        @endcan
+                                    </div>
+                                @else
+                                    <span class="text-gray-400 dark:text-gray-500">—</span>
+                                @endif
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 min-w-0">
                                 <span class="block truncate" title="{{ $movement->concept }}">{{ \Illuminate\Support\Str::limit($movement->concept, 50) }}</span>
@@ -385,7 +418,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="11" class="px-4 py-12 text-center">
+                            <td colspan="12" class="px-4 py-12 text-center">
                                 <div class="flex flex-col items-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" class="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
@@ -396,7 +429,7 @@
                         </tr>
                     @endforelse
                     <tr class="bg-gray-50 dark:bg-gray-900/40 border-t-2 border-gray-200 dark:border-gray-700">
-                        <td colspan="7" class="px-4 py-3 text-sm font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-200">
+                        <td colspan="8" class="px-4 py-3 text-sm font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-200">
                             {{ __('app.total') }}
                         </td>
                         <td class="px-4 py-3 text-sm text-right whitespace-nowrap font-semibold text-green-700 dark:text-green-400">
@@ -503,16 +536,46 @@
                                 </div>
                             </div>
                             <div>
-                                @if ($formType === 'bill')
-                                    <div class="flex items-center justify-between mb-1">
+                                @if (in_array($formType, ['bill', 'factura'], true))
+                                    <div class="flex items-center justify-between mb-2">
                                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('app.invoices') }}</label>
-                                        <button type="button" wire:click="openBillInvoiceModal" class="text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">{{ __('app.change') }}</button>
+                                        <div class="flex items-center gap-3">
+                                            @if (count($selectedInvoiceIds) > 0)
+                                                <button type="button" wire:click="deselectAllPendingInvoices" class="text-xs font-medium text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-300">{{ __('app.cancel') }}</button>
+                                            @endif
+                                            <button type="button" wire:click="openBillInvoiceModal" class="text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">{{ count($selectedInvoiceIds) > 0 ? __('app.change') : __('app.select_invoices') }}</button>
+                                        </div>
                                     </div>
-                                    <div class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2">
+                                    <div class="rounded-2xl border border-emerald-200/80 bg-emerald-50/70 p-3 dark:border-emerald-800/70 dark:bg-emerald-950/25">
                                         @if (count($selectedInvoiceIds) > 0)
-                                            <span class="font-medium text-emerald-700 dark:text-emerald-400">{{ count($selectedInvoiceIds) }} {{ __('app.selected') }}</span>
+                                            <div class="mb-3 flex items-center justify-between gap-3">
+                                                <span class="text-sm font-medium text-emerald-800 dark:text-emerald-300">{{ count($selectedInvoiceIds) }} {{ __('app.selected') }}</span>
+                                                <button type="button" wire:click="openBillInvoiceModal" class="text-xs font-medium text-emerald-700 hover:text-emerald-800 dark:text-emerald-300 dark:hover:text-emerald-200">{{ __('app.change') }}</button>
+                                            </div>
+                                            <div class="space-y-2">
+                                                @foreach ($selectedInvoices as $invoice)
+                                                    <div wire:key="selected-invoice-{{ $invoice->id }}" class="flex items-start justify-between gap-3 rounded-xl border border-white/80 bg-white/80 px-3 py-2 shadow-sm dark:border-gray-800 dark:bg-gray-900/40">
+                                                        <div class="min-w-0">
+                                                            <p class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ $invoice->invoice_number }}</p>
+                                                            <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $invoice->client_name ?? '—' }}</p>
+                                                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ __('app.amount_remaining') }}: {{ fmt_number($invoice->remaining) }} &euro;</p>
+                                                        </div>
+                                                        <div class="flex shrink-0 items-center gap-2">
+                                                            <a href="{{ route('invoices', ['edit' => $invoice->id]) }}" target="_blank" rel="noopener" class="inline-flex items-center rounded-lg border border-gray-300 px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
+                                                                {{ __('app.edit') }}
+                                                            </a>
+                                                            <button type="button" wire:click="removeSelectedInvoice({{ $invoice->id }})" class="inline-flex items-center rounded-lg border border-red-200 px-2 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-400 dark:hover:bg-red-950/30">
+                                                                {{ __('app.remove') }}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
                                         @else
-                                            <span class="text-gray-500 dark:text-gray-400">{{ __('app.select_invoices') }}</span>
+                                            <div class="flex items-center justify-between gap-3">
+                                                <span class="text-sm text-gray-500 dark:text-gray-400">{{ __('app.select_invoices') }}</span>
+                                                <button type="button" wire:click="openBillInvoiceModal" class="text-xs font-medium text-emerald-700 hover:text-emerald-800 dark:text-emerald-300 dark:hover:text-emerald-200">{{ __('app.change') }}</button>
+                                            </div>
                                         @endif
                                     </div>
                                 @else

@@ -414,4 +414,5 @@ return [
     'add' => 'Añadir',
     'create_first_invoice' => 'Crea tu primera factura',
     'edit_invoice' => 'Editar Factura',
+    'remove' => 'Quitar',
 ];

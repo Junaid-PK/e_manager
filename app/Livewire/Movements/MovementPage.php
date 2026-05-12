@@ -149,6 +149,11 @@ class MovementPage extends Component
 
         $movement = BankMovement::findOrFail($this->inlineBillMovementId);
         $originalBankAccountId = (int) $movement->bank_account_id;
+        $existingExtra = $this->normalizeMovementExtra($movement->listado_extra);
+
+        if (! empty($existingExtra['bill_payment_allocations'])) {
+            $this->reverseInvoicesForBillPayment($existingExtra['bill_payment_allocations']);
+        }
 
         $linkedInvoices = Invoice::with('client')->whereIn('id', $this->selectedInvoiceIds)->get();
         $suggestedDeposit = round($linkedInvoices->sum(fn (Invoice $invoice) => $this->invoiceRemainingDue($invoice)), 2);
@@ -158,17 +163,12 @@ class MovementPage extends Component
             : ($existingDeposit > 0 ? min($suggestedDeposit, $existingDeposit) : $suggestedDeposit);
         $deposit = $existingDeposit > 0 ? $existingDeposit : ($paymentPool > 0 ? $paymentPool : null);
 
-        $categoryLabel = $linkedInvoices
-            ->map(fn (Invoice $invoice) => trim(($invoice->invoice_number ?? '').' - '.($invoice->client?->name ?? '')))
-            ->filter()
-            ->values()
-            ->implode(' | ');
-
         $movement->update([
             'type' => $this->inlineBillType ?: $this->billMovementTypeSlug(),
-            'category' => $categoryLabel ?: null,
+            'category' => null,
             'deposit' => $deposit,
             'withdrawal' => null,
+            'listado_extra' => $this->buildMovementInvoiceExtra($existingExtra, $linkedInvoices),
         ]);
 
         $this->logBillPayment('inline_bill_payment.applied', [
@@ -177,7 +177,10 @@ class MovementPage extends Component
             'payment_pool' => $paymentPool,
         ]);
 
-        $this->syncInvoicesForBillPayment($linkedInvoices, $paymentPool);
+        $allocations = $this->syncInvoicesForBillPayment($linkedInvoices, $paymentPool);
+        $movement->update([
+            'listado_extra' => $this->buildMovementInvoiceExtra($movement->listado_extra, $linkedInvoices, $allocations),
+        ]);
         $this->refreshBalancesForAccounts([$originalBankAccountId, (int) $movement->bank_account_id]);
 
         $this->showBillInvoiceModal = false;
@@ -208,6 +211,14 @@ class MovementPage extends Component
         $this->selectedInvoiceIds = [];
     }
 
+    public function removeSelectedInvoice(int $id): void
+    {
+        $this->selectedInvoiceIds = array_values(array_filter(
+            $this->selectedInvoiceIds,
+            fn (int $selectedId): bool => $selectedId !== $id
+        ));
+    }
+
     /**
      * @return list<int>
      */
@@ -218,7 +229,8 @@ class MovementPage extends Component
                 $q->whereIn('status', ['pending', 'partial'])
                     ->orWhere(function ($q2) {
                         $q2->whereNotNull('amount_remaining')->where('amount_remaining', '>', 0);
-                    });
+                    })
+                    ->orWhereIn('id', $this->selectedInvoiceIds);
             })
             ->when($this->billInvoiceSearch !== '', function ($q) {
                 $q->where(function ($sq) {
@@ -315,6 +327,7 @@ class MovementPage extends Component
         $this->formWithdrawal = $movement->withdrawal ? (string) $movement->withdrawal : '';
         $this->formCategory = $movement->category ?? '';
         $this->formNotes = $movement->notes ?? '';
+        $this->selectedInvoiceIds = $this->extractLinkedInvoiceIds($movement);
         $this->showFormModal = true;
     }
 
@@ -349,6 +362,7 @@ class MovementPage extends Component
 
         $linkedInvoices = null;
         $paymentPool = 0.0;
+        $movementExtra = null;
 
         if ($hasInvoices) {
             $linkedInvoices = Invoice::with('client')->whereIn('id', $this->selectedInvoiceIds)->get();
@@ -359,38 +373,56 @@ class MovementPage extends Component
                 : ($existingDeposit > 0 ? min($suggestedDeposit, $existingDeposit) : $suggestedDeposit);
             $data['deposit'] = $existingDeposit > 0 ? $existingDeposit : ($paymentPool > 0 ? $paymentPool : null);
             $data['withdrawal'] = null;
-            $data['category'] = $linkedInvoices
-                ->map(fn (Invoice $invoice) => trim(($invoice->invoice_number ?? '').' - '.($invoice->client?->name ?? '')))
-                ->filter()
-                ->values()
-                ->implode(' | ');
-            // Preserve the selected bill type (bill or factura)
+            $data['category'] = null;
+            $movementExtra = $this->buildMovementInvoiceExtra(null, $linkedInvoices);
         }
 
         if ($this->editingId) {
             $movement = BankMovement::findOrFail($this->editingId);
             $originalBankAccountId = (int) $movement->bank_account_id;
+            $existingExtra = $this->normalizeMovementExtra($movement->listado_extra);
+
+            if (! empty($existingExtra['bill_payment_allocations'])) {
+                $this->reverseInvoicesForBillPayment($existingExtra['bill_payment_allocations']);
+            }
+
+            if (! $isBill) {
+                $movementExtra = $this->buildMovementInvoiceExtra($existingExtra, collect());
+            } else {
+                $movementExtra = $this->buildMovementInvoiceExtra($existingExtra, $linkedInvoices ?? collect());
+            }
+
+            $data['listado_extra'] = $movementExtra;
             $movement->update($data);
             if ($linkedInvoices !== null && $linkedInvoices->count() > 0) {
+                $allocations = $this->syncInvoicesForBillPayment($linkedInvoices, $paymentPool);
                 $this->logBillPayment('save.update_movement_with_invoices', [
                     'movement_id' => $movement->id,
                     'invoice_ids' => $linkedInvoices->pluck('id')->all(),
                     'payment_pool' => $paymentPool,
                 ]);
-                $this->syncInvoicesForBillPayment($linkedInvoices, $paymentPool);
+                $movement->update([
+                    'listado_extra' => $this->buildMovementInvoiceExtra($movementExtra, $linkedInvoices, $allocations),
+                ]);
             }
             $this->refreshBalancesForAccounts([$originalBankAccountId, (int) $movement->bank_account_id]);
             $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
         } else {
             $data['import_source'] = 'manual';
+            $data['listado_extra'] = $isBill
+                ? $this->buildMovementInvoiceExtra(null, $linkedInvoices ?? collect())
+                : null;
             $created = BankMovement::create($data);
             if ($linkedInvoices !== null && $linkedInvoices->count() > 0) {
+                $allocations = $this->syncInvoicesForBillPayment($linkedInvoices, $paymentPool);
                 $this->logBillPayment('save.created_movement_with_invoices', [
                     'movement_id' => $created->id,
                     'invoice_ids' => $linkedInvoices->pluck('id')->all(),
                     'payment_pool' => $paymentPool,
                 ]);
-                $this->syncInvoicesForBillPayment($linkedInvoices, $paymentPool);
+                $created->update([
+                    'listado_extra' => $this->buildMovementInvoiceExtra($created->listado_extra, $linkedInvoices, $allocations),
+                ]);
             }
             $this->refreshBalancesForAccounts([(int) $created->bank_account_id]);
             $this->dispatch('notify', type: 'success', message: __('app.created_successfully'));
@@ -698,9 +730,10 @@ class MovementPage extends Component
      * due, the shortfall is split in proportion to each invoice’s remaining balance and every
      * linked invoice with a balance is closed as paid (small bank/charges differences absorbed).
      */
-    private function syncInvoicesForBillPayment(\Illuminate\Support\Collection $invoices, float $paymentPool): void
+    private function syncInvoicesForBillPayment(\Illuminate\Support\Collection $invoices, float $paymentPool): array
     {
         $pool = round(max(0, $paymentPool), 2);
+        $allocations = [];
         $this->logBillPayment('sync_invoices.start', [
             'payment_pool_raw' => $paymentPool,
             'payment_pool_rounded' => $pool,
@@ -711,7 +744,7 @@ class MovementPage extends Component
         if ($invoices->isEmpty()) {
             $this->logBillPayment('sync_invoices.abort_empty_collection', []);
 
-            return;
+            return [];
         }
 
         if ($pool <= 0) {
@@ -720,7 +753,7 @@ class MovementPage extends Component
             ]);
             $this->syncInvoiceStatusesWhenNothingLeftDue($invoices);
 
-            return;
+            return [];
         }
 
         $eligible = $invoices
@@ -740,7 +773,7 @@ class MovementPage extends Component
             ]);
             $this->syncInvoiceStatusesWhenNothingLeftDue($eligible);
 
-            return;
+            return [];
         }
 
         // Two or more invoices with balance, but bank receipt does not cover combined due:
@@ -752,12 +785,20 @@ class MovementPage extends Component
                 'pool' => $pool,
             ]);
             foreach ($withBalance as $invoice) {
+                $previousPaid = round((float) $invoice->amount_paid, 2);
                 $newPaid = round((float) $invoice->total, 2);
                 Invoice::whereKey($invoice->id)->update([
                     'amount_paid' => $newPaid,
                     'amount_remaining' => 0,
                     'status' => 'paid',
                 ]);
+                $paidDelta = round(max(0, $newPaid - $previousPaid), 2);
+                if ($paidDelta > 0) {
+                    $allocations[] = [
+                        'invoice_id' => (int) $invoice->id,
+                        'amount' => $paidDelta,
+                    ];
+                }
                 $this->logBillPayment('sync_invoices.invoice_updated', [
                     'invoice_id' => $invoice->id,
                     'branch' => 'multi_underpay',
@@ -767,7 +808,7 @@ class MovementPage extends Component
                 ]);
             }
 
-            return;
+            return $allocations;
         }
 
         $this->logBillPayment('sync_invoices.branch_sequential', [
@@ -816,6 +857,10 @@ class MovementPage extends Component
                 'amount_remaining' => $newRem,
                 'status' => $status,
             ]);
+            $allocations[] = [
+                'invoice_id' => (int) $invoice->id,
+                'amount' => $pay,
+            ];
             $this->logBillPayment('sync_invoices.invoice_updated', [
                 'invoice_id' => $invoice->id,
                 'branch' => 'sequential',
@@ -830,6 +875,38 @@ class MovementPage extends Component
 
                 break;
             }
+        }
+
+        return $allocations;
+    }
+
+    /**
+     * @param  array<int, array{invoice_id:int, amount:float|int|string}>  $allocations
+     */
+    private function reverseInvoicesForBillPayment(array $allocations): void
+    {
+        foreach ($allocations as $allocation) {
+            $invoiceId = (int) ($allocation['invoice_id'] ?? 0);
+            $amount = round(max(0, (float) ($allocation['amount'] ?? 0)), 2);
+
+            if ($invoiceId < 1 || $amount <= 0) {
+                continue;
+            }
+
+            $invoice = Invoice::find($invoiceId);
+            if (! $invoice) {
+                continue;
+            }
+
+            $newPaid = round(max(0, (float) $invoice->amount_paid - $amount), 2);
+            $newRemaining = round(max(0, (float) $invoice->total - $newPaid), 2);
+            $status = $newPaid <= 0 ? 'pending' : ($newRemaining <= 0.00001 ? 'paid' : 'partial');
+
+            $invoice->update([
+                'amount_paid' => $newPaid,
+                'amount_remaining' => $newRemaining,
+                'status' => $status,
+            ]);
         }
     }
 
@@ -863,6 +940,133 @@ class MovementPage extends Component
         $this->inlineBillMovementId = null;
         $this->inlineBillType = '';
         $this->resetValidation();
+    }
+
+    private function normalizeMovementExtra(?array $extra): array
+    {
+        return is_array($extra) ? $extra : [];
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, Invoice>  $linkedInvoices
+     * @param  array<int, array{invoice_id:int, amount:float|int|string}>  $allocations
+     */
+    private function buildMovementInvoiceExtra(?array $existingExtra, \Illuminate\Support\Collection $linkedInvoices, array $allocations = []): ?array
+    {
+        $extra = $this->normalizeMovementExtra($existingExtra);
+
+        unset($extra['linked_invoice_ids'], $extra['linked_invoices'], $extra['bill_payment_allocations']);
+
+        if ($linkedInvoices->isNotEmpty()) {
+            $extra['linked_invoice_ids'] = $linkedInvoices->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->values()
+                ->all();
+            $extra['linked_invoices'] = $linkedInvoices
+                ->map(fn (Invoice $invoice) => [
+                    'id' => (int) $invoice->id,
+                    'invoice_number' => (string) ($invoice->invoice_number ?? ''),
+                    'client_name' => (string) ($invoice->client?->name ?? ''),
+                ])
+                ->values()
+                ->all();
+        }
+
+        if (! empty($allocations)) {
+            $extra['bill_payment_allocations'] = array_values(array_filter(array_map(
+                fn (array $allocation): ?array => (
+                    ((int) ($allocation['invoice_id'] ?? 0)) > 0 && round(max(0, (float) ($allocation['amount'] ?? 0)), 2) > 0
+                )
+                    ? [
+                        'invoice_id' => (int) $allocation['invoice_id'],
+                        'amount' => round((float) $allocation['amount'], 2),
+                    ]
+                    : null,
+                $allocations
+            )));
+        }
+
+        return $extra === [] ? null : $extra;
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function extractLinkedInvoiceIds(BankMovement $movement): array
+    {
+        $extra = $this->normalizeMovementExtra($movement->listado_extra);
+        $storedIds = collect($extra['linked_invoice_ids'] ?? [])
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn (int $id) => $id > 0)
+            ->values()
+            ->all();
+
+        if ($storedIds !== []) {
+            return $storedIds;
+        }
+
+        if (! $this->isBillType((string) $movement->type) || ! $movement->category) {
+            return [];
+        }
+
+        $invoiceNumbers = collect(explode('|', (string) $movement->category))
+            ->map(fn (string $label) => trim($label))
+            ->filter()
+            ->map(function (string $label) {
+                $parts = preg_split('/\s+-\s+/', $label, 2);
+
+                return trim((string) ($parts[0] ?? $label));
+            })
+            ->filter()
+            ->values()
+            ->all();
+
+        if ($invoiceNumbers === []) {
+            return [];
+        }
+
+        return Invoice::query()
+            ->whereIn('invoice_number', $invoiceNumbers)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int, array{id:int|null, invoice_number:string, client_name:string}>
+     */
+    private function linkedInvoicesForDisplay(BankMovement $movement): array
+    {
+        $extra = $this->normalizeMovementExtra($movement->listado_extra);
+        $stored = collect($extra['linked_invoices'] ?? [])
+            ->map(fn (array $item) => [
+                'id' => isset($item['id']) ? (int) $item['id'] : null,
+                'invoice_number' => (string) ($item['invoice_number'] ?? ''),
+                'client_name' => (string) ($item['client_name'] ?? ''),
+            ])
+            ->filter(fn (array $item) => $item['invoice_number'] !== '' || $item['client_name'] !== '')
+            ->values()
+            ->all();
+
+        if ($stored !== []) {
+            return $stored;
+        }
+
+        if (! $this->isBillType((string) $movement->type) || ! $movement->category) {
+            return [];
+        }
+
+        return collect(explode('|', (string) $movement->category))
+            ->map(fn (string $label) => trim($label))
+            ->filter()
+            ->map(fn (string $label) => [
+                'id' => null,
+                'invoice_number' => $label,
+                'client_name' => '',
+            ])
+            ->values()
+            ->all();
     }
 
     /**
@@ -932,7 +1136,8 @@ class MovementPage extends Component
                     $q->whereIn('status', ['pending', 'partial'])
                         ->orWhere(function ($q2) {
                             $q2->whereNotNull('amount_remaining')->where('amount_remaining', '>', 0);
-                        });
+                        })
+                        ->orWhereIn('id', $this->selectedInvoiceIds);
                 })
                 ->when($this->billInvoiceSearch !== '', function ($q) {
                     $q->where(function ($sq) {
@@ -961,12 +1166,39 @@ class MovementPage extends Component
                 ->all();
         }
 
+        $selectedInvoices = $this->selectedInvoiceIds === []
+            ? collect()
+            : Invoice::query()
+                ->with('client')
+                ->whereIn('id', $this->selectedInvoiceIds)
+                ->get(['id', 'invoice_number', 'client_id', 'amount_remaining', 'amount_paid', 'total'])
+                ->sortBy(fn (Invoice $invoice) => array_search((int) $invoice->id, $this->selectedInvoiceIds, true))
+                ->values()
+                ->map(function (Invoice $invoice) {
+                    $remaining = round(max(0, (float) $invoice->total - (float) $invoice->amount_paid), 2);
+                    $stored = round(max(0, (float) ($invoice->amount_remaining ?? 0)), 2);
+
+                    return (object) [
+                        'id' => (int) $invoice->id,
+                        'invoice_number' => (string) $invoice->invoice_number,
+                        'client_name' => $invoice->client?->name,
+                        'remaining' => max($remaining, $stored),
+                    ];
+                });
+
+        $movements->getCollection()->transform(function (BankMovement $movement) {
+            $movement->linked_invoices_display = $this->linkedInvoicesForDisplay($movement);
+
+            return $movement;
+        });
+
         return view('livewire.movements.movement-page', [
             'movements' => $movements,
             'bankAccounts' => BankAccount::query()->orderBy('bank_name')->get(['id', 'bank_name']),
             'movementTypes' => MovementType::orderBy('sort_order')->orderBy('name')->get(),
             'movementCategories' => MovementCategory::orderBy('sort_order')->orderBy('name')->get(),
             'pendingInvoices' => $pendingInvoices,
+            'selectedInvoices' => $selectedInvoices,
             'movementTotals' => $movementTotals,
             'balanceBookRows' => $balanceBookRows,
             'balanceBookTotal' => $balanceBookTotal,

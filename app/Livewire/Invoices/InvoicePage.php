@@ -38,6 +38,9 @@ class InvoicePage extends Component
 
     public ?int $editingId = null;
 
+    #[\Livewire\Attributes\Url(as: 'edit')]
+    public string $editInvoiceId = '';
+
     public string $quickClientName = '';
 
     public string $quickClientEmail = '';
@@ -138,6 +141,10 @@ class InvoicePage extends Component
     public function mount(): void
     {
         $this->filterUserId = auth()->check() ? (string) auth()->id() : '';
+
+        if (ctype_digit($this->editInvoiceId)) {
+            $this->edit((int) $this->editInvoiceId);
+        }
     }
 
     private function canAccessAllInvoices(): bool

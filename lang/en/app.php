@@ -415,6 +415,7 @@ return [
     'add' => 'Add',
     'create_first_invoice' => 'Create your first invoice',
     'edit_invoice' => 'Edit Invoice',
+    'remove' => 'Remove',
     'users' => 'Users',
     'new_user' => 'New User',
     'roles_and_permissions' => 'Roles & Permissions',
