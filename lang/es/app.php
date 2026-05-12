@@ -156,6 +156,7 @@ return [
     'currency' => 'Divisa',
     'initial_balance' => 'Saldo Inicial',
     'current_balance' => 'Saldo Actual',
+    'last_movement' => 'Último Movimiento',
 
     'concept' => 'Concepto',
     'beneficiary' => 'Beneficiario',

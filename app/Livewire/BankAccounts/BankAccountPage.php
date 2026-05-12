@@ -108,7 +108,8 @@ class BankAccountPage extends Component
     {
         $query = BankAccount::query()
             ->withSum('movements as total_deposits', 'deposit')
-            ->withSum('movements as total_withdrawals', 'withdrawal');
+            ->withSum('movements as total_withdrawals', 'withdrawal')
+            ->withMax('movements as last_movement_date', 'date');
 
         if ($this->search) {
             $query->where(function ($q) {

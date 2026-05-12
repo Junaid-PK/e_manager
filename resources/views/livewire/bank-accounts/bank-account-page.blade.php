@@ -46,7 +46,12 @@
                                 {{ __('app.initial_balance') }}: {{ fmt_number($account->initial_balance) }} &euro;
                             </p>
                         </div>
-                        <p class="text-xs text-gray-400 dark:text-gray-500">{{ $account->holder_name }}</p>
+                        <div class="flex items-center justify-between mt-2">
+                            <p class="text-xs text-gray-400 dark:text-gray-500">{{ $account->holder_name }}</p>
+                            @if ($account->last_movement_date)
+                                <p class="text-[11px] text-gray-500 dark:text-gray-400 font-medium">{{ __('app.last_movement') }}: {{ \Carbon\Carbon::parse($account->last_movement_date)->format('d/m/Y') }}</p>
+                            @endif
+                        </div>
                     </a>
                     <div class="flex items-center justify-end gap-1 px-4 py-3 border-t border-gray-100 dark:border-gray-700">
                         @can('bank_accounts.edit')

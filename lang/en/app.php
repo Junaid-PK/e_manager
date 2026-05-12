@@ -156,6 +156,7 @@ return [
     'currency' => 'Currency',
     'initial_balance' => 'Initial Balance',
     'current_balance' => 'Current Balance',
+    'last_movement' => 'Last Movement',
 
     'concept' => 'Concept',
     'beneficiary' => 'Beneficiary',

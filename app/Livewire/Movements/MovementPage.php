@@ -625,11 +625,15 @@ class MovementPage extends Component
      */
     protected function applySorting($query)
     {
+        $field = match ($this->sortField) {
+            'date' => 'bank_movements.date',
+            default => $this->sortField,
+        };
+
         if ($this->sortField !== '') {
-            $query->orderBy($this->sortField, $this->sortDirection);
-            if ($this->sortField !== 'id') {
-                $query->orderBy('bank_movements.id', $this->sortDirection);
-            }
+            $query->orderBy($field, $this->sortDirection);
+            // Secondary sort by id always desc so newest records appear first within the same date.
+            $query->orderBy('bank_movements.id', 'desc');
 
             return $query;
         }
