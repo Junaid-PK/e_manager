@@ -719,6 +719,55 @@ class InvoicePage extends Component
         return $this->buildQuery()->paginate($this->perPage);
     }
 
+    /**
+     * Apply sorting with natural order support for invoice_number.
+     * Sorts numeric values (1-9) first, then alphanumeric like 26/F-1, 26/F-5.
+     * Handles formats: 1, 5, 10, 26/F-1, 26/F-5, 26/F-10
+     */
+    protected function applySorting($query)
+    {
+        if (! $this->sortField) {
+            return $query->latest();
+        }
+
+        if ($this->sortField === 'invoice_number') {
+            $driver = $query->getConnection()->getDriverName();
+
+            if ($driver === 'sqlite') {
+                // SQLite: Sort by whether purely numeric first, then by trailing number
+                $query->orderByRaw(
+                    "(CASE WHEN invoice_number GLOB '*[^0-9]*' THEN 1 ELSE 0 END) ".$this->sortDirection
+                );
+                $query->orderByRaw(
+                    "CAST(
+                        CASE 
+                            WHEN invoice_number LIKE '%/F-%' THEN SUBSTR(invoice_number, INSTR(invoice_number, '/F-') + 3)
+                            WHEN invoice_number GLOB '*[^0-9]*' THEN REPLACE(REPLACE(invoice_number, '/F-', ''), '/', '')
+                            ELSE invoice_number
+                        END AS INTEGER
+                    ) ".$this->sortDirection
+                );
+            } else {
+                // MySQL/MariaDB: Sort purely numeric first, then by trailing number
+                $query->orderByRaw(
+                    "(invoice_number REGEXP '^[0-9]+$') ".($this->sortDirection === 'asc' ? 'DESC' : 'ASC')
+                );
+                $query->orderByRaw(
+                    "CAST(
+                        CASE 
+                            WHEN invoice_number LIKE '%/F-%' THEN SUBSTRING_INDEX(invoice_number, '/F-', -1)
+                            ELSE REGEXP_REPLACE(invoice_number, '[^0-9]', '')
+                        END AS UNSIGNED
+                    ) ".$this->sortDirection
+                );
+            }
+
+            return $query;
+        }
+
+        return $query->orderBy($this->sortField, $this->sortDirection);
+    }
+
     private function resetForm(): void
     {
         $this->formCompanyId = '';
