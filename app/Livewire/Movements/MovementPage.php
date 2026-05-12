@@ -40,6 +40,8 @@ class MovementPage extends Component
 
     public ?int $inlineBillMovementId = null;
 
+    public string $inlineBillType = '';
+
     public string $bulkCategory = '';
 
     #[\Livewire\Attributes\Url(as: 'bank_account_id')]
@@ -120,7 +122,7 @@ class MovementPage extends Component
     {
         $this->formCategory = '';
         $this->selectedInvoiceIds = [];
-        if ($this->formType === $this->billMovementTypeSlug() && $this->showFormModal) {
+        if ($this->isBillType($this->formType) && $this->showFormModal) {
             $this->showBillInvoiceModal = true;
         }
     }
@@ -163,7 +165,7 @@ class MovementPage extends Component
             ->implode(' | ');
 
         $movement->update([
-            'type' => $this->billMovementTypeSlug(),
+            'type' => $this->inlineBillType ?: $this->billMovementTypeSlug(),
             'category' => $categoryLabel ?: null,
             'deposit' => $deposit,
             'withdrawal' => null,
@@ -180,6 +182,7 @@ class MovementPage extends Component
 
         $this->showBillInvoiceModal = false;
         $this->inlineBillMovementId = null;
+        $this->inlineBillType = '';
         $this->selectedInvoiceIds = [];
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
@@ -325,7 +328,7 @@ class MovementPage extends Component
 
         $this->validate();
 
-        $isBill = $this->formType === $this->billMovementTypeSlug();
+        $isBill = $this->isBillType($this->formType);
         $hasInvoices = $isBill && count($this->selectedInvoiceIds) > 0;
 
         $resolvedCategory = $this->resolveCategoryForType(trim($this->formCategory ?? ''), $this->formType);
@@ -361,7 +364,7 @@ class MovementPage extends Component
                 ->filter()
                 ->values()
                 ->implode(' | ');
-            $data['type'] = $this->billMovementTypeSlug();
+            // Preserve the selected bill type (bill or factura)
         }
 
         if ($this->editingId) {
@@ -443,8 +446,9 @@ class MovementPage extends Component
             return;
         }
 
-        if ($slug === $this->billMovementTypeSlug()) {
+        if ($this->isBillType($slug)) {
             $this->inlineBillMovementId = $id;
+            $this->inlineBillType = $slug;
             $this->selectedInvoiceIds = [];
             $this->showBillInvoiceModal = true;
 
@@ -514,7 +518,18 @@ class MovementPage extends Component
     }
 
     /**
+     * Check if a movement type slug represents a bill/invoice payment type.
+     * Supports both "bill" (English) and "factura" (Spanish).
+     */
+    private function isBillType(string $type): bool
+    {
+        return in_array($type, ['bill', 'factura'], true);
+    }
+
+    /**
      * Slug for the "bill" / cobro movement type (matches movement_types.slug, default "bill").
+     *
+     * @deprecated Use isBillType() to check if a type is a bill type.
      */
     private function billMovementTypeSlug(): string
     {
@@ -632,6 +647,7 @@ class MovementPage extends Component
 
         if ($this->sortField !== '') {
             $query->orderBy($field, $this->sortDirection);
+            // $query->orderBy('bank_movements.id', $this->sortDirection);
 
             return $query;
         }
@@ -845,6 +861,7 @@ class MovementPage extends Component
         $this->selectedInvoiceIds = [];
         $this->billInvoiceSearch = '';
         $this->inlineBillMovementId = null;
+        $this->inlineBillType = '';
         $this->resetValidation();
     }
 

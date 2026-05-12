@@ -18,7 +18,7 @@ class MovementType extends Model
         });
 
         static::updating(function (self $model) {
-            if ($model->isDirty('name') && !$model->isDirty('slug')) {
+            if ($model->isDirty('name') && ! $model->isDirty('slug')) {
                 $model->slug = Str::slug($model->name);
             }
         });
