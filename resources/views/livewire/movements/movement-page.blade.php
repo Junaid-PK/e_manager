@@ -5,7 +5,6 @@
 @php
     $categoryOpts = $movementCategories->map(fn ($mc) => ['value' => $mc->name, 'label' => $mc->name])->values()->all();
     $movementTypeOpts = $movementTypes->map(fn ($mt) => ['value' => $mt->slug, 'label' => $mt->name])->values()->all();
-    $billInvoiceOpts = $pendingInvoiceOptions ?? [];
 @endphp
 <div>
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
@@ -77,7 +76,7 @@
                 <input wire:model.live.debounce.300ms="dateTo" type="date" placeholder="{{ __('app.to') }}" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 px-3 focus:ring-emerald-500 focus:border-emerald-500">
 
                 <div class="w-44">
-                    <x-custom-select compact :options="$filterType === 'bill' ? $billInvoiceOpts : $categoryOpts" :value="$filterCategory ?? ''" allow-custom wire-model="filterCategory" :placeholder="__('app.category')" />
+                    <x-custom-select compact :options="$categoryOpts" :value="$filterCategory ?? ''" allow-custom wire-model="filterCategory" :placeholder="__('app.category')" />
                 </div>
 
                 <button wire:click="clearFilters" class="inline-flex items-center px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
@@ -332,11 +331,10 @@
                             <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[7rem] align-top">
                                 <x-custom-select compact
                                     wire:key="cat-{{ $movement->id }}-{{ $movement->type }}"
-                                    :options="$movement->type === 'bill' ? $billInvoiceOpts : $categoryOpts"
+                                    :options="$categoryOpts"
                                     :value="$movement->category ?? ''"
                                     placeholder="—"
-                                    :allow-custom="$movement->type !== 'bill'"
-                                    :multiple="$movement->type === 'bill'"
+                                    allow-custom
                                     submit-method="quickUpdateCategory"
                                     :submit-arg="$movement->id"
                                     :nav-row="$rowIdx"
@@ -470,7 +468,7 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.type') }} *</label>
-                                <select wire:model="formType" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                <select wire:model.live="formType" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
                                     @foreach ($movementTypes as $mt)
                                         <option value="{{ $mt->slug }}">{{ $mt->name }}</option>
                                     @endforeach
@@ -505,8 +503,22 @@
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.category') }}</label>
-                                <x-custom-select :options="$formType === 'bill' ? $billInvoiceOpts : $categoryOpts" :value="$formCategory ?? ''" allow-custom wire-model="formCategory" placeholder="—" />
+                                @if ($formType === 'bill')
+                                    <div class="flex items-center justify-between mb-1">
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('app.invoices') }}</label>
+                                        <button type="button" wire:click="openBillInvoiceModal" class="text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">{{ __('app.change') }}</button>
+                                    </div>
+                                    <div class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2">
+                                        @if (count($selectedInvoiceIds) > 0)
+                                            <span class="font-medium text-emerald-700 dark:text-emerald-400">{{ count($selectedInvoiceIds) }} {{ __('app.selected') }}</span>
+                                        @else
+                                            <span class="text-gray-500 dark:text-gray-400">{{ __('app.select_invoices') }}</span>
+                                        @endif
+                                    </div>
+                                @else
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.category') }}</label>
+                                    <x-custom-select :options="$categoryOpts" :value="$formCategory ?? ''" allow-custom wire-model="formCategory" placeholder="—" />
+                                @endif
                                 @error('formCategory') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                             </div>
                             <div>
@@ -554,6 +566,78 @@
                 <div class="flex items-center justify-end space-x-3">
                     <button wire:click="$set('showDeleteModal', false)" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">{{ __('app.cancel') }}</button>
                     <button wire:click="delete" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors">{{ __('app.delete') }}</button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if ($showBillInvoiceModal)
+        <div class="fixed inset-0 z-50 overflow-hidden" @keydown.escape.window="$set('showBillInvoiceModal', false)">
+            <div class="absolute inset-0 bg-black/50" wire:click="$set('showBillInvoiceModal', false)"></div>
+            <div class="absolute inset-y-0 right-0 w-full max-w-[450px] flex"
+                 x-data
+                 x-show="$wire.showBillInvoiceModal"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="translate-x-full"
+                 x-transition:enter-end="translate-x-0"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="translate-x-0"
+                 x-transition:leave-end="translate-x-full">
+                <div class="w-full bg-white dark:bg-gray-800 shadow-sm flex flex-col">
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ __('app.pending_invoices') }}</h3>
+                        <button wire:click="closeBillInvoiceModal" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                        </button>
+                    </div>
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-gray-400">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                                </svg>
+                            </div>
+                            <input wire:model.live.debounce.300ms="billInvoiceSearch"
+                                   type="text"
+                                   placeholder="{{ __('app.search') }}..."
+                                   class="block w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-emerald-500 focus:border-emerald-500">
+                        </div>
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-4 space-y-2">
+                        @forelse ($pendingInvoices as $invoice)
+                            <label class="flex items-start space-x-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
+                                   wire:key="pending-invoice-{{ $invoice->id }}">
+                                <input type="checkbox"
+                                       wire:model.live="selectedInvoiceIds"
+                                       value="{{ $invoice->id }}"
+                                       class="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 dark:bg-gray-700 mt-0.5">
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $invoice->invoice_number }}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ $invoice->client_name ?? '—' }}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ __('app.amount_remaining') }}: {{ fmt_number($invoice->remaining) }} &euro;</p>
+                                </div>
+                            </label>
+                        @empty
+                            <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-8">{{ __('app.no_invoices') }}</p>
+                        @endforelse
+                    </div>
+                    <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                        <span class="text-sm text-gray-600 dark:text-gray-400">
+                            {{ count($selectedInvoiceIds) }} {{ __('app.selected') }}
+                        </span>
+                        <div class="flex items-center space-x-2">
+                            <button wire:click="selectAllPendingInvoices" class="text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">{{ __('app.select_all') }}</button>
+                            <button wire:click="deselectAllPendingInvoices" class="text-xs font-medium text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-300">{{ __('app.deselect_all') }}</button>
+                        </div>
+                    </div>
+                    <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-end space-x-3">
+                        <button wire:click="closeBillInvoiceModal" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">{{ __('app.cancel') }}</button>
+                        @if ($inlineBillMovementId)
+                            <button wire:click="applyInlineBillPayment" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">{{ __('app.apply') }}</button>
+                        @else
+                            <button wire:click="closeBillInvoiceModal" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">{{ __('app.apply') }}</button>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>

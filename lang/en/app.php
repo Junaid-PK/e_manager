@@ -78,6 +78,7 @@ return [
     'delete' => 'Delete',
     'save' => 'Save',
     'cancel' => 'Cancel',
+    'change' => 'Change',
     'search' => 'Search...',
     'filter' => 'Filter',
     'export' => 'Export',
@@ -261,6 +262,7 @@ return [
     'deposits' => 'Deposits',
     'withdrawals' => 'Withdrawals',
     'categorize_selected' => 'Categorize Selected',
+    'select_invoices' => 'Select Invoices',
 
     'file' => 'File',
     'choose_file' => 'Choose a file',
