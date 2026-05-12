@@ -632,13 +632,11 @@ class MovementPage extends Component
 
         if ($this->sortField !== '') {
             $query->orderBy($field, $this->sortDirection);
-            // Secondary sort by id always desc so newest records appear first within the same date.
-            $query->orderBy('bank_movements.id', 'desc');
 
             return $query;
         }
 
-        return $query->orderBy('bank_movements.date', 'desc')->orderBy('bank_movements.id', 'desc');
+        return $query->orderBy('bank_movements.date', 'desc');
     }
 
     protected function getMovements()
