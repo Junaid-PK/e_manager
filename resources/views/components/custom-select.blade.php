@@ -62,11 +62,27 @@ $hasNav          = $navRow !== null && $navCol !== null;
         const el = this.$refs.trigger;
         if (!el) return;
         const r = el.getBoundingClientRect();
+        // Retry if the element hasn't been laid out yet (e.g. during Livewire re-renders or transitions)
+        if (!r.width && !r.height) {
+            requestAnimationFrame(() => this.placePanel());
+            return;
+        }
         const gap = 4;
-        const maxH = Math.min(window.innerHeight - r.bottom - gap - 24, 320);
-        this.panelTop = r.bottom + gap;
+        const spaceBelow = window.innerHeight - r.bottom - gap - 24;
+        const spaceAbove = r.top - gap - 24;
+        const listH = 320;
+        // Flip upward when there is more space above than below
+        const flipUp = spaceBelow < listH && spaceAbove > spaceBelow;
+        if (flipUp) {
+            const panelEl = this.$refs.panel;
+            const panelH = panelEl ? panelEl.getBoundingClientRect().height : 220;
+            this.panelTop = Math.max(gap, r.top - panelH - gap);
+        } else {
+            this.panelTop = r.bottom + gap;
+        }
         this.panelLeft = r.left;
         this.panelW = Math.max(r.width, 200);
+        const maxH = Math.min(flipUp ? spaceAbove : spaceBelow, 320);
         this._maxListH = Math.max(120, maxH - (this.allowCustom ? 56 : 0) - 40);
     },
     label() {
@@ -191,7 +207,11 @@ $hasNav          = $navRow !== null && $navCol !== null;
         this.customInput = '';
         this.cursor = -1;
         this.$nextTick(() => {
-            this.placePanel();
+            requestAnimationFrame(() => {
+                this.placePanel();
+                // Re-measure after layout fully settles to catch race conditions
+                requestAnimationFrame(() => this.placePanel());
+            });
             setTimeout(() => {
                 if (this.$refs.searchInput) this.$refs.searchInput.focus();
                 else this.$refs.panel?.focus();
@@ -331,8 +351,10 @@ $hasNav          = $navRow !== null && $navCol !== null;
                         @click="pick(@js($opt['value']))"
                         x-show="!search || @js(mb_strtolower($opt['label'])).includes(search.toLowerCase())"
                         :class="(isHighlighted(@js($opt['value']))
-                            ? 'bg-emerald-50 dark:bg-emerald-900/30 !text-emerald-800 dark:!text-emerald-300'
-                            : '!text-gray-900 dark:!text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700') + (isSelected(@js($opt['value'])) ? ' font-semibold' : '')"
+                            ? 'bg-emerald-100 dark:bg-emerald-800/40 !text-emerald-900 dark:!text-emerald-200'
+                            : (isSelected(@js($opt['value']))
+                                ? 'bg-emerald-50 dark:bg-emerald-900/20 !text-emerald-700 dark:!text-emerald-300'
+                                : '!text-gray-900 dark:!text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'))"
                         class="block w-full shrink-0 text-left px-3 py-1.5 text-xs truncate">
                     {{ $opt['label'] }}
                 </button>
