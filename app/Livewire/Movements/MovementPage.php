@@ -905,44 +905,42 @@ class MovementPage extends Component
             ? collect($balanceBookRows)->firstWhere('id', $filterBankId)
             : null;
 
-        $pendingInvoices = Invoice::query()
-            ->leftJoin('clients', 'clients.id', '=', 'invoices.client_id')
-            ->where(function ($q) {
-                $q->whereIn('invoices.status', ['pending', 'partial'])
-                    ->orWhere(function ($q2) {
-                        $q2->whereNotNull('invoices.amount_remaining')->where('invoices.amount_remaining', '>', 0);
+        $pendingInvoices = [];
+        if ($this->showBillInvoiceModal) {
+            $pendingInvoices = Invoice::query()
+                ->with('client')
+                ->where(function ($q) {
+                    $q->whereIn('status', ['pending', 'partial'])
+                        ->orWhere(function ($q2) {
+                            $q2->whereNotNull('amount_remaining')->where('amount_remaining', '>', 0);
+                        });
+                })
+                ->when($this->billInvoiceSearch !== '', function ($q) {
+                    $q->where(function ($sq) {
+                        $sq->where('invoice_number', 'like', "%{$this->billInvoiceSearch}%")
+                            ->orWhereHas('client', function ($cq) {
+                                $cq->where('name', 'like', "%{$this->billInvoiceSearch}%");
+                            });
                     });
-            })
-            ->when($this->billInvoiceSearch !== '', function ($q) {
-                $q->where(function ($sq) {
-                    $sq->where('invoices.invoice_number', 'like', "%{$this->billInvoiceSearch}%")
-                        ->orWhere('clients.name', 'like', "%{$this->billInvoiceSearch}%");
-                });
-            })
-            ->orderByDesc('invoices.date_due')
-            ->orderByDesc('invoices.id')
-            ->limit(120)
-            ->get([
-                'invoices.id',
-                'invoices.invoice_number',
-                'invoices.total',
-                'invoices.amount_paid',
-                'invoices.amount_remaining',
-                'clients.name as client_name',
-            ])
-            ->map(function ($invoice) {
-                $remaining = round(max(0, (float) $invoice->total - (float) $invoice->amount_paid), 2);
-                $stored = round(max(0, (float) ($invoice->amount_remaining ?? 0)), 2);
+                })
+                ->orderByDesc('date_due')
+                ->orderByDesc('id')
+                ->limit(120)
+                ->get(['id', 'invoice_number', 'total', 'amount_paid', 'amount_remaining', 'client_id'])
+                ->map(function (Invoice $invoice) {
+                    $remaining = round(max(0, (float) $invoice->total - (float) $invoice->amount_paid), 2);
+                    $stored = round(max(0, (float) ($invoice->amount_remaining ?? 0)), 2);
 
-                return (object) [
-                    'id' => $invoice->id,
-                    'invoice_number' => $invoice->invoice_number,
-                    'client_name' => $invoice->client_name,
-                    'remaining' => max($remaining, $stored),
-                ];
-            })
-            ->values()
-            ->all();
+                    return (object) [
+                        'id' => $invoice->id,
+                        'invoice_number' => $invoice->invoice_number,
+                        'client_name' => $invoice->client?->name,
+                        'remaining' => max($remaining, $stored),
+                    ];
+                })
+                ->values()
+                ->all();
+        }
 
         return view('livewire.movements.movement-page', [
             'movements' => $movements,
