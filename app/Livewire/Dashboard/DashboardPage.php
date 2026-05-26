@@ -187,7 +187,7 @@ class DashboardPage extends Component
         return $this->monthlyTotals(
             $query,
             'date',
-            'SUM(COALESCE(deposit, 0)) - SUM(COALESCE(withdrawal, 0))',
+            'COALESCE(deposit, 0) - COALESCE(withdrawal, 0)',
             $from,
             $to
         );
