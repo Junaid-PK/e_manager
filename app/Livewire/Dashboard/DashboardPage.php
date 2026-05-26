@@ -147,63 +147,26 @@ class DashboardPage extends Component
             $from,
             $to
         );
-        $expenseTotals = $this->monthlyTotals(
-            $this->applyOwnerFilter(Expense::query()),
-            'date',
-            'amount',
-            $from,
-            $to
-        );
-        $purchaseMovementTotals = $this->monthlyTotals(
-            $this->applyOwnerFilter(BankMovement::query()->whereIn('type', ['buy', 'compra'])),
-            'date',
-            'CASE WHEN COALESCE(withdrawal, 0) > 0 THEN withdrawal ELSE COALESCE(deposit, 0) END',
-            $from,
-            $to
-        );
-        $cashInTotals = $this->monthlyTotals(
-            $this->applyOwnerFilter(BankMovement::query()),
-            'date',
-            'deposit',
-            $from,
-            $to
-        );
-        $cashOutTotals = $this->monthlyTotals(
-            $this->applyOwnerFilter(BankMovement::query()),
-            'date',
-            'withdrawal',
-            $from,
-            $to
-        );
-        $collectedTotals = $this->monthlyTotals(
-            $this->applyOwnerFilter(Invoice::query()),
-            'date_issued',
-            'amount_paid',
-            $from,
-            $to
-        );
+        $collectedTotals = $this->bankMovementTotalsByType('Nomina', $from, $to);
+        $expenseLedgerTotals = $this->bankMovementTotalsByType('S.Social', $from, $to);
+        $purchaseMovementTotals = $this->bankMovementTotalsByType('AEAT', $from, $to);
+        $cashInTotals = $this->bankMovementTotalsByType('Compra', $from, $to);
+        $cashOutTotals = $this->bankMovementTotalsByType('Gasto', $from, $to);
+        $totalCostTotals = $this->bankMovementTotalsByType('PROVEEDOR', $from, $to);
+        $marginTotals = $this->bankMovementTotalsByType('VARIOS', $from, $to);
+        $cashDeltaTotals = $this->bankMovementTotalsByType('IVA', $from, $to);
 
         $rows = [
             ['key' => 'billing', 'label' => __('app.dashboard_billing'), 'accent' => 'billing', 'values' => $invoiceTotals],
             ['key' => 'collected', 'label' => __('app.cobrado'), 'accent' => 'collected', 'values' => $collectedTotals],
-            ['key' => 'ledger_expenses', 'label' => __('app.dashboard_ledger_expenses'), 'accent' => 'cost', 'values' => $expenseTotals],
+            ['key' => 'ledger_expenses', 'label' => __('app.dashboard_ledger_expenses'), 'accent' => 'cost', 'values' => $expenseLedgerTotals],
             ['key' => 'purchase_movements', 'label' => __('app.dashboard_purchase_movements'), 'accent' => 'cost', 'values' => $purchaseMovementTotals],
             ['key' => 'cash_in', 'label' => __('app.dashboard_cash_in'), 'accent' => 'cash-in', 'values' => $cashInTotals],
             ['key' => 'cash_out', 'label' => __('app.dashboard_cash_out'), 'accent' => 'cash-out', 'values' => $cashOutTotals],
+            ['key' => 'total_cost', 'label' => __('app.dashboard_total_cost'), 'accent' => 'total-cost', 'values' => $totalCostTotals, 'emphasis' => true],
+            ['key' => 'margin', 'label' => __('app.dashboard_operating_margin'), 'accent' => 'margin', 'values' => $marginTotals, 'emphasis' => true],
+            ['key' => 'cash_delta', 'label' => __('app.dashboard_cash_delta'), 'accent' => 'delta', 'values' => $cashDeltaTotals, 'emphasis' => true],
         ];
-
-        $costTotals = [];
-        $marginTotals = [];
-        $cashDeltaTotals = [];
-        foreach ($monthKeys as $key) {
-            $costTotals[$key] = round(($expenseTotals[$key] ?? 0) + ($purchaseMovementTotals[$key] ?? 0), 2);
-            $marginTotals[$key] = round(($invoiceTotals[$key] ?? 0) - $costTotals[$key], 2);
-            $cashDeltaTotals[$key] = round(($cashInTotals[$key] ?? 0) - ($cashOutTotals[$key] ?? 0), 2);
-        }
-
-        $rows[] = ['key' => 'total_cost', 'label' => __('app.dashboard_total_cost'), 'accent' => 'total-cost', 'values' => $costTotals, 'emphasis' => true];
-        $rows[] = ['key' => 'margin', 'label' => __('app.dashboard_operating_margin'), 'accent' => 'margin', 'values' => $marginTotals, 'emphasis' => true];
-        $rows[] = ['key' => 'cash_delta', 'label' => __('app.dashboard_cash_delta'), 'accent' => 'delta', 'values' => $cashDeltaTotals, 'emphasis' => true];
 
         return collect($rows)->map(function (array $row) use ($monthKeys) {
             $row['monthly'] = collect($monthKeys)
@@ -214,6 +177,20 @@ class DashboardPage extends Component
 
             return $row;
         })->all();
+    }
+
+    private function bankMovementTotalsByType(string $type, Carbon $from, Carbon $to): array
+    {
+        $query = $this->applyOwnerFilter(BankMovement::query())
+            ->whereRaw('LOWER(type) = LOWER(?)', [$type]);
+
+        return $this->monthlyTotals(
+            $query,
+            'date',
+            'CASE WHEN COALESCE(withdrawal, 0) > 0 THEN withdrawal ELSE COALESCE(deposit, 0) END',
+            $from,
+            $to
+        );
     }
 
     private function buildDashboardHighlights(array $executiveReport): array
@@ -288,7 +265,7 @@ class DashboardPage extends Component
             $totals[$category][$row->ym] = round((float) $row->total_amount, 2);
         }
 
-        $movementRows = $this->applyDateRange($this->applyOwnerFilter(BankMovement::query()->whereIn('type', ['buy', 'compra'])), 'date', $from, $to)
+        $movementRows = $this->applyDateRange($this->applyOwnerFilter(BankMovement::query()), 'date', $from, $to)
             ->selectRaw("COALESCE(NULLIF(category, ''), ?) as category_label", [__('app.none')])
             ->selectRaw("{$monthExpr} as ym")
             ->selectRaw('COALESCE(SUM(CASE WHEN COALESCE(withdrawal, 0) > 0 THEN withdrawal ELSE COALESCE(deposit, 0) END), 0) as total_amount')
@@ -313,9 +290,13 @@ class DashboardPage extends Component
                 ];
             })
             ->sortByDesc('total')
-            ->take(14)
             ->values()
             ->all();
+    }
+
+    private function normalizeTypeForLookup(string $type): string
+    {
+        return strtoupper(str_replace([' ', '.', '-'], '_', trim($type)));
     }
 
     private function buildTypeBreakdown(array $reportMonths, Carbon $from, Carbon $to): array
@@ -325,7 +306,10 @@ class DashboardPage extends Component
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get()
-            ->mapWithKeys(fn (MovementType $type) => [(string) $type->slug => (string) $type->name])
+            ->flatMap(fn (MovementType $type) => [
+                $this->normalizeTypeForLookup((string) $type->slug) => (string) $type->name,
+                $this->normalizeTypeForLookup((string) $type->name) => (string) $type->name,
+            ])
             ->all();
 
         $monthExpr = $this->monthBucketExpression('date');
@@ -348,14 +332,15 @@ class DashboardPage extends Component
                     ->map(fn (string $monthKey) => round((float) ($values[$monthKey] ?? 0), 2))
                     ->all();
 
+                $normalizedSlug = $this->normalizeTypeForLookup($typeSlug);
+
                 return [
-                    'label' => $typeLabels[$typeSlug] ?? str($typeSlug)->replace('_', ' ')->headline()->toString(),
+                    'label' => $typeLabels[$normalizedSlug] ?? str($typeSlug)->replace('_', ' ')->headline()->toString(),
                     'monthly' => $monthly,
                     'total' => round(array_sum($monthly), 2),
                 ];
             })
             ->sortByDesc('total')
-            ->take(14)
             ->values()
             ->all();
     }
