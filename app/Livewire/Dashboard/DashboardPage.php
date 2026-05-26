@@ -184,13 +184,25 @@ class DashboardPage extends Component
         $query = $this->applyOwnerFilter(BankMovement::query())
             ->whereRaw('LOWER(type) = LOWER(?)', [$type]);
 
+        $normalizedType = $this->normalizeTypeForLookup($type);
+        $isNetType = in_array($normalizedType, ['TRASPASO', 'LIQUIDACION_PRESTAMO']);
+
+        $sumExpression = $isNetType
+            ? 'COALESCE(deposit, 0) - COALESCE(withdrawal, 0)'
+            : 'CASE WHEN COALESCE(withdrawal, 0) > 0 THEN withdrawal ELSE COALESCE(deposit, 0) END';
+
         return $this->monthlyTotals(
             $query,
             'date',
-            'COALESCE(deposit, 0) - COALESCE(withdrawal, 0)',
+            $sumExpression,
             $from,
             $to
         );
+    }
+
+    private function bankMovementSumExpression(): string
+    {
+        return "SUM(CASE WHEN UPPER(COALESCE(type, '')) IN ('TRASPASO', 'LIQUIDACION PRESTAMO', 'LIQUIDACION_PRESTAMO') THEN COALESCE(deposit, 0) - COALESCE(withdrawal, 0) ELSE CASE WHEN COALESCE(withdrawal, 0) > 0 THEN withdrawal ELSE COALESCE(deposit, 0) END END)";
     }
 
     private function buildDashboardHighlights(array $executiveReport): array
@@ -268,7 +280,7 @@ class DashboardPage extends Component
         $movementRows = $this->applyDateRange($this->applyOwnerFilter(BankMovement::query()), 'date', $from, $to)
             ->selectRaw("COALESCE(NULLIF(category, ''), ?) as category_label", [__('app.none')])
             ->selectRaw("{$monthExpr} as ym")
-            ->selectRaw('SUM(COALESCE(deposit, 0)) - SUM(COALESCE(withdrawal, 0)) as total_amount')
+            ->selectRaw($this->bankMovementSumExpression() . ' as total_amount')
             ->groupBy('category_label', 'ym')
             ->get();
 
@@ -316,7 +328,7 @@ class DashboardPage extends Component
         $rows = $this->applyDateRange($this->applyOwnerFilter(BankMovement::query()), 'date', $from, $to)
             ->selectRaw("COALESCE(NULLIF(type, ''), ?) as type_slug", [__('app.none')])
             ->selectRaw("{$monthExpr} as ym")
-            ->selectRaw('SUM(COALESCE(deposit, 0)) - SUM(COALESCE(withdrawal, 0)) as total_amount')
+            ->selectRaw($this->bankMovementSumExpression() . ' as total_amount')
             ->groupBy('type_slug', 'ym')
             ->get();
 
