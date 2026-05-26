@@ -187,7 +187,7 @@ class DashboardPage extends Component
         return $this->monthlyTotals(
             $query,
             'date',
-            'CASE WHEN COALESCE(withdrawal, 0) > 0 THEN withdrawal ELSE COALESCE(deposit, 0) END',
+            'SUM(COALESCE(deposit, 0)) - SUM(COALESCE(withdrawal, 0))',
             $from,
             $to
         );
@@ -268,7 +268,7 @@ class DashboardPage extends Component
         $movementRows = $this->applyDateRange($this->applyOwnerFilter(BankMovement::query()), 'date', $from, $to)
             ->selectRaw("COALESCE(NULLIF(category, ''), ?) as category_label", [__('app.none')])
             ->selectRaw("{$monthExpr} as ym")
-            ->selectRaw('COALESCE(SUM(CASE WHEN COALESCE(withdrawal, 0) > 0 THEN withdrawal ELSE COALESCE(deposit, 0) END), 0) as total_amount')
+            ->selectRaw('SUM(COALESCE(deposit, 0)) - SUM(COALESCE(withdrawal, 0)) as total_amount')
             ->groupBy('category_label', 'ym')
             ->get();
 
@@ -316,7 +316,7 @@ class DashboardPage extends Component
         $rows = $this->applyDateRange($this->applyOwnerFilter(BankMovement::query()), 'date', $from, $to)
             ->selectRaw("COALESCE(NULLIF(type, ''), ?) as type_slug", [__('app.none')])
             ->selectRaw("{$monthExpr} as ym")
-            ->selectRaw('COALESCE(SUM(CASE WHEN COALESCE(withdrawal, 0) > 0 THEN withdrawal ELSE COALESCE(deposit, 0) END), 0) as total_amount')
+            ->selectRaw('SUM(COALESCE(deposit, 0)) - SUM(COALESCE(withdrawal, 0)) as total_amount')
             ->groupBy('type_slug', 'ym')
             ->get();
 
