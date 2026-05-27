@@ -17,6 +17,7 @@ use App\Livewire\Users\UsersPage;
 use App\Livewire\Roles\RolesPage;
 use App\Livewire\Workers\WorkerPage;
 use App\Livewire\MonthlyPeriods\MonthlyPeriodPage;
+use App\Livewire\ProjectMonths\ProjectMonthPage;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
@@ -43,6 +44,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('settings', SettingsPage::class)->middleware('permission:settings.view')->name('settings');
     Route::get('workers', WorkerPage::class)->middleware('permission:workers.view')->name('workers');
     Route::get('monthly-periods', MonthlyPeriodPage::class)->middleware('permission:monthly_periods.view')->name('monthly-periods');
+    Route::get('project-months', ProjectMonthPage::class)->middleware('permission:project_months.view')->name('project-months');
 });
 
 Route::get('lang/{locale}', function (string $locale) {
