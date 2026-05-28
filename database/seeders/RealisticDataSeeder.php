@@ -111,7 +111,6 @@ class RealisticDataSeeder extends Seeder
                     'hours' => $hours,
                     'days' => $days,
                     'rate' => $rate,
-                    'paid_amount' => $paid,
                 ]);
             }
         }
