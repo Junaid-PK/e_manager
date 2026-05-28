@@ -16,7 +16,6 @@ class WorkerProjectEntry extends Model
         'days',
         'rate',
         'total_amount',
-        'paid_amount',
     ];
 
     protected $casts = [
@@ -25,7 +24,6 @@ class WorkerProjectEntry extends Model
         'days' => 'decimal:2',
         'rate' => 'decimal:2',
         'total_amount' => 'decimal:2',
-        'paid_amount' => 'decimal:2',
     ];
 
     protected static function boot(): void
@@ -58,9 +56,22 @@ class WorkerProjectEntry extends Model
         return $this->belongsTo(Worker::class);
     }
 
+    public function workerPayments(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(WorkerPayment::class, 'worker_id', 'worker_id')
+            ->where('project_month_id', $this->project_month_id);
+    }
+
+    public function getPaidAmountAttribute(): float
+    {
+        return (float) WorkerPayment::where('worker_id', $this->worker_id)
+            ->where('project_month_id', $this->project_month_id)
+            ->sum('amount');
+    }
+
     public function getRemainingAmountAttribute(): float
     {
-        return (float) $this->total_amount - (float) $this->paid_amount;
+        return (float) $this->total_amount - $this->paid_amount;
     }
 
     public function getIsFullyPaidAttribute(): bool

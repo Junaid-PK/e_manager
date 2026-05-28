@@ -117,15 +117,15 @@
                         <th wire:click="sortBy('client_id')" class="sticky top-0 z-10 px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 cursor-pointer whitespace-nowrap">{{ __('app.client') }} {{ $sortField === 'client_id' ? ($sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
                         <th wire:click="sortBy('project_id')" class="sticky top-0 z-10 px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 cursor-pointer whitespace-nowrap">{{ __('app.project') }} {{ $sortField === 'project_id' ? ($sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
                         <th wire:click="sortBy('sheet_code')" class="sticky top-0 z-10 px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 cursor-pointer whitespace-nowrap">{{ __('app.sheet_code') }} {{ $sortField === 'sheet_code' ? ($sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
-                        <th wire:click="sortBy('total_nominal')" class="sticky top-0 z-10 px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 cursor-pointer whitespace-nowrap">{{ __('app.total_nominal') }} {{ $sortField === 'total_nominal' ? ($sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
-                        <th wire:click="sortBy('total_social_security')" class="sticky top-0 z-10 px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 cursor-pointer whitespace-nowrap">{{ __('app.total_social_security') }} {{ $sortField === 'total_social_security' ? ($sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
+                        <th class="sticky top-0 z-10 px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 whitespace-nowrap">{{ __('app.total_nominal') }}</th>
+                        <th class="sticky top-0 z-10 px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 whitespace-nowrap">{{ __('app.total_social_security') }}</th>
                         <th wire:click="sortBy('total_expenses')" class="sticky top-0 z-10 px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 cursor-pointer whitespace-nowrap">{{ __('app.total_expenses') }} {{ $sortField === 'total_expenses' ? ($sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
                         <th wire:click="sortBy('total_invoiced')" class="sticky top-0 z-10 px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 cursor-pointer whitespace-nowrap">{{ __('app.total_invoiced') }} {{ $sortField === 'total_invoiced' ? ($sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
                         <th wire:click="sortBy('estimated_invoice')" class="sticky top-0 z-10 px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 cursor-pointer whitespace-nowrap">{{ __('app.estimated_invoice') }} {{ $sortField === 'estimated_invoice' ? ($sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
-                        <th wire:click="sortBy('difference')" class="sticky top-0 z-10 px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 cursor-pointer whitespace-nowrap">{{ __('app.difference') }} {{ $sortField === 'difference' ? ($sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
-                        <th wire:click="sortBy('total_hours')" class="sticky top-0 z-10 px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 cursor-pointer whitespace-nowrap">{{ __('app.total_hours') }} {{ $sortField === 'total_hours' ? ($sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
-                        <th class="sticky top-0 z-10 px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 whitespace-nowrap">{{ __('app.margin') }}</th>
-                        <th class="sticky top-0 z-10 px-3 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 w-20">{{ __('app.actions') }}</th>
+                        <th class="sticky top-0 z-10 px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 whitespace-nowrap">{{ __('app.difference') }}</th>
+                        <th class="sticky top-0 z-10 px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 whitespace-nowrap">{{ __('app.total_hours') }}</th>
+                        <th class="sticky top-0 z-10 px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 whitespace-nowrap">{{ __('app.margin') }}</th>
+                        <th class="sticky top-0 z-10 px-3 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 w-28">{{ __('app.actions') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -147,20 +147,24 @@
                                 <span class="text-xs font-mono text-gray-500 dark:text-gray-400">{{ $row->sheet_code ?? '—' }}</span>
                             </td>
 
-                            {{-- Inline editable numeric cells --}}
+                            {{-- Read-only derived fields --}}
+                            <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700 whitespace-nowrap text-right">
+                                <span class="text-sm tabular-nums text-gray-900 dark:text-gray-100">{{ fmt_number($row->total_nominal) }} <span class="text-xs">€</span></span>
+                            </td>
+                            <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700 whitespace-nowrap text-right">
+                                <span class="text-sm tabular-nums text-gray-900 dark:text-gray-100">{{ fmt_number($row->total_social_security) }} <span class="text-xs">€</span></span>
+                            </td>
+
+                            {{-- Inline editable fields --}}
                             @php
-                                $numericFields = [
-                                    'total_nominal' => ['color' => 'text-gray-900 dark:text-gray-100'],
-                                    'total_social_security' => ['color' => 'text-gray-900 dark:text-gray-100'],
+                                $editableFields = [
                                     'total_expenses' => ['color' => 'text-red-600 dark:text-red-400'],
                                     'total_invoiced' => ['color' => 'text-emerald-600 dark:text-emerald-400 font-medium'],
                                     'estimated_invoice' => ['color' => 'text-blue-600 dark:text-blue-400'],
-                                    'difference' => ['color' => $row->difference >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'],
-                                    'total_hours' => ['color' => 'text-gray-600 dark:text-gray-300'],
                                 ];
                             @endphp
 
-                            @foreach ($numericFields as $field => $style)
+                            @foreach ($editableFields as $field => $style)
                                 @php
                                     $formattedVal = addslashes(fmt_number($row->{$field}));
                                 @endphp
@@ -187,6 +191,16 @@
                                 </td>
                             @endforeach
 
+                            {{-- Read-only difference --}}
+                            <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700 whitespace-nowrap text-right">
+                                <span class="text-sm tabular-nums {{ $row->difference >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' }}">{{ fmt_number($row->difference) }} <span class="text-xs">€</span></span>
+                            </td>
+
+                            {{-- Read-only total_hours --}}
+                            <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700 whitespace-nowrap text-right">
+                                <span class="text-sm tabular-nums text-gray-600 dark:text-gray-300">{{ fmt_number($row->total_hours) }}</span>
+                            </td>
+
                             {{-- Margin column --}}
                             <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700 whitespace-nowrap text-right">
                                 @php
@@ -201,6 +215,9 @@
 
                             <td class="px-3 py-2 text-center">
                                 <div class="flex items-center justify-center space-x-1">
+                                    <a href="{{ route('project-months.detail', $row->id) }}" class="p-1 rounded text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="{{ __('app.view_workers') }}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>
+                                    </a>
                                     @can('project_months.edit')
                                         <button wire:click="edit({{ $row->id }})" class="p-1 rounded text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="{{ __('app.edit') }}">
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" /></svg>
@@ -303,21 +320,19 @@
                         <input wire:model="formSheetCode" type="text" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
                     </div>
 
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        @foreach ([
-                            'formTotalNominal' => __('app.total_nominal'),
-                            'formTotalSocialSecurity' => __('app.total_social_security'),
-                            'formTotalExpenses' => __('app.total_expenses'),
-                            'formTotalInvoiced' => __('app.total_invoiced'),
-                            'formEstimatedInvoice' => __('app.estimated_invoice'),
-                            'formDifference' => __('app.difference'),
-                            'formTotalHours' => __('app.total_hours'),
-                        ] as $field => $label)
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ $label }}</label>
-                                <input wire:model="{{ $field }}" type="number" step="0.01" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500 tabular-nums">
-                            </div>
-                        @endforeach
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.estimated_invoice') }}</label>
+                            <input wire:model="formEstimatedInvoice" type="number" step="0.01" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500 tabular-nums">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.total_expenses') }}</label>
+                            <input wire:model="formTotalExpenses" type="number" step="0.01" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500 tabular-nums">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.total_invoiced') }}</label>
+                            <input wire:model="formTotalInvoiced" type="number" step="0.01" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500 tabular-nums">
+                        </div>
                     </div>
 
                     <div class="flex items-center justify-end space-x-3 pt-2">
@@ -395,13 +410,9 @@
                                                         <option value="client">{{ __('app.client') }}</option>
                                                         <option value="project">{{ __('app.project') }}</option>
                                                         <option value="sheet_code">{{ __('app.sheet_code') }}</option>
-                                                        <option value="total_nominal">{{ __('app.total_nominal') }}</option>
-                                                        <option value="total_social_security">{{ __('app.total_social_security') }}</option>
                                                         <option value="total_expenses">{{ __('app.total_expenses') }}</option>
                                                         <option value="total_invoiced">{{ __('app.total_invoiced') }}</option>
                                                         <option value="estimated_invoice">{{ __('app.estimated_invoice') }}</option>
-                                                        <option value="difference">{{ __('app.difference') }}</option>
-                                                        <option value="total_hours">{{ __('app.total_hours') }}</option>
                                                     </select>
                                                 </td>
                                                 <td class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">{{ $importPreview['rows'][0][$idx] ?? '—' }}</td>

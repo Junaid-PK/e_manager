@@ -20,6 +20,7 @@ use App\Livewire\MonthlyPeriods\MonthlyPeriodPage;
 use App\Livewire\ProjectExpenses\ProjectExpensePage;
 use App\Livewire\ProjectInvoices\ProjectInvoicePage;
 use App\Livewire\ProjectMonths\ProjectMonthPage;
+use App\Livewire\ProjectMonths\ProjectMonthDetailPage;
 use App\Livewire\WorkerMonthlySummaries\WorkerMonthlySummaryPage;
 use App\Livewire\WorkerPayments\WorkerPaymentPage;
 use App\Livewire\WorkerProjectEntries\WorkerProjectEntryPage;
@@ -51,6 +52,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('workers', WorkerPage::class)->middleware('permission:workers.view')->name('workers');
     Route::get('monthly-periods', MonthlyPeriodPage::class)->middleware('permission:monthly_periods.view')->name('monthly-periods');
     Route::get('project-months', ProjectMonthPage::class)->middleware('permission:project_months.view')->name('project-months');
+    Route::get('project-months/{projectMonth}/detail', ProjectMonthDetailPage::class)->middleware('permission:project_months.view')->name('project-months.detail');
     Route::get('project-invoices', ProjectInvoicePage::class)->middleware('permission:project_invoices.view')->name('project-invoices');
     Route::get('project-expenses', ProjectExpensePage::class)->middleware('permission:project_expenses.view')->name('project-expenses');
     Route::get('worker-monthly-summaries', WorkerMonthlySummaryPage::class)->middleware('permission:worker_monthly_summaries.view')->name('worker-monthly-summaries');

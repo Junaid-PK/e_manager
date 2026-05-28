@@ -36,6 +36,18 @@ class PeriodDashboardPage extends Component
         $this->loadPeriod();
     }
 
+    private function ensurePeriodsExist(): void
+    {
+        $currentYear = (int) now()->format('Y');
+        $existingCount = MonthlyPeriod::where('year', $currentYear)->count();
+
+        if ($existingCount < 12) {
+            for ($month = 1; $month <= 12; $month++) {
+                MonthlyPeriod::firstOrCreateForMonth($currentYear, $month);
+            }
+        }
+    }
+
     private function loadPeriod(): void
     {
         if ($this->selectedPeriodId) {
@@ -45,6 +57,8 @@ class PeriodDashboardPage extends Component
 
     public function render()
     {
+        $this->ensurePeriodsExist();
+
         $periods = MonthlyPeriod::orderByDesc('year')->orderByDesc('month')->get();
         $workersData = $this->getWorkersData();
         $projectsData = $this->getProjectsData();

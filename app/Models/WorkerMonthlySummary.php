@@ -11,19 +11,15 @@ class WorkerMonthlySummary extends Model
         'monthly_period_id',
         'worker_id',
         'total_amount',
-        'paid_amount',
         'total_hours',
         'payroll_amount',
         'advance_amount',
         'credit_amount',
         'ticket_amount',
-        'difference',
-        'final_difference',
     ];
 
     protected $casts = [
         'total_amount' => 'decimal:2',
-        'paid_amount' => 'decimal:2',
         'total_hours' => 'decimal:2',
         'payroll_amount' => 'decimal:2',
         'advance_amount' => 'decimal:2',
@@ -43,6 +39,13 @@ class WorkerMonthlySummary extends Model
         return $this->belongsTo(Worker::class);
     }
 
+    public function getPaidAmountAttribute(): float
+    {
+        return (float) WorkerPayment::where('worker_id', $this->worker_id)
+            ->where('monthly_period_id', $this->monthly_period_id)
+            ->sum('amount');
+    }
+
     /**
      * Calculate the net amount after all deductions.
      * This is what the worker actually receives.
@@ -57,7 +60,7 @@ class WorkerMonthlySummary extends Model
      */
     public function getRemainingBalanceAttribute(): float
     {
-        return (float) $this->total_amount - (float) $this->paid_amount;
+        return (float) $this->total_amount - $this->paid_amount;
     }
 
     public function recalculateFromEntries(): void
@@ -81,7 +84,7 @@ class WorkerMonthlySummary extends Model
         parent::boot();
 
         static::saving(function ($summary) {
-            $summary->difference = (float) $summary->total_amount - (float) $summary->paid_amount;
+            $summary->difference = (float) $summary->total_amount - $summary->paid_amount;
             $summary->final_difference = (float) $summary->difference
                 - (float) $summary->payroll_amount
                 - (float) $summary->advance_amount

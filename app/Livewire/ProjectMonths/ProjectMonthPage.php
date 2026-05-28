@@ -36,13 +36,9 @@ class ProjectMonthPage extends Component
     public string $formClientId = '';
     public string $formProjectId = '';
     public string $formSheetCode = '';
-    public string $formTotalNominal = '0';
-    public string $formTotalSocialSecurity = '0';
+    public string $formEstimatedInvoice = '0';
     public string $formTotalExpenses = '0';
     public string $formTotalInvoiced = '0';
-    public string $formEstimatedInvoice = '0';
-    public string $formDifference = '0';
-    public string $formTotalHours = '0';
 
     public $importFile = null;
     public array $importPreview = [];
@@ -56,13 +52,9 @@ class ProjectMonthPage extends Component
             'formClientId' => 'required|exists:clients,id',
             'formProjectId' => 'required|exists:projects,id',
             'formSheetCode' => 'nullable|string|max:50',
-            'formTotalNominal' => 'nullable|numeric|min:0',
-            'formTotalSocialSecurity' => 'nullable|numeric|min:0',
+            'formEstimatedInvoice' => 'nullable|numeric|min:0',
             'formTotalExpenses' => 'nullable|numeric|min:0',
             'formTotalInvoiced' => 'nullable|numeric|min:0',
-            'formEstimatedInvoice' => 'nullable|numeric|min:0',
-            'formDifference' => 'nullable|numeric',
-            'formTotalHours' => 'nullable|numeric|min:0',
         ];
     }
 
@@ -96,13 +88,9 @@ class ProjectMonthPage extends Component
         $this->formClientId = (string) $row->client_id;
         $this->formProjectId = (string) $row->project_id;
         $this->formSheetCode = $row->sheet_code ?? '';
-        $this->formTotalNominal = (string) $row->total_nominal;
-        $this->formTotalSocialSecurity = (string) $row->total_social_security;
+        $this->formEstimatedInvoice = (string) $row->estimated_invoice;
         $this->formTotalExpenses = (string) $row->total_expenses;
         $this->formTotalInvoiced = (string) $row->total_invoiced;
-        $this->formEstimatedInvoice = (string) $row->estimated_invoice;
-        $this->formDifference = (string) $row->difference;
-        $this->formTotalHours = (string) $row->total_hours;
         $this->showFormModal = true;
     }
 
@@ -121,13 +109,9 @@ class ProjectMonthPage extends Component
             'client_id' => (int) $this->formClientId,
             'project_id' => (int) $this->formProjectId,
             'sheet_code' => $this->formSheetCode ?: null,
-            'total_nominal' => (float) ($this->formTotalNominal ?: 0),
-            'total_social_security' => (float) ($this->formTotalSocialSecurity ?: 0),
+            'estimated_invoice' => (float) ($this->formEstimatedInvoice ?: 0),
             'total_expenses' => (float) ($this->formTotalExpenses ?: 0),
             'total_invoiced' => (float) ($this->formTotalInvoiced ?: 0),
-            'estimated_invoice' => (float) ($this->formEstimatedInvoice ?: 0),
-            'difference' => (float) ($this->formDifference ?: ((float) $this->formEstimatedInvoice - (float) $this->formTotalInvoiced)),
-            'total_hours' => (float) ($this->formTotalHours ?: 0),
         ];
 
         if ($this->editingId) {
@@ -150,13 +134,10 @@ class ProjectMonthPage extends Component
         $numericValue = (float) str_replace(',', '.', str_replace('.', '', $value));
 
         $allowedFields = [
-            'total_nominal',
-            'total_social_security',
+            'sheet_code',
+            'estimated_invoice',
             'total_expenses',
             'total_invoiced',
-            'estimated_invoice',
-            'difference',
-            'total_hours',
         ];
 
         if (! in_array($field, $allowedFields, true)) {
@@ -164,11 +145,6 @@ class ProjectMonthPage extends Component
         }
 
         $row->{$field} = $numericValue;
-
-        if ($field !== 'difference') {
-            $row->difference = (float) $row->estimated_invoice - (float) $row->total_invoiced;
-        }
-
         $row->save();
     }
 
@@ -297,13 +273,9 @@ class ProjectMonthPage extends Component
         $this->formClientId = '';
         $this->formProjectId = '';
         $this->formSheetCode = '';
-        $this->formTotalNominal = '0';
-        $this->formTotalSocialSecurity = '0';
+        $this->formEstimatedInvoice = '0';
         $this->formTotalExpenses = '0';
         $this->formTotalInvoiced = '0';
-        $this->formEstimatedInvoice = '0';
-        $this->formDifference = '0';
-        $this->formTotalHours = '0';
         $this->resetValidation();
     }
 
@@ -318,6 +290,8 @@ class ProjectMonthPage extends Component
 
     public function render()
     {
+        $this->ensurePeriodsExist();
+
         $query = $this->buildQuery();
         $rows = $query->paginate($this->perPage);
         $allRows = $query->get();
@@ -339,6 +313,18 @@ class ProjectMonthPage extends Component
             'clients' => Client::orderBy('name')->get(),
             'projects' => Project::orderBy('name')->get(),
         ])->layout('layouts.app');
+    }
+
+    protected function ensurePeriodsExist(): void
+    {
+        $currentYear = (int) now()->format('Y');
+        $existingCount = \App\Models\MonthlyPeriod::where('year', $currentYear)->count();
+
+        if ($existingCount < 12) {
+            for ($month = 1; $month <= 12; $month++) {
+                \App\Models\MonthlyPeriod::firstOrCreateForMonth($currentYear, $month);
+            }
+        }
     }
 
     protected function buildQuery()

@@ -69,4 +69,21 @@ class MonthlyPeriod extends Model
     {
         return $this->workerPayments()->count();
     }
+
+    public static function firstOrCreateForMonth(int $year, int $month): self
+    {
+        $periodCode = sprintf('%04d-%02d', $year, $month);
+        $startDate = sprintf('%04d-%02d-01', $year, $month);
+
+        return self::firstOrCreate(
+            ['period_code' => $periodCode],
+            [
+                'year' => $year,
+                'month' => $month,
+                'label' => date('F Y', strtotime($startDate)),
+                'start_date' => $startDate,
+                'end_date' => date('Y-m-t', strtotime($startDate)),
+            ]
+        );
+    }
 }

@@ -2,12 +2,11 @@
 
 namespace App\Services;
 
-use App\Models\MonthlyPeriod;
 use App\Models\Worker;
-use App\Models\WorkerMonthlySummary;
+use App\Models\WorkerProjectEntry;
 use Maatwebsite\Excel\Facades\Excel;
 
-class WorkerMonthlySummaryImportService
+class Mon83ImportService
 {
     public function parseFile(string $filePath): array
     {
@@ -27,7 +26,7 @@ class WorkerMonthlySummaryImportService
         ];
     }
 
-    public function importMappedData(string $filePath, array $columnMap): array
+    public function importMappedData(string $filePath, array $columnMap, int $projectMonthId): array
     {
         $data = Excel::toArray(null, $filePath);
 
@@ -40,51 +39,55 @@ class WorkerMonthlySummaryImportService
         $imported = 0;
         $errors = [];
 
+        $nieIdx = $columnMap['nie'] ?? null;
+
+        if ($nieIdx === null || $nieIdx === '') {
+            return ['imported' => 0, 'errors' => [__('app.nie_column_required')]];
+        }
+
         foreach ($rows as $index => $row) {
             try {
                 $mapped = $this->mapRow($row, $columnMap);
 
-                $periodCode = trim($mapped['period_code'] ?? '');
-                $workerName = trim($mapped['worker'] ?? '');
+                $nie = trim($mapped['nie'] ?? '');
 
-                if (empty($periodCode) || empty($workerName)) {
+                if (empty($nie)) {
                     continue;
                 }
 
-                $period = MonthlyPeriod::where('period_code', $periodCode)->first();
-                if (! $period) {
-                    $errors[] = __('app.row').' '.($index + 2).': '.__('app.period').' "'.$periodCode.'" '.__('app.not_found');
-                    continue;
-                }
-
-                $worker = Worker::where('full_name', $workerName)->first()
-                    ?? Worker::where('full_name', 'like', "%{$workerName}%")->first();
+                $worker = Worker::where('nie', $nie)->first();
                 if (! $worker) {
-                    $errors[] = __('app.row').' '.($index + 2).': '.__('app.worker').' "'.$workerName.'" '.__('app.not_found');
+                    $errors[] = __('app.row').' '.($index + 2).': '.__('app.worker_with_nie').' "'.$nie.'" '.__('app.not_found');
                     continue;
                 }
 
-                $totalAmount = $this->parseAmount($mapped['total_amount'] ?? null) ?? 0;
-                $totalHours = $this->parseAmount($mapped['total_hours'] ?? null) ?? 0;
-                $payrollAmount = $this->parseAmount($mapped['payroll_amount'] ?? null) ?? 0;
-                $advanceAmount = $this->parseAmount($mapped['advance_amount'] ?? null) ?? 0;
-                $creditAmount = $this->parseAmount($mapped['credit_amount'] ?? null) ?? 0;
-                $ticketAmount = $this->parseAmount($mapped['ticket_amount'] ?? null) ?? 0;
+                $existingEntry = WorkerProjectEntry::where('project_month_id', $projectMonthId)
+                    ->where('worker_id', $worker->id)
+                    ->first();
 
-                WorkerMonthlySummary::updateOrCreate(
-                    [
-                        'monthly_period_id' => $period->id,
+                $socialSecurity = $this->parseAmount($mapped['social_security'] ?? null) ?? 0;
+                $hours = $this->parseAmount($mapped['hours'] ?? null) ?? 0;
+                $days = $this->parseAmount($mapped['days'] ?? null) ?? 0;
+                $rate = $this->parseAmount($mapped['rate'] ?? null) ?? 0;
+
+                if ($existingEntry) {
+                    $existingEntry->update([
+                        'social_security' => $socialSecurity,
+                        'hours' => $hours,
+                        'days' => $days,
+                        'rate' => $rate,
+                    ]);
+                } else {
+                    WorkerProjectEntry::create([
+                        'project_month_id' => $projectMonthId,
                         'worker_id' => $worker->id,
-                    ],
-                    [
-                        'total_amount' => $totalAmount,
-                        'total_hours' => $totalHours,
-                        'payroll_amount' => $payrollAmount,
-                        'advance_amount' => $advanceAmount,
-                        'credit_amount' => $creditAmount,
-                        'ticket_amount' => $ticketAmount,
-                    ]
-                );
+                        'social_security' => $socialSecurity,
+                        'hours' => $hours,
+                        'days' => $days,
+                        'rate' => $rate,
+                        'special_note' => null,
+                    ]);
+                }
 
                 $imported++;
             } catch (\Exception $e) {

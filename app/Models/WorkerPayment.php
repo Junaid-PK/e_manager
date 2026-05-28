@@ -23,6 +23,19 @@ class WorkerPayment extends Model
         'amount' => 'decimal:2',
     ];
 
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::saved(function ($payment) {
+            $payment->worker?->touchMonthlySummaryForPeriod($payment->monthly_period_id);
+        });
+
+        static::deleted(function ($payment) {
+            $payment->worker?->touchMonthlySummaryForPeriod($payment->monthly_period_id);
+        });
+    }
+
     public function worker(): BelongsTo
     {
         return $this->belongsTo(Worker::class);

@@ -292,6 +292,8 @@ class WorkerPaymentPage extends Component
 
     public function render()
     {
+        $this->ensurePeriodsExist();
+
         $query = $this->buildQuery();
         $rows = $query->paginate($this->perPage);
         $allRows = $query->get();
@@ -314,6 +316,18 @@ class WorkerPaymentPage extends Component
                 'adjustment' => __('app.adjustment'),
             ],
         ])->layout('layouts.app');
+    }
+
+    protected function ensurePeriodsExist(): void
+    {
+        $currentYear = (int) now()->format('Y');
+        $existingCount = \App\Models\MonthlyPeriod::where('year', $currentYear)->count();
+
+        if ($existingCount < 12) {
+            for ($month = 1; $month <= 12; $month++) {
+                \App\Models\MonthlyPeriod::firstOrCreateForMonth($currentYear, $month);
+            }
+        }
     }
 
     protected function buildQuery()

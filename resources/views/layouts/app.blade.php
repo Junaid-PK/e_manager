@@ -68,7 +68,9 @@
                               class="text-white font-semibold text-lg whitespace-nowrap">E-Manager</span>
                     </a>
                 </div>
-
+                <!--['route' => 'credit-lines', 'label' => __('app.credit_lines'), 'icon' => 'credit-card'],-->
+                <!--['route' => 'reminders', 'label' => __('app.reminders'), 'icon' => 'bell-alert'],-->
+                <!--['route' => 'reports', 'label' => __('app.reports'), 'icon' => 'chart-bar'],-->
                 <div class="flex-1 overflow-y-auto py-4">
                     <nav class="space-y-1 px-2">
                         @php
@@ -81,26 +83,27 @@
                                 ['route' => 'expenses', 'label' => __('app.expenses'), 'icon' => 'banknotes'],
                                 ['route' => 'expense-listado-config', 'label' => __('app.expense_listado_config'), 'icon' => 'clipboard-document-list'],
                                 ['route' => 'companies-clients', 'label' => __('app.companies_clients'), 'icon' => 'users'],
-                                ['route' => 'credit-lines', 'label' => __('app.credit_lines'), 'icon' => 'credit-card'],
-                                ['route' => 'reminders', 'label' => __('app.reminders'), 'icon' => 'bell-alert'],
-                                ['route' => 'reports', 'label' => __('app.reports'), 'icon' => 'chart-bar'],
-                                ['route' => 'users', 'label' => __('app.users'), 'icon' => 'users'],
-                                ['route' => 'roles', 'label' => __('app.roles_and_permissions'), 'icon' => 'shield-check'],
-                                ['route' => 'settings', 'label' => __('app.settings'), 'icon' => 'cog-6-tooth'],
                                 ['route' => 'workers', 'label' => __('app.workers'), 'icon' => 'user-group'],
-                                ['route' => 'monthly-periods', 'label' => __('app.monthly_periods'), 'icon' => 'calendar'],
-                                ['route' => 'period-dashboard', 'label' => __('app.period_dashboard'), 'icon' => 'view-columns'],
-                                ['route' => 'worker-project-entries', 'label' => __('app.worker_project_entries'), 'icon' => 'clipboard-document-check'],
                                 ['route' => 'project-months', 'label' => __('app.project_months'), 'icon' => 'table-cells'],
+                                ['route' => 'worker-project-entries', 'label' => __('app.worker_project_entries'), 'icon' => 'clipboard-document-check'],
+                                ['route' => 'worker-payments', 'label' => __('app.worker_payments'), 'icon' => 'banknotes'],
                                 ['route' => 'project-invoices', 'label' => __('app.project_invoices'), 'icon' => 'document-text'],
                                 ['route' => 'project-expenses', 'label' => __('app.project_expenses'), 'icon' => 'banknotes'],
                                 ['route' => 'worker-monthly-summaries', 'label' => __('app.worker_monthly_summaries'), 'icon' => 'document-chart-bar'],
-                                ['route' => 'worker-payments', 'label' => __('app.worker_payments'), 'icon' => 'banknotes'],
+                                ['route' => 'period-dashboard', 'label' => __('app.period_dashboard'), 'icon' => 'view-columns'],
+                                ['route' => 'users', 'label' => __('app.users'), 'icon' => 'users'],
+                                ['route' => 'roles', 'label' => __('app.roles_and_permissions'), 'icon' => 'shield-check'],
+                                ['route' => 'settings', 'label' => __('app.settings'), 'icon' => 'cog-6-tooth'],
                             ];
                         @endphp
 
                         @foreach ($navItems as $item)
                             @if ($item['route'] === 'workers')
+                                <div class="my-2 border-t border-gray-700"></div>
+                                <div class="my-2 border-t border-gray-700"></div>
+                            @endif
+                            @if ($item['route'] === 'users')
+                                <div class="my-2 border-t border-gray-700"></div>
                                 <div class="my-2 border-t border-gray-700"></div>
                             @endif
                             <a href="{{ route($item['route']) }}"

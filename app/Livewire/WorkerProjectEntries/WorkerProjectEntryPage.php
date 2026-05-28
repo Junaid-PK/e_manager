@@ -37,7 +37,6 @@ class WorkerProjectEntryPage extends Component
     public string $formHours = '0';
     public string $formDays = '0';
     public string $formRate = '0';
-    public string $formPaidAmount = '0';
 
     public array $bulkRows = [];
 
@@ -51,7 +50,6 @@ class WorkerProjectEntryPage extends Component
             'formHours' => 'nullable|numeric|min:0',
             'formDays' => 'nullable|numeric|min:0',
             'formRate' => 'nullable|numeric|min:0',
-            'formPaidAmount' => 'nullable|numeric|min:0',
         ];
     }
 
@@ -89,7 +87,6 @@ class WorkerProjectEntryPage extends Component
         $this->formHours = (string) $row->hours;
         $this->formDays = (string) $row->days;
         $this->formRate = (string) $row->rate;
-        $this->formPaidAmount = (string) $row->paid_amount;
         $this->showFormModal = true;
     }
 
@@ -111,7 +108,6 @@ class WorkerProjectEntryPage extends Component
             'hours' => (float) ($this->formHours ?: 0),
             'days' => (float) ($this->formDays ?: 0),
             'rate' => (float) ($this->formRate ?: 0),
-            'paid_amount' => (float) ($this->formPaidAmount ?: 0),
         ];
 
         if ($this->editingId) {
@@ -138,7 +134,6 @@ class WorkerProjectEntryPage extends Component
             'hours',
             'days',
             'rate',
-            'paid_amount',
         ];
 
         if (! in_array($field, $allowedFields, true)) {
@@ -189,11 +184,11 @@ class WorkerProjectEntryPage extends Component
     {
         Gate::authorize('worker_project_entries.create');
         $this->bulkRows = [
-            ['worker_id' => '', 'special_note' => '', 'social_security' => '0', 'hours' => '0', 'days' => '0', 'rate' => '0', 'paid_amount' => '0'],
-            ['worker_id' => '', 'special_note' => '', 'social_security' => '0', 'hours' => '0', 'days' => '0', 'rate' => '0', 'paid_amount' => '0'],
-            ['worker_id' => '', 'special_note' => '', 'social_security' => '0', 'hours' => '0', 'days' => '0', 'rate' => '0', 'paid_amount' => '0'],
-            ['worker_id' => '', 'special_note' => '', 'social_security' => '0', 'hours' => '0', 'days' => '0', 'rate' => '0', 'paid_amount' => '0'],
-            ['worker_id' => '', 'special_note' => '', 'social_security' => '0', 'hours' => '0', 'days' => '0', 'rate' => '0', 'paid_amount' => '0'],
+            ['worker_id' => '', 'special_note' => '', 'social_security' => '0', 'hours' => '0', 'days' => '0', 'rate' => '0'],
+            ['worker_id' => '', 'special_note' => '', 'social_security' => '0', 'hours' => '0', 'days' => '0', 'rate' => '0'],
+            ['worker_id' => '', 'special_note' => '', 'social_security' => '0', 'hours' => '0', 'days' => '0', 'rate' => '0'],
+            ['worker_id' => '', 'special_note' => '', 'social_security' => '0', 'hours' => '0', 'days' => '0', 'rate' => '0'],
+            ['worker_id' => '', 'special_note' => '', 'social_security' => '0', 'hours' => '0', 'days' => '0', 'rate' => '0'],
         ];
         $this->formProjectMonthId = $this->filterProjectMonthId ?: '';
         $this->showBulkCreateModal = true;
@@ -201,7 +196,7 @@ class WorkerProjectEntryPage extends Component
 
     public function addBulkRow(): void
     {
-        $this->bulkRows[] = ['worker_id' => '', 'special_note' => '', 'social_security' => '0', 'hours' => '0', 'days' => '0', 'rate' => '0', 'paid_amount' => '0'];
+        $this->bulkRows[] = ['worker_id' => '', 'special_note' => '', 'social_security' => '0', 'hours' => '0', 'days' => '0', 'rate' => '0'];
     }
 
     public function removeBulkRow(int $index): void
@@ -233,7 +228,6 @@ class WorkerProjectEntryPage extends Component
                 'hours' => (float) ($row['hours'] ?: 0),
                 'days' => (float) ($row['days'] ?: 0),
                 'rate' => (float) ($row['rate'] ?: 0),
-                'paid_amount' => (float) ($row['paid_amount'] ?: 0),
             ]);
             $created++;
         }
@@ -256,7 +250,6 @@ class WorkerProjectEntryPage extends Component
         $this->formHours = '0';
         $this->formDays = '0';
         $this->formRate = '0';
-        $this->formPaidAmount = '0';
         $this->resetValidation();
     }
 
@@ -280,7 +273,7 @@ class WorkerProjectEntryPage extends Component
             'hours' => $allRows->sum('hours'),
             'days' => $allRows->sum('days'),
             'total_amount' => $allRows->sum('total_amount'),
-            'paid_amount' => $allRows->sum('paid_amount'),
+            'paid_amount' => $allRows->sum(fn ($row) => $row->paid_amount),
         ];
 
         return view('livewire.worker-project-entries.worker-project-entry-page', [

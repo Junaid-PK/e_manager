@@ -119,7 +119,7 @@
                         <th wire:click="sortBy('days')" class="sticky top-0 z-10 px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 cursor-pointer whitespace-nowrap">{{ __('app.days') }} {{ $sortField === 'days' ? ($sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
                         <th wire:click="sortBy('rate')" class="sticky top-0 z-10 px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 cursor-pointer whitespace-nowrap">{{ __('app.rate') }} {{ $sortField === 'rate' ? ($sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
                         <th wire:click="sortBy('total_amount')" class="sticky top-0 z-10 px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 cursor-pointer whitespace-nowrap">{{ __('app.total') }} {{ $sortField === 'total_amount' ? ($sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
-                        <th wire:click="sortBy('paid_amount')" class="sticky top-0 z-10 px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 cursor-pointer whitespace-nowrap">{{ __('app.paid') }} {{ $sortField === 'paid_amount' ? ($sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
+                        <th class="sticky top-0 z-10 px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 whitespace-nowrap">{{ __('app.paid') }}</th>
                         <th class="sticky top-0 z-10 px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 whitespace-nowrap">{{ __('app.remaining') }}</th>
                         <th class="sticky top-0 z-10 px-3 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 w-20">{{ __('app.actions') }}</th>
                     </tr>
@@ -151,7 +151,6 @@
                                     'hours' => ['color' => 'text-gray-900 dark:text-gray-100'],
                                     'days' => ['color' => 'text-gray-600 dark:text-gray-300'],
                                     'rate' => ['color' => 'text-gray-600 dark:text-gray-300'],
-                                    'paid_amount' => ['color' => 'text-blue-600 dark:text-blue-400'],
                                 ];
                             @endphp
 
@@ -185,6 +184,11 @@
                             {{-- Total amount (auto-calculated) --}}
                             <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700 whitespace-nowrap text-right">
                                 <span class="text-sm font-semibold tabular-nums text-gray-900 dark:text-gray-100">{{ fmt_number($row->total_amount) }} <span class="text-xs">€</span></span>
+                            </td>
+
+                            {{-- Paid amount (from worker_payments) --}}
+                            <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700 whitespace-nowrap text-right">
+                                <span class="text-sm tabular-nums text-blue-600 dark:text-blue-400">{{ fmt_number($row->paid_amount) }} <span class="text-xs">€</span></span>
                             </td>
 
                             {{-- Remaining --}}
@@ -299,7 +303,6 @@
                             'formHours' => __('app.hours'),
                             'formDays' => __('app.days'),
                             'formRate' => __('app.rate'),
-                            'formPaidAmount' => __('app.paid_amount'),
                         ] as $field => $label)
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ $label }}</label>
@@ -360,7 +363,6 @@
                                 <th class="px-3 py-2 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">{{ __('app.hrs') }}</th>
                                 <th class="px-3 py-2 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">{{ __('app.days') }}</th>
                                 <th class="px-3 py-2 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">{{ __('app.rate') }}</th>
-                                <th class="px-3 py-2 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">{{ __('app.paid') }}</th>
                                 <th class="px-3 py-2 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 w-10"></th>
                             </tr>
                         </thead>
@@ -389,9 +391,6 @@
                                     </td>
                                     <td class="px-3 py-2">
                                         <input type="number" step="0.01" wire:model="bulkRows.{{ $index }}.rate" class="w-20 text-sm text-right border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-emerald-500 focus:border-emerald-500 tabular-nums">
-                                    </td>
-                                    <td class="px-3 py-2">
-                                        <input type="number" step="0.01" wire:model="bulkRows.{{ $index }}.paid_amount" class="w-20 text-sm text-right border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-emerald-500 focus:border-emerald-500 tabular-nums">
                                     </td>
                                     <td class="px-3 py-2 text-center">
                                         <button wire:click="removeBulkRow({{ $index }})" class="text-gray-400 hover:text-red-500 transition-colors">
