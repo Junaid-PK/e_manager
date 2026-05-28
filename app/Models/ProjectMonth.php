@@ -62,6 +62,16 @@ class ProjectMonth extends Model
         return $this->hasMany(WorkerProjectEntry::class);
     }
 
+    public function recalculateTotals(): void
+    {
+        $entries = $this->workerProjectEntries;
+        $this->total_nominal = $entries->sum('total_amount');
+        $this->total_social_security = $entries->sum('social_security');
+        $this->total_hours = $entries->sum('hours');
+        $this->difference = (float) $this->estimated_invoice - (float) $this->total_invoiced;
+        $this->save();
+    }
+
     public function getComputedDifferenceAttribute(): float
     {
         return (float) $this->estimated_invoice - (float) $this->total_invoiced;

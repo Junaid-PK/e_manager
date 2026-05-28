@@ -27,4 +27,18 @@ class Worker extends Model
     {
         return $this->hasMany(WorkerProjectEntry::class);
     }
+
+    public function touchMonthlySummaryForPeriod(?int $monthlyPeriodId): void
+    {
+        if (! $monthlyPeriodId) {
+            return;
+        }
+
+        $summary = WorkerMonthlySummary::firstOrCreate([
+            'worker_id' => $this->id,
+            'monthly_period_id' => $monthlyPeriodId,
+        ]);
+
+        $summary->recalculateFromEntries();
+    }
 }

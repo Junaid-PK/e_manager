@@ -28,7 +28,11 @@ class RolesAndPermissionsSeeder extends Seeder
         'workers' => ['view', 'create', 'edit', 'delete', 'export'],
         'monthly_periods' => ['view', 'create', 'edit', 'delete', 'export'],
         'project_months' => ['view', 'create', 'edit', 'delete', 'export'],
+        'project_invoices' => ['view', 'create', 'edit', 'delete', 'export'],
+        'project_expenses' => ['view', 'create', 'edit', 'delete', 'export'],
         'worker_monthly_summaries' => ['view', 'create', 'edit', 'delete', 'export'],
+        'worker_project_entries' => ['view', 'create', 'edit', 'delete', 'export'],
+        'period_dashboard' => ['view'],
     ];
 
     public function run(): void

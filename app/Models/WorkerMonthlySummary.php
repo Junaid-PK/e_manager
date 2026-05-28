@@ -60,6 +60,19 @@ class WorkerMonthlySummary extends Model
         return (float) $this->total_amount - (float) $this->paid_amount;
     }
 
+    public function recalculateFromEntries(): void
+    {
+        $entries = WorkerProjectEntry::where('worker_id', $this->worker_id)
+            ->whereHas('projectMonth', fn ($q) =>
+                $q->where('monthly_period_id', $this->monthly_period_id))
+            ->get();
+
+        $this->total_amount = $entries->sum('total_amount');
+        $this->total_hours = $entries->sum('hours');
+        $this->payroll_amount = $entries->sum('social_security');
+        $this->save();
+    }
+
     /**
      * Auto-calculate difference and final_difference before saving.
      */

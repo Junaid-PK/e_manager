@@ -89,8 +89,13 @@
                                 ['route' => 'settings', 'label' => __('app.settings'), 'icon' => 'cog-6-tooth'],
                                 ['route' => 'workers', 'label' => __('app.workers'), 'icon' => 'user-group'],
                                 ['route' => 'monthly-periods', 'label' => __('app.monthly_periods'), 'icon' => 'calendar'],
+                                ['route' => 'period-dashboard', 'label' => __('app.period_dashboard'), 'icon' => 'view-columns'],
+                                ['route' => 'worker-project-entries', 'label' => __('app.worker_project_entries'), 'icon' => 'clipboard-document-check'],
                                 ['route' => 'project-months', 'label' => __('app.project_months'), 'icon' => 'table-cells'],
+                                ['route' => 'project-invoices', 'label' => __('app.project_invoices'), 'icon' => 'document-text'],
+                                ['route' => 'project-expenses', 'label' => __('app.project_expenses'), 'icon' => 'banknotes'],
                                 ['route' => 'worker-monthly-summaries', 'label' => __('app.worker_monthly_summaries'), 'icon' => 'document-chart-bar'],
+                                ['route' => 'worker-payments', 'label' => __('app.worker_payments'), 'icon' => 'banknotes'],
                             ];
                         @endphp
 
@@ -158,6 +163,12 @@
                                         @break
                                         @case('document-chart-bar')
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
+                                        @break
+                                        @case('view-columns')
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125Z" /></svg>
+                                        @break
+                                        @case('clipboard-document-check')
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M11.35 3.836c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75" /></svg>
                                         @break
                                     @endswitch
                                 </span>

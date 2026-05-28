@@ -17,8 +17,13 @@ use App\Livewire\Users\UsersPage;
 use App\Livewire\Roles\RolesPage;
 use App\Livewire\Workers\WorkerPage;
 use App\Livewire\MonthlyPeriods\MonthlyPeriodPage;
+use App\Livewire\ProjectExpenses\ProjectExpensePage;
+use App\Livewire\ProjectInvoices\ProjectInvoicePage;
 use App\Livewire\ProjectMonths\ProjectMonthPage;
 use App\Livewire\WorkerMonthlySummaries\WorkerMonthlySummaryPage;
+use App\Livewire\WorkerPayments\WorkerPaymentPage;
+use App\Livewire\WorkerProjectEntries\WorkerProjectEntryPage;
+use App\Livewire\PeriodDashboard\PeriodDashboardPage;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
@@ -46,7 +51,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('workers', WorkerPage::class)->middleware('permission:workers.view')->name('workers');
     Route::get('monthly-periods', MonthlyPeriodPage::class)->middleware('permission:monthly_periods.view')->name('monthly-periods');
     Route::get('project-months', ProjectMonthPage::class)->middleware('permission:project_months.view')->name('project-months');
+    Route::get('project-invoices', ProjectInvoicePage::class)->middleware('permission:project_invoices.view')->name('project-invoices');
+    Route::get('project-expenses', ProjectExpensePage::class)->middleware('permission:project_expenses.view')->name('project-expenses');
     Route::get('worker-monthly-summaries', WorkerMonthlySummaryPage::class)->middleware('permission:worker_monthly_summaries.view')->name('worker-monthly-summaries');
+    Route::get('worker-payments', WorkerPaymentPage::class)->middleware('permission:worker_payments.view')->name('worker-payments');
+    Route::get('worker-project-entries', WorkerProjectEntryPage::class)->middleware('permission:worker_project_entries.view')->name('worker-project-entries');
+    Route::get('period-dashboard', PeriodDashboardPage::class)->middleware('permission:period_dashboard.view')->name('period-dashboard');
 });
 
 Route::get('lang/{locale}', function (string $locale) {

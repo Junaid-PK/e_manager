@@ -88,6 +88,22 @@ class WorkerPage extends Component
         $this->resetForm();
     }
 
+    public function quickUpdateField(int $id, string $field, string $value): void
+    {
+        Gate::authorize('workers.edit');
+
+        $worker = Worker::findOrFail($id);
+
+        $allowedFields = ['full_name', 'nie', 'bank_account'];
+
+        if (! in_array($field, $allowedFields, true)) {
+            return;
+        }
+
+        $worker->{$field} = $value ?: null;
+        $worker->save();
+    }
+
     public function confirmDelete(int $id): void
     {
         $this->editingId = $id;
