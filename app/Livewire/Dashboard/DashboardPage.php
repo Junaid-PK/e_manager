@@ -336,7 +336,11 @@ class DashboardPage extends Component
 
         return collect($totals)
             ->reject(function (array $values, string $category) use ($excludedCategories) {
-                return in_array(strtoupper($category), array_map('strtoupper', $excludedCategories), true);
+                if (in_array(strtoupper($category), array_map('strtoupper', $excludedCategories), true)) {
+                    return true;
+                }
+
+                return strtoupper($category) === strtoupper(__('app.none'));
             })
             ->map(function (array $values, string $category) use ($monthKeys) {
                 $monthly = collect($monthKeys)
