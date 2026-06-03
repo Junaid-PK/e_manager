@@ -158,17 +158,17 @@ class DashboardPage extends Component
 
         $rows = [
             ['key' => 'billing', 'label' => __('app.dashboard_billing'), 'accent' => 'billing', 'values' => $invoiceTotals],
-            ['key' => 'collected', 'label' => __('app.cobrado'), 'accent' => 'collected', 'values' => $collectedTotals],
-            ['key' => 'ledger_expenses', 'label' => __('app.dashboard_ledger_expenses'), 'accent' => 'cost', 'values' => $expenseLedgerTotals],
-            ['key' => 'purchase_movements', 'label' => __('app.dashboard_purchase_movements'), 'accent' => 'cost', 'values' => $purchaseMovementTotals],
-            ['key' => 'cash_in', 'label' => __('app.dashboard_cash_in'), 'accent' => 'cash-in', 'values' => $cashInTotals],
-            ['key' => 'cash_out', 'label' => __('app.dashboard_cash_out'), 'accent' => 'cash-out', 'values' => $cashOutTotals],
-            ['key' => 'total_cost', 'label' => __('app.dashboard_total_cost'), 'accent' => 'total-cost', 'values' => $totalCostTotals, 'emphasis' => true],
-            ['key' => 'margin', 'label' => __('app.dashboard_operating_margin'), 'accent' => 'margin', 'values' => $marginTotals, 'emphasis' => true],
-            ['key' => 'cash_delta', 'label' => __('app.dashboard_cash_delta'), 'accent' => 'delta', 'values' => $cashDeltaTotals, 'emphasis' => true],
+            ['key' => 'collected', 'label' => 'TYPE NOMINA', 'accent' => 'collected', 'values' => $collectedTotals],
+            ['key' => 'ledger_expenses', 'label' => 'TYPE S.SOCIAL', 'accent' => 'cost', 'values' => $expenseLedgerTotals],
+            ['key' => 'purchase_movements', 'label' => 'TYPE AEAT', 'accent' => 'cost', 'values' => $purchaseMovementTotals],
+            ['key' => 'cash_in', 'label' => 'TYPE COMPRA', 'accent' => 'cash-in', 'values' => $cashInTotals],
+            ['key' => 'cash_out', 'label' => 'TYPE GASTO', 'accent' => 'cash-out', 'values' => $cashOutTotals],
+            ['key' => 'total_cost', 'label' => 'TYPE PROVEEDOR', 'accent' => 'total-cost', 'values' => $totalCostTotals, 'emphasis' => true],
+            ['key' => 'margin', 'label' => 'TYPE VARIOS', 'accent' => 'margin', 'values' => $marginTotals, 'emphasis' => true],
+            ['key' => 'cash_delta', 'label' => 'TYPE IVA', 'accent' => 'delta', 'values' => $cashDeltaTotals, 'emphasis' => true],
         ];
 
-        return collect($rows)->map(function (array $row) use ($monthKeys) {
+        $mappedRows = collect($rows)->map(function (array $row) use ($monthKeys) {
             $row['monthly'] = collect($monthKeys)
                 ->map(fn (string $monthKey) => round((float) ($row['values'][$monthKey] ?? 0), 2))
                 ->all();
@@ -177,6 +177,30 @@ class DashboardPage extends Component
 
             return $row;
         })->all();
+
+        $billingRow = collect($mappedRows)->firstWhere('key', 'billing');
+        $otherRows = collect($mappedRows)->where('key', '!=', 'billing');
+
+        $finalResultMonthly = collect($monthKeys)->map(function (string $monthKey) use ($billingRow, $otherRows, $monthKeys) {
+            $monthIndex = array_search($monthKey, $monthKeys);
+            $billingValue = $billingRow['monthly'][$monthIndex] ?? 0;
+            $othersSum = $otherRows->sum(fn ($row) => $row['monthly'][$monthIndex] ?? 0);
+
+            return round($billingValue - $othersSum, 2);
+        })->all();
+
+        $finalResultTotal = round(array_sum($finalResultMonthly), 2);
+
+        $mappedRows[] = [
+            'key' => 'final_result',
+            'label' => 'TOTAL FACTURAS - ALLL',
+            'accent' => 'delta',
+            'emphasis' => true,
+            'monthly' => $finalResultMonthly,
+            'total' => $finalResultTotal,
+        ];
+
+        return $mappedRows;
     }
 
     private function bankMovementTotalsByType(string $type, Carbon $from, Carbon $to): array
