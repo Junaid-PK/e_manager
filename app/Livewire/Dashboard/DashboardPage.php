@@ -327,7 +327,17 @@ class DashboardPage extends Component
             $totals[$category][$row->ym] = round((float) ($totals[$category][$row->ym] ?? 0) + (float) $row->total_amount, 2);
         }
 
+        $excludedCategories = [
+            'BBVA', 'BBVA MON', 'POPULAR', 'POPULAR MON',
+            'SABADELL MON', 'SABADELL', 'SANTANDER',
+            'CREDITO BANKSANTANDER', 'SANTANDER MON',
+            'BANKINTER CREDITO MON', 'MON BANKINTER', 'BANKINTER CREDITO',
+        ];
+
         return collect($totals)
+            ->reject(function (array $values, string $category) use ($excludedCategories) {
+                return in_array(strtoupper($category), array_map('strtoupper', $excludedCategories), true);
+            })
             ->map(function (array $values, string $category) use ($monthKeys) {
                 $monthly = collect($monthKeys)
                     ->map(fn (string $monthKey) => round((float) ($values[$monthKey] ?? 0), 2))
