@@ -722,6 +722,10 @@
                  x-transition:leave-end="opacity-0 scale-95">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{{ __('app.categorize_selected') }}</h3>
                 <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.type') }}</label>
+                    <x-custom-select :options="$movementTypeOpts" :value="$bulkType ?? ''" allow-custom wire-model="bulkType" placeholder="—" />
+                </div>
+                <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.category') }}</label>
                     <x-custom-select :options="$categoryOpts" :value="$bulkCategory ?? ''" allow-custom wire-model="bulkCategory" placeholder="—" />
                 </div>

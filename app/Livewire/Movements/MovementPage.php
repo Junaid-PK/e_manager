@@ -44,6 +44,8 @@ class MovementPage extends Component
 
     public string $bulkCategory = '';
 
+    public string $bulkType = '';
+
     #[\Livewire\Attributes\Url(as: 'bank_account_id')]
     public string $filterBankAccountId = '';
 
@@ -596,15 +598,29 @@ class MovementPage extends Component
     public function openCategoryModal(): void
     {
         $this->bulkCategory = '';
+        $this->bulkType = '';
         $this->showCategoryModal = true;
     }
 
     public function applyCategoryToSelected(): void
     {
-        $resolved = $this->resolveOrCreateCategory(trim($this->bulkCategory ?? ''));
-        BankMovement::whereIn('id', $this->selected)->update(['category' => $resolved]);
+        $updates = [];
+
+        if (trim($this->bulkCategory ?? '') !== '') {
+            $updates['category'] = $this->resolveOrCreateCategory(trim($this->bulkCategory));
+        }
+
+        if (trim($this->bulkType ?? '') !== '') {
+            $updates['type'] = $this->resolveOrCreateMovementType(trim($this->bulkType));
+        }
+
+        if (! empty($updates)) {
+            BankMovement::whereIn('id', $this->selected)->update($updates);
+        }
+
         $this->showCategoryModal = false;
         $this->bulkCategory = '';
+        $this->bulkType = '';
         $this->deselectAll();
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
