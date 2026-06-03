@@ -140,6 +140,20 @@ class DashboardPage extends Component
     private function buildExecutiveReport(array $reportMonths, Carbon $from, Carbon $to): array
     {
         $monthKeys = collect($reportMonths)->pluck('key')->all();
+
+        $typeLabels = MovementType::query()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->flatMap(fn (MovementType $type) => [
+                $this->normalizeTypeForLookup((string) $type->slug) => (string) $type->name,
+                $this->normalizeTypeForLookup((string) $type->name) => (string) $type->name,
+            ])
+            ->all();
+
+        $movementLabel = fn (string $type): string =>
+            $typeLabels[$this->normalizeTypeForLookup($type)] ?? $type;
+
         $invoiceTotals = $this->monthlyTotals(
             $this->applyOwnerFilter(Invoice::query()),
             'date_issued',
@@ -158,14 +172,14 @@ class DashboardPage extends Component
 
         $rows = [
             ['key' => 'billing', 'label' => __('app.dashboard_billing'), 'accent' => 'billing', 'values' => $invoiceTotals],
-            ['key' => 'collected', 'label' => 'TYPE NOMINA', 'accent' => 'collected', 'values' => $collectedTotals],
-            ['key' => 'ledger_expenses', 'label' => 'TYPE S.SOCIAL', 'accent' => 'cost', 'values' => $expenseLedgerTotals],
-            ['key' => 'purchase_movements', 'label' => 'TYPE AEAT', 'accent' => 'cost', 'values' => $purchaseMovementTotals],
-            ['key' => 'cash_in', 'label' => 'TYPE COMPRA', 'accent' => 'cash-in', 'values' => $cashInTotals],
-            ['key' => 'cash_out', 'label' => 'TYPE GASTO', 'accent' => 'cash-out', 'values' => $cashOutTotals],
-            ['key' => 'total_cost', 'label' => 'TYPE PROVEEDOR', 'accent' => 'total-cost', 'values' => $totalCostTotals, 'emphasis' => true],
-            ['key' => 'margin', 'label' => 'TYPE VARIOS', 'accent' => 'margin', 'values' => $marginTotals, 'emphasis' => true],
-            ['key' => 'cash_delta', 'label' => 'TYPE IVA', 'accent' => 'delta', 'values' => $cashDeltaTotals, 'emphasis' => true],
+            ['key' => 'collected', 'label' => $movementLabel('Nomina'), 'accent' => 'collected', 'values' => $collectedTotals],
+            ['key' => 'ledger_expenses', 'label' => $movementLabel('S.Social'), 'accent' => 'cost', 'values' => $expenseLedgerTotals],
+            ['key' => 'purchase_movements', 'label' => $movementLabel('AEAT'), 'accent' => 'cost', 'values' => $purchaseMovementTotals],
+            ['key' => 'cash_in', 'label' => $movementLabel('Compra'), 'accent' => 'cash-in', 'values' => $cashInTotals],
+            ['key' => 'cash_out', 'label' => $movementLabel('Gasto'), 'accent' => 'cash-out', 'values' => $cashOutTotals],
+            ['key' => 'total_cost', 'label' => $movementLabel('PROVEEDOR'), 'accent' => 'total-cost', 'values' => $totalCostTotals, 'emphasis' => true],
+            ['key' => 'margin', 'label' => $movementLabel('VARIOS'), 'accent' => 'margin', 'values' => $marginTotals, 'emphasis' => true],
+            ['key' => 'cash_delta', 'label' => $movementLabel('IVA'), 'accent' => 'delta', 'values' => $cashDeltaTotals, 'emphasis' => true],
         ];
 
         $mappedRows = collect($rows)->map(function (array $row) use ($monthKeys) {
