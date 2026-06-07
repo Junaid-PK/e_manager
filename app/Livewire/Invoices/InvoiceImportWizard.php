@@ -12,12 +12,15 @@ class InvoiceImportWizard extends Component
     use WithFileUploads;
 
     public bool $show = false;
+
     public int $step = 1;
 
     public $file;
 
     public array $headers = [];
+
     public array $previewRows = [];
+
     public array $columnMap = [
         'company' => '',
         'client' => '',
@@ -39,6 +42,7 @@ class InvoiceImportWizard extends Component
     ];
 
     public int $importedCount = 0;
+
     public array $importErrors = [];
 
     #[On('openInvoiceImportWizard')]
@@ -71,7 +75,7 @@ class InvoiceImportWizard extends Component
         $this->validate(['file' => 'required|file|mimetypes:text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream']);
 
         $path = $this->file->getRealPath();
-        $service = new InvoiceImportService();
+        $service = new InvoiceImportService;
         $result = $service->parseFile($path);
 
         $this->headers = $result['headers'];
@@ -105,7 +109,9 @@ class InvoiceImportWizard extends Component
         foreach ($this->headers as $index => $header) {
             $headerLower = strtolower($header);
             foreach ($keywords as $field => $terms) {
-                if ($this->columnMap[$field] !== '') continue;
+                if ($this->columnMap[$field] !== '') {
+                    continue;
+                }
                 foreach ($terms as $term) {
                     if (str_contains($headerLower, $term)) {
                         $this->columnMap[$field] = (string) $index;
@@ -119,7 +125,7 @@ class InvoiceImportWizard extends Component
     public function import(): void
     {
         $path = $this->file->getRealPath();
-        $service = new InvoiceImportService();
+        $service = new InvoiceImportService;
 
         $indexMap = [];
         foreach ($this->columnMap as $field => $headerIndex) {

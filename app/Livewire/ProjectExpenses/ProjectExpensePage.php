@@ -16,33 +16,48 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Livewire\Component;
-use Livewire\WithPagination;
 use Livewire\WithFileUploads;
+use Livewire\WithPagination;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ProjectExpensePage extends Component
 {
-    use WithBulkActions, WithFiltering, WithPagination, WithSorting, WithFileUploads;
+    use WithBulkActions, WithFileUploads, WithFiltering, WithPagination, WithSorting;
+
+    public bool $isCreating = false;
 
     public bool $showFormModal = false;
+
     public bool $showDeleteModal = false;
+
     public bool $showImportModal = false;
+
     public ?int $editingId = null;
 
     public string $filterPeriodId = '';
+
     public string $filterClientId = '';
+
     public string $filterProjectId = '';
+
     public string $filterCategory = '';
 
     public string $formProjectMonthId = '';
+
     public string $formExpenseDate = '';
+
     public string $formCategory = '';
+
     public string $formDescription = '';
+
     public string $formAmount = '0';
 
     public $importFile = null;
+
     public array $importPreview = [];
+
     public array $importColumnMap = [];
+
     public int $importStep = 1;
 
     protected function rules(): array
@@ -80,7 +95,38 @@ class ProjectExpensePage extends Component
     {
         $this->resetForm();
         $this->editingId = null;
-        $this->showFormModal = true;
+        $this->isCreating = true;
+    }
+
+    public function saveInline(): void
+    {
+        Gate::authorize('project_expenses.create');
+
+        $this->validate([
+            'formProjectMonthId' => 'required|exists:project_months,id',
+            'formExpenseDate' => 'nullable|date',
+            'formCategory' => 'nullable|string|max:100',
+            'formDescription' => 'nullable|string|max:1000',
+            'formAmount' => 'required|numeric|min:0',
+        ]);
+
+        ProjectExpense::create([
+            'project_month_id' => (int) $this->formProjectMonthId,
+            'expense_date' => $this->formExpenseDate ?: null,
+            'category' => $this->formCategory ?: null,
+            'description' => $this->formDescription ?: null,
+            'amount' => (float) ($this->formAmount ?: 0),
+        ]);
+
+        $this->dispatch('notify', type: 'success', message: __('app.created_successfully'));
+        $this->isCreating = false;
+        $this->resetForm();
+    }
+
+    public function cancelCreate(): void
+    {
+        $this->isCreating = false;
+        $this->resetForm();
     }
 
     public function edit(int $id): void
@@ -174,9 +220,9 @@ class ProjectExpensePage extends Component
     {
         Gate::authorize('project_expenses.export');
         $rows = $this->buildQuery()->get();
-        $filename = 'project-expenses-' . date('Y-m-d-His') . '-' . uniqid() . '.xlsx';
+        $filename = 'project-expenses-'.date('Y-m-d-His').'-'.uniqid().'.xlsx';
         Storage::disk('local')->makeDirectory('exports');
-        Excel::store(new ProjectExpenseExport($rows), 'exports/' . $filename, 'local');
+        Excel::store(new ProjectExpenseExport($rows), 'exports/'.$filename, 'local');
 
         return redirect(URL::temporarySignedRoute('export.download', now()->addMinutes(5), ['file' => $filename]));
     }
@@ -193,12 +239,12 @@ class ProjectExpensePage extends Component
 
     public function updatedImportFile(): void
     {
-        if (!$this->importFile) {
+        if (! $this->importFile) {
             return;
         }
 
         $path = $this->importFile->getRealPath();
-        $service = new ProjectExpenseImportService();
+        $service = new ProjectExpenseImportService;
         $result = $service->parseFile($path);
 
         $this->importPreview = $result;
@@ -230,12 +276,12 @@ class ProjectExpensePage extends Component
     public function importRows(): void
     {
         Gate::authorize('project_expenses.create');
-        if (!$this->importFile) {
+        if (! $this->importFile) {
             return;
         }
 
         $path = $this->importFile->getRealPath();
-        $service = new ProjectExpenseImportService();
+        $service = new ProjectExpenseImportService;
         $result = $service->importMappedData($path, $this->importColumnMap);
 
         $this->showImportModal = false;
@@ -245,10 +291,10 @@ class ProjectExpensePage extends Component
         $this->importStep = 1;
 
         if ($result['imported'] > 0) {
-            $this->dispatch('notify', type: 'success', message: $result['imported'] . ' ' . __('app.rows_imported'));
+            $this->dispatch('notify', type: 'success', message: $result['imported'].' '.__('app.rows_imported'));
         }
 
-        if (!empty($result['errors'])) {
+        if (! empty($result['errors'])) {
             foreach ($result['errors'] as $error) {
                 $this->dispatch('notify', type: 'error', message: $error);
             }

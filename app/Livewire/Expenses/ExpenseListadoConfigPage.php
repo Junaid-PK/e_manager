@@ -381,6 +381,7 @@ class ExpenseListadoConfigPage extends Component
                     'expense_cif_id' => $cifId,
                 ]);
                 $providerChanges++;
+
                 continue;
             }
 
@@ -428,6 +429,7 @@ class ExpenseListadoConfigPage extends Component
                     'sort_order' => $sortOrder,
                 ]);
                 $cifChanges++;
+
                 continue;
             }
 

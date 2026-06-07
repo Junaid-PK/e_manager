@@ -13,20 +13,28 @@ use Livewire\WithPagination;
 
 class ReminderPage extends Component
 {
-    use WithPagination, WithSorting, WithFiltering;
+    use WithFiltering, WithPagination, WithSorting;
 
     public bool $showFormModal = false;
+
     public bool $showDeleteModal = false;
+
     public ?int $editingId = null;
 
     public string $filterStatus = 'upcoming';
+
     public string $filterType = 'all';
+
     public string $dateFrom = '';
+
     public string $dateTo = '';
 
     public string $formRemindableType = 'invoice';
+
     public string $formRemindableId = '';
+
     public string $formReminderDate = '';
+
     public string $formMessage = '';
 
     protected function rules(): array
@@ -62,6 +70,11 @@ class ReminderPage extends Component
     public function updatedFormRemindableType(): void
     {
         $this->formRemindableId = '';
+    }
+
+    private function canAccessAllReminders(): bool
+    {
+        return (bool) auth()->user()?->isAdmin() || Gate::allows('reminders.access_all');
     }
 
     public function create(): void
@@ -149,8 +162,24 @@ class ReminderPage extends Component
 
     public function markPaid(int $id): void
     {
-        $reminder = PaymentReminder::with('remindable')->findOrFail($id);
-        if ($reminder->remindable_type === 'App\\Models\\Invoice') {
+        $reminder = PaymentReminder::query();
+
+        if ($this->canAccessAllReminders()) {
+            $reminder->with([
+                'remindable' => function ($morphTo) {
+                    $morphTo->constrain([
+                        Invoice::class => fn ($q) => $q->withoutGlobalScope('ownedByUser'),
+                        Expense::class => fn ($q) => $q->withoutGlobalScope('ownedByUser'),
+                    ]);
+                },
+            ]);
+        } else {
+            $reminder->with('remindable');
+        }
+
+        $reminder = $reminder->findOrFail($id);
+
+        if ($reminder->remindable_type === 'App\Models\Invoice') {
             $reminder->remindable->update(['status' => 'paid']);
             $reminder->update(['is_dismissed' => true]);
             $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
@@ -169,7 +198,20 @@ class ReminderPage extends Component
 
     protected function buildQuery()
     {
-        $query = PaymentReminder::query()->with('remindable');
+        $query = PaymentReminder::query();
+
+        if ($this->canAccessAllReminders()) {
+            $query->with([
+                'remindable' => function ($morphTo) {
+                    $morphTo->constrain([
+                        Invoice::class => fn ($q) => $q->withoutGlobalScope('ownedByUser'),
+                        Expense::class => fn ($q) => $q->withoutGlobalScope('ownedByUser'),
+                    ]);
+                },
+            ]);
+        } else {
+            $query->with('remindable');
+        }
 
         if ($this->search) {
             $search = $this->search;
@@ -203,15 +245,23 @@ class ReminderPage extends Component
     protected function getRemindableItems(): \Illuminate\Support\Collection
     {
         if ($this->formRemindableType === 'invoice') {
-            return Invoice::orderBy('invoice_number')->get()->map(fn ($i) => [
+            $query = $this->canAccessAllReminders()
+                ? Invoice::withoutGlobalScope('ownedByUser')
+                : Invoice::query();
+
+            return $query->orderBy('invoice_number')->get()->map(fn ($i) => [
                 'id' => $i->id,
-                'label' => $i->invoice_number . ' — ' . fmt_number($i->total) . ' €',
+                'label' => $i->invoice_number.' — '.fmt_number($i->total).' €',
             ]);
         }
 
-        return Expense::orderBy('description')->get()->map(fn ($e) => [
+        $query = $this->canAccessAllReminders()
+            ? Expense::withoutGlobalScope('ownedByUser')
+            : Expense::query();
+
+        return $query->orderBy('description')->get()->map(fn ($e) => [
             'id' => $e->id,
-            'label' => $e->description . ' — ' . fmt_number($e->amount) . ' €',
+            'label' => $e->description.' — '.fmt_number($e->amount).' €',
         ]);
     }
 

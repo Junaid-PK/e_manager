@@ -11,29 +11,40 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class MovementConfigPage extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithFileUploads, WithPagination;
 
     public string $activeTab = 'types';
 
     public bool $showTypeModal = false;
+
     public bool $showCategoryModal = false;
+
     public bool $showDeleteModal = false;
+
     public bool $showImportModal = false;
+
     public ?int $editingId = null;
+
     public string $deleteTarget = '';
 
     public string $typeName = '';
+
     public string $typeColor = '#10b981';
+
     public int $typeSortOrder = 0;
 
     public string $categoryName = '';
+
     public string $categoryParentId = '';
+
     public int $categorySortOrder = 0;
 
     public $importFile;
+
     public string $importTarget = 'types';
 
     public string $searchTypes = '';
+
     public string $searchCategories = '';
 
     public function switchTab(string $tab): void
@@ -164,17 +175,20 @@ class MovementConfigPage extends Component
         if (empty($data) || empty($data[0])) {
             $this->dispatch('notify', type: 'error', message: __('app.no_records_imported'));
             $this->showImportModal = false;
+
             return;
         }
 
         $rows = $data[0];
-        $hasHeader = !empty($rows[0]) && is_string($rows[0][0]) && !is_numeric($rows[0][0]);
+        $hasHeader = ! empty($rows[0]) && is_string($rows[0][0]) && ! is_numeric($rows[0][0]);
         $startIndex = $hasHeader ? 1 : 0;
         $imported = 0;
 
         for ($i = $startIndex; $i < count($rows); $i++) {
             $name = trim((string) ($rows[$i][0] ?? ''));
-            if (empty($name)) continue;
+            if (empty($name)) {
+                continue;
+            }
 
             if ($this->importTarget === 'types') {
                 $extra = [
@@ -198,7 +212,7 @@ class MovementConfigPage extends Component
         }
 
         $this->showImportModal = false;
-        $this->dispatch('notify', type: 'success', message: $imported . ' ' . __('app.records_imported'));
+        $this->dispatch('notify', type: 'success', message: $imported.' '.__('app.records_imported'));
     }
 
     private function resetTypeForm(): void

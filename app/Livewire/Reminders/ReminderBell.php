@@ -11,7 +11,7 @@ class ReminderBell extends Component
 
     public function toggleDropdown(): void
     {
-        $this->showDropdown = !$this->showDropdown;
+        $this->showDropdown = ! $this->showDropdown;
     }
 
     public function dismiss(int $id): void

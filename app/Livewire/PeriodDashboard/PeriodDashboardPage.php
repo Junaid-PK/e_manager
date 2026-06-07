@@ -5,14 +5,13 @@ namespace App\Livewire\PeriodDashboard;
 use App\Models\MonthlyPeriod;
 use App\Models\ProjectMonth;
 use App\Models\WorkerMonthlySummary;
-use App\Models\WorkerProjectEntry;
 use Livewire\Component;
-use Illuminate\Support\Facades\DB;
 
 #[\Livewire\Attributes\Layout('layouts.app')]
 class PeriodDashboardPage extends Component
 {
     public string $selectedPeriodId = '';
+
     public ?MonthlyPeriod $selectedPeriod = null;
 
     public function mount(): void

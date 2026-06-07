@@ -5,7 +5,9 @@ namespace App\Livewire\Traits;
 trait WithBulkActions
 {
     public array $selected = [];
+
     public bool $selectAll = false;
+
     public bool $selectPage = false;
 
     public function updatedSelectPage(bool $value): void
@@ -38,5 +40,6 @@ trait WithBulkActions
     }
 
     abstract protected function getPageItemIds(): array;
+
     abstract protected function getAllItemIds(): array;
 }

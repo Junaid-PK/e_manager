@@ -30,6 +30,15 @@ class WorkerProjectEntry extends Model
     {
         parent::boot();
 
+        static::creating(function ($entry) {
+            if (empty($entry->rate) || $entry->rate == 0) {
+                $worker = Worker::find($entry->worker_id);
+                if ($worker && $worker->rate > 0) {
+                    $entry->rate = $worker->rate;
+                }
+            }
+        });
+
         static::saving(function ($entry) {
             $entry->total_amount = (float) $entry->social_security
                 + ((float) $entry->hours * (float) $entry->rate);

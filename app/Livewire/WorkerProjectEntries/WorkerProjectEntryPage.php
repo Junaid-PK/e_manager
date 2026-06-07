@@ -22,20 +22,33 @@ class WorkerProjectEntryPage extends Component
     use WithBulkActions, WithFiltering, WithPagination, WithSorting;
 
     public bool $showFormModal = false;
+
     public bool $showDeleteModal = false;
+
     public bool $showBulkCreateModal = false;
+
+    public bool $isCreating = false;
+
     public ?int $editingId = null;
 
     public string $filterPeriodId = '';
+
     public string $filterProjectMonthId = '';
+
     public string $filterWorkerId = '';
 
     public string $formProjectMonthId = '';
+
     public string $formWorkerId = '';
+
     public string $formSpecialNote = '';
+
     public string $formSocialSecurity = '0';
+
     public string $formHours = '0';
+
     public string $formDays = '0';
+
     public string $formRate = '0';
 
     public array $bulkRows = [];
@@ -49,8 +62,26 @@ class WorkerProjectEntryPage extends Component
             'formSocialSecurity' => 'nullable|numeric|min:0',
             'formHours' => 'nullable|numeric|min:0',
             'formDays' => 'nullable|numeric|min:0',
-            'formRate' => 'nullable|numeric|min:0',
         ];
+    }
+
+    public function updatedFormWorkerId(): void
+    {
+        if (! $this->editingId && $this->formWorkerId) {
+            $worker = Worker::find($this->formWorkerId);
+            if ($worker) {
+                $this->formRate = (string) $worker->rate;
+            }
+        }
+    }
+
+    public function selectWorker(string $workerId): void
+    {
+        $this->formWorkerId = $workerId;
+        $worker = Worker::find($workerId);
+        if ($worker) {
+            $this->formRate = (string) $worker->rate;
+        }
     }
 
     public function updatedFilterPeriodId(): void
@@ -73,7 +104,34 @@ class WorkerProjectEntryPage extends Component
     {
         $this->resetForm();
         $this->editingId = null;
-        $this->showFormModal = true;
+        $this->isCreating = true;
+    }
+
+    public function cancelCreate(): void
+    {
+        $this->isCreating = false;
+        $this->resetForm();
+    }
+
+    public function saveInline(): void
+    {
+        Gate::authorize('worker_project_entries.create');
+
+        $this->validate();
+
+        WorkerProjectEntry::create([
+            'project_month_id' => (int) $this->formProjectMonthId,
+            'worker_id' => (int) $this->formWorkerId,
+            'special_note' => $this->formSpecialNote ?: null,
+            'social_security' => (float) ($this->formSocialSecurity ?: 0),
+            'hours' => (float) ($this->formHours ?: 0),
+            'days' => (float) ($this->formDays ?: 0),
+            'rate' => (float) ($this->formRate ?: 0),
+        ]);
+
+        $this->isCreating = false;
+        $this->resetForm();
+        $this->dispatch('notify', type: 'success', message: __('app.created_successfully'));
     }
 
     public function edit(int $id): void
@@ -173,9 +231,9 @@ class WorkerProjectEntryPage extends Component
     {
         Gate::authorize('worker_project_entries.export');
         $rows = $this->buildQuery()->get();
-        $filename = 'worker-project-entries-' . date('Y-m-d-His') . '-' . uniqid() . '.xlsx';
+        $filename = 'worker-project-entries-'.date('Y-m-d-His').'-'.uniqid().'.xlsx';
         Storage::disk('local')->makeDirectory('exports');
-        Excel::store(new WorkerProjectEntryExport($rows), 'exports/' . $filename, 'local');
+        Excel::store(new WorkerProjectEntryExport($rows), 'exports/'.$filename, 'local');
 
         return redirect(URL::temporarySignedRoute('export.download', now()->addMinutes(5), ['file' => $filename]));
     }
@@ -211,6 +269,7 @@ class WorkerProjectEntryPage extends Component
 
         if (! $this->formProjectMonthId) {
             $this->dispatch('notify', type: 'error', message: __('app.select_project_month'));
+
             return;
         }
 
@@ -236,7 +295,7 @@ class WorkerProjectEntryPage extends Component
         $this->bulkRows = [];
 
         if ($created > 0) {
-            $this->dispatch('notify', type: 'success', message: $created . ' ' . __('app.rows_created'));
+            $this->dispatch('notify', type: 'success', message: $created.' '.__('app.rows_created'));
         }
     }
 

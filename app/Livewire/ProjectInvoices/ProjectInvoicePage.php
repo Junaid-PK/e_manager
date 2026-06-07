@@ -7,6 +7,7 @@ use App\Livewire\Traits\WithBulkActions;
 use App\Livewire\Traits\WithFiltering;
 use App\Livewire\Traits\WithSorting;
 use App\Models\Client;
+use App\Models\Invoice;
 use App\Models\MonthlyPeriod;
 use App\Models\Project;
 use App\Models\ProjectInvoice;
@@ -16,35 +17,54 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Livewire\Component;
-use Livewire\WithPagination;
 use Livewire\WithFileUploads;
+use Livewire\WithPagination;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ProjectInvoicePage extends Component
 {
-    use WithBulkActions, WithFiltering, WithPagination, WithSorting, WithFileUploads;
+    use WithBulkActions, WithFileUploads, WithFiltering, WithPagination, WithSorting;
 
     public bool $showFormModal = false;
+
     public bool $showDeleteModal = false;
+
     public bool $showImportModal = false;
+
+    public bool $isCreating = false;
+
     public ?int $editingId = null;
 
     public string $filterPeriodId = '';
+
     public string $filterClientId = '';
+
     public string $filterProjectId = '';
+
     public string $filterStatus = '';
 
     public string $formProjectMonthId = '';
+
+    public string $formInvoiceId = '';
+
     public string $formInvoiceNo = '';
+
     public string $formInvoiceDate = '';
+
     public string $formEstimatedAmount = '0';
+
     public string $formActualAmount = '0';
+
     public string $formStatus = 'draft';
+
     public string $formNotes = '';
 
     public $importFile = null;
+
     public array $importPreview = [];
+
     public array $importColumnMap = [];
+
     public int $importStep = 1;
 
     protected function rules(): array
@@ -80,11 +100,50 @@ class ProjectInvoicePage extends Component
         $this->resetPage();
     }
 
+    public function selectInvoice(string $invoiceId): void
+    {
+        $this->formInvoiceId = $invoiceId;
+        $invoice = Invoice::find($invoiceId);
+        if ($invoice) {
+            $this->formInvoiceNo = $invoice->invoice_number ?? '';
+            $this->formInvoiceDate = $invoice->date_issued ? $invoice->date_issued->format('Y-m-d') : '';
+            $this->formEstimatedAmount = (string) ($invoice->total ?? 0);
+            $this->formActualAmount = (string) ($invoice->amount_paid ?? 0);
+        }
+    }
+
     public function create(): void
     {
         $this->resetForm();
         $this->editingId = null;
-        $this->showFormModal = true;
+        $this->isCreating = true;
+    }
+
+    public function cancelCreate(): void
+    {
+        $this->isCreating = false;
+        $this->resetForm();
+    }
+
+    public function saveInline(): void
+    {
+        Gate::authorize('project_invoices.create');
+
+        $this->validate();
+
+        ProjectInvoice::create([
+            'project_month_id' => (int) $this->formProjectMonthId,
+            'invoice_no' => $this->formInvoiceNo ?: null,
+            'invoice_date' => $this->formInvoiceDate ?: null,
+            'estimated_amount' => (float) ($this->formEstimatedAmount ?: 0),
+            'actual_amount' => (float) ($this->formActualAmount ?: 0),
+            'status' => $this->formStatus,
+            'notes' => $this->formNotes ?: null,
+        ]);
+
+        $this->isCreating = false;
+        $this->resetForm();
+        $this->dispatch('notify', type: 'success', message: __('app.created_successfully'));
     }
 
     public function edit(int $id): void
@@ -153,6 +212,22 @@ class ProjectInvoicePage extends Component
         $row->save();
     }
 
+    public function quickUpdateInvoice(int $id, string $invoiceId): void
+    {
+        Gate::authorize('project_invoices.edit');
+
+        $row = ProjectInvoice::findOrFail($id);
+        $invoice = Invoice::find($invoiceId);
+
+        if ($invoice) {
+            $row->invoice_no = $invoice->invoice_number ?? null;
+            $row->invoice_date = $invoice->date_issued ?? null;
+            $row->estimated_amount = $invoice->total ?? 0;
+            $row->actual_amount = $invoice->amount_paid ?? 0;
+            $row->save();
+        }
+    }
+
     public function quickUpdateStatus(int $id, string $status): void
     {
         Gate::authorize('project_invoices.edit');
@@ -210,12 +285,12 @@ class ProjectInvoicePage extends Component
 
     public function updatedImportFile(): void
     {
-        if (!$this->importFile) {
+        if (! $this->importFile) {
             return;
         }
 
         $path = $this->importFile->getRealPath();
-        $service = new ProjectInvoiceImportService();
+        $service = new ProjectInvoiceImportService;
         $result = $service->parseFile($path);
 
         $this->importPreview = $result;
@@ -251,12 +326,12 @@ class ProjectInvoicePage extends Component
     public function importRows(): void
     {
         Gate::authorize('project_invoices.create');
-        if (!$this->importFile) {
+        if (! $this->importFile) {
             return;
         }
 
         $path = $this->importFile->getRealPath();
-        $service = new ProjectInvoiceImportService();
+        $service = new ProjectInvoiceImportService;
         $result = $service->importMappedData($path, $this->importColumnMap);
 
         $this->showImportModal = false;
@@ -269,7 +344,7 @@ class ProjectInvoicePage extends Component
             $this->dispatch('notify', type: 'success', message: $result['imported'].' '.__('app.rows_imported'));
         }
 
-        if (!empty($result['errors'])) {
+        if (! empty($result['errors'])) {
             foreach ($result['errors'] as $error) {
                 $this->dispatch('notify', type: 'error', message: $error);
             }
@@ -280,6 +355,7 @@ class ProjectInvoicePage extends Component
     {
         $this->editingId = null;
         $this->formProjectMonthId = '';
+        $this->formInvoiceId = '';
         $this->formInvoiceNo = '';
         $this->formInvoiceDate = '';
         $this->formEstimatedAmount = '0';
@@ -318,6 +394,7 @@ class ProjectInvoicePage extends Component
             'clients' => Client::orderBy('name')->get(),
             'projects' => Project::orderBy('name')->get(),
             'projectMonths' => ProjectMonth::with(['monthlyPeriod', 'client', 'project'])->orderByDesc('id')->get(),
+            'invoices' => Invoice::with(['client'])->orderByDesc('date_issued')->orderByDesc('id')->get(),
         ])->layout('layouts.app');
     }
 

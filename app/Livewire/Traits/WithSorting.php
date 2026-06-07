@@ -5,6 +5,7 @@ namespace App\Livewire\Traits;
 trait WithSorting
 {
     public string $sortField = '';
+
     public string $sortDirection = 'asc';
 
     public function sortBy(string $field): void
@@ -23,6 +24,7 @@ trait WithSorting
         if ($this->sortField) {
             return $query->orderBy($this->sortField, $this->sortDirection);
         }
+
         return $query->latest();
     }
 }

@@ -15,34 +15,48 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Livewire\Component;
-use Livewire\WithPagination;
 use Livewire\WithFileUploads;
+use Livewire\WithPagination;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ProjectMonthPage extends Component
 {
-    use WithBulkActions, WithFiltering, WithPagination, WithSorting, WithFileUploads;
+    use WithBulkActions, WithFileUploads, WithFiltering, WithPagination, WithSorting;
 
     public bool $showFormModal = false;
+
     public bool $showDeleteModal = false;
+
     public bool $showImportModal = false;
+
     public ?int $editingId = null;
 
     public string $filterPeriodId = '';
+
     public string $filterClientId = '';
+
     public string $filterProjectId = '';
 
     public string $formPeriodId = '';
+
     public string $formClientId = '';
+
     public string $formProjectId = '';
+
     public string $formSheetCode = '';
+
     public string $formEstimatedInvoice = '0';
+
     public string $formTotalExpenses = '0';
+
     public string $formTotalInvoiced = '0';
 
     public $importFile = null;
+
     public array $importPreview = [];
+
     public array $importColumnMap = [];
+
     public int $importStep = 1;
 
     protected function rules(): array
@@ -196,12 +210,12 @@ class ProjectMonthPage extends Component
 
     public function updatedImportFile(): void
     {
-        if (!$this->importFile) {
+        if (! $this->importFile) {
             return;
         }
 
         $path = $this->importFile->getRealPath();
-        $service = new ProjectMonthImportService();
+        $service = new ProjectMonthImportService;
         $result = $service->parseFile($path);
 
         $this->importPreview = $result;
@@ -241,12 +255,12 @@ class ProjectMonthPage extends Component
     public function importRows(): void
     {
         Gate::authorize('project_months.create');
-        if (!$this->importFile) {
+        if (! $this->importFile) {
             return;
         }
 
         $path = $this->importFile->getRealPath();
-        $service = new ProjectMonthImportService();
+        $service = new ProjectMonthImportService;
         $result = $service->importMappedData($path, $this->importColumnMap);
 
         $this->showImportModal = false;
@@ -259,7 +273,7 @@ class ProjectMonthPage extends Component
             $this->dispatch('notify', type: 'success', message: $result['imported'].' '.__('app.rows_imported'));
         }
 
-        if (!empty($result['errors'])) {
+        if (! empty($result['errors'])) {
             foreach ($result['errors'] as $error) {
                 $this->dispatch('notify', type: 'error', message: $error);
             }

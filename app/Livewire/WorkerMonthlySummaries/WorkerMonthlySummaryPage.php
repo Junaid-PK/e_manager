@@ -21,6 +21,7 @@ class WorkerMonthlySummaryPage extends Component
     use WithBulkActions, WithFiltering, WithPagination, WithSorting;
 
     public string $filterPeriodId = '';
+
     public string $filterWorkerId = '';
 
     public function updatedFilterPeriodId(): void

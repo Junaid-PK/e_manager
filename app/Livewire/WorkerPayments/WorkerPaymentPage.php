@@ -15,36 +15,54 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Livewire\Component;
-use Livewire\WithPagination;
 use Livewire\WithFileUploads;
+use Livewire\WithPagination;
 use Maatwebsite\Excel\Facades\Excel;
 
 class WorkerPaymentPage extends Component
 {
-    use WithBulkActions, WithFiltering, WithPagination, WithSorting, WithFileUploads;
+    use WithBulkActions, WithFileUploads, WithFiltering, WithPagination, WithSorting;
 
     public bool $showFormModal = false;
+
     public bool $showDeleteModal = false;
+
     public bool $showImportModal = false;
+
+    public bool $isCreating = false;
+
     public ?int $editingId = null;
 
     public string $filterPeriodId = '';
+
     public string $filterWorkerId = '';
+
     public string $filterPaymentType = '';
+
     public string $filterProjectMonthId = '';
 
     public string $formWorkerId = '';
+
     public string $formPeriodId = '';
+
     public string $formProjectMonthId = '';
+
     public string $formPaymentDate = '';
+
     public string $formPaymentType = 'bank';
+
     public string $formAmount = '0';
+
     public string $formReference = '';
+
     public string $formNotes = '';
 
     public $importFile = null;
+
     public array $importPreview = [];
+
     public array $importColumnMap = [];
+
     public int $importStep = 1;
 
     protected function rules(): array
@@ -86,7 +104,35 @@ class WorkerPaymentPage extends Component
         $this->resetForm();
         $this->editingId = null;
         $this->formPaymentDate = now()->format('Y-m-d');
-        $this->showFormModal = true;
+        $this->isCreating = true;
+    }
+
+    public function cancelCreate(): void
+    {
+        $this->isCreating = false;
+        $this->resetForm();
+    }
+
+    public function saveInline(): void
+    {
+        Gate::authorize('worker_payments.create');
+
+        $this->validate();
+
+        WorkerPayment::create([
+            'worker_id' => (int) $this->formWorkerId,
+            'monthly_period_id' => (int) $this->formPeriodId,
+            'project_month_id' => (int) $this->formProjectMonthId,
+            'payment_date' => $this->formPaymentDate,
+            'payment_type' => $this->formPaymentType,
+            'amount' => (float) ($this->formAmount ?: 0),
+            'reference' => $this->formReference ?: null,
+            'notes' => $this->formNotes ?: null,
+        ]);
+
+        $this->isCreating = false;
+        $this->resetForm();
+        $this->dispatch('notify', type: 'success', message: __('app.created_successfully'));
     }
 
     public function edit(int $id): void
@@ -202,12 +248,12 @@ class WorkerPaymentPage extends Component
 
     public function updatedImportFile(): void
     {
-        if (!$this->importFile) {
+        if (! $this->importFile) {
             return;
         }
 
         $path = $this->importFile->getRealPath();
-        $service = new WorkerPaymentImportService();
+        $service = new WorkerPaymentImportService;
         $result = $service->parseFile($path);
 
         $this->importPreview = $result;
@@ -241,12 +287,12 @@ class WorkerPaymentPage extends Component
     public function importRows(): void
     {
         Gate::authorize('worker_payments.create');
-        if (!$this->importFile) {
+        if (! $this->importFile) {
             return;
         }
 
         $path = $this->importFile->getRealPath();
-        $service = new WorkerPaymentImportService();
+        $service = new WorkerPaymentImportService;
         $result = $service->importMappedData($path, $this->importColumnMap);
 
         $this->showImportModal = false;
@@ -259,7 +305,7 @@ class WorkerPaymentPage extends Component
             $this->dispatch('notify', type: 'success', message: $result['imported'].' '.__('app.rows_imported'));
         }
 
-        if (!empty($result['errors'])) {
+        if (! empty($result['errors'])) {
             foreach ($result['errors'] as $error) {
                 $this->dispatch('notify', type: 'error', message: $error);
             }

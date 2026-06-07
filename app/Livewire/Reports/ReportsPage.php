@@ -12,11 +12,17 @@ use Livewire\Component;
 class ReportsPage extends Component
 {
     public string $activeReport = 'monthly';
+
     public string $dateFrom = '';
+
     public string $dateTo = '';
+
     public string $filterCompanyId = '';
+
     public string $year = '';
+
     public bool $showResults = false;
+
     public array $reportData = [];
 
     public function mount(): void
@@ -61,9 +67,9 @@ class ReportsPage extends Component
 
         $invoices = $query->get();
         $expenses = Expense::query()
-            ->when($this->filterCompanyId, fn($q) => $q->where('company_id', $this->filterCompanyId))
-            ->when($this->dateFrom, fn($q) => $q->where('date', '>=', $this->dateFrom))
-            ->when($this->dateTo, fn($q) => $q->where('date', '<=', $this->dateTo))
+            ->when($this->filterCompanyId, fn ($q) => $q->where('company_id', $this->filterCompanyId))
+            ->when($this->dateFrom, fn ($q) => $q->where('date', '>=', $this->dateFrom))
+            ->when($this->dateTo, fn ($q) => $q->where('date', '<=', $this->dateTo))
             ->get();
 
         return [
@@ -109,16 +115,16 @@ class ReportsPage extends Component
     private function generateIncomeExpenses(): array
     {
         $invoices = Invoice::query()
-            ->when($this->filterCompanyId, fn($q) => $q->where('company_id', $this->filterCompanyId))
-            ->when($this->dateFrom, fn($q) => $q->where('date_issued', '>=', $this->dateFrom))
-            ->when($this->dateTo, fn($q) => $q->where('date_issued', '<=', $this->dateTo))
+            ->when($this->filterCompanyId, fn ($q) => $q->where('company_id', $this->filterCompanyId))
+            ->when($this->dateFrom, fn ($q) => $q->where('date_issued', '>=', $this->dateFrom))
+            ->when($this->dateTo, fn ($q) => $q->where('date_issued', '<=', $this->dateTo))
             ->where('status', 'paid')
             ->sum('total');
 
         $expensesByCategory = Expense::query()
-            ->when($this->filterCompanyId, fn($q) => $q->where('company_id', $this->filterCompanyId))
-            ->when($this->dateFrom, fn($q) => $q->where('date', '>=', $this->dateFrom))
-            ->when($this->dateTo, fn($q) => $q->where('date', '<=', $this->dateTo))
+            ->when($this->filterCompanyId, fn ($q) => $q->where('company_id', $this->filterCompanyId))
+            ->when($this->dateFrom, fn ($q) => $q->where('date', '>=', $this->dateFrom))
+            ->when($this->dateTo, fn ($q) => $q->where('date', '<=', $this->dateTo))
             ->selectRaw('COALESCE(category, ?) as category, SUM(amount) as total', [__('app.other')])
             ->groupBy('category')
             ->orderByDesc('total')
@@ -138,14 +144,15 @@ class ReportsPage extends Component
     private function generateClientBilling(): array
     {
         $query = Invoice::with('client')
-            ->when($this->filterCompanyId, fn($q) => $q->where('company_id', $this->filterCompanyId))
-            ->when($this->dateFrom, fn($q) => $q->where('date_issued', '>=', $this->dateFrom))
-            ->when($this->dateTo, fn($q) => $q->where('date_issued', '<=', $this->dateTo));
+            ->when($this->filterCompanyId, fn ($q) => $q->where('company_id', $this->filterCompanyId))
+            ->when($this->dateFrom, fn ($q) => $q->where('date_issued', '>=', $this->dateFrom))
+            ->when($this->dateTo, fn ($q) => $q->where('date_issued', '<=', $this->dateTo));
 
         $clients = $query->get()
             ->groupBy('client_id')
             ->map(function ($invoices) {
                 $client = $invoices->first()->client;
+
                 return [
                     'client_name' => $client?->name ?? 'Unknown',
                     'total_invoiced' => $invoices->sum('total'),
@@ -165,8 +172,8 @@ class ReportsPage extends Component
     {
         $accounts = BankAccount::all()->map(function ($account) {
             $movements = BankMovement::where('bank_account_id', $account->id)
-                ->when($this->dateFrom, fn($q) => $q->where('date', '>=', $this->dateFrom))
-                ->when($this->dateTo, fn($q) => $q->where('date', '<=', $this->dateTo));
+                ->when($this->dateFrom, fn ($q) => $q->where('date', '>=', $this->dateFrom))
+                ->when($this->dateTo, fn ($q) => $q->where('date', '<=', $this->dateTo));
 
             return [
                 'bank_name' => $account->bank_name,

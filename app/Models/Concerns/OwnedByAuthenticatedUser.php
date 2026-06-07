@@ -21,6 +21,18 @@ trait OwnedByAuthenticatedUser
                 return;
             }
             $table = $builder->getModel()->getTable();
+            $module = match ($table) {
+                'invoices' => 'invoices',
+                'expenses' => 'expenses',
+                'bank_movements' => 'movements',
+                'bank_accounts' => 'bank_accounts',
+                'credit_lines' => 'credit_lines',
+                'companies', 'clients', 'projects' => 'companies_clients',
+                default => null,
+            };
+            if ($module !== null && $user->hasPermission("{$module}.access_all")) {
+                return;
+            }
             $builder->where($table.'.user_id', $user->id);
         });
 

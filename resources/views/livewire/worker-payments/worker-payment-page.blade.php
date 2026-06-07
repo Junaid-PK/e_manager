@@ -134,6 +134,114 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {{-- Inline Create Row --}}
+                    @if ($isCreating)
+                        <tr class="bg-emerald-50/50 dark:bg-emerald-900/10 border-l-4 border-emerald-400" wire:key="wp-create-row">
+                            <td class="px-2 py-2 border-r border-gray-100 dark:border-gray-700">
+                                <span class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{{ __('app.new') }}</span>
+                            </td>
+                            <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700">
+                                <div x-data="{ open: false, search: '', selectedId: @entangle('formPeriodId'), selectedText: '' }" 
+                                     x-init="selectedText = selectedId ? $refs.options.querySelector('[data-value=\"' + selectedId + '\"]')?.textContent || '' : ''"
+                                     class="relative" @click.away="open = false">
+                                    <input x-model="search" 
+                                           @focus="open = true" 
+                                           @keydown.escape="open = false"
+                                           :placeholder="selectedText || '{{ __('app.select_period') }}'"
+                                           class="w-full text-xs border border-emerald-400 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500">
+                                    <div x-show="open" x-ref="options" class="absolute z-50 mt-1 w-40 max-h-60 overflow-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">
+                                        @foreach ($periods as $period)
+                                            <div x-show="!search || '{{ strtolower($period->period_code . ' ' . $period->label) }}'.includes(search.toLowerCase())"
+                                                 @click="selectedId = '{{ $period->id }}'; selectedText = '{{ $period->period_code }} — {{ $period->label }}'; open = false; $wire.set('formPeriodId', '{{ $period->id }}')"
+                                                 data-value="{{ $period->id }}"
+                                                 class="px-3 py-2 text-xs hover:bg-emerald-50 dark:hover:bg-emerald-900/20 cursor-pointer {{ $period->id == $formPeriodId ? 'bg-emerald-50 dark:bg-emerald-900/20' : '' }}">
+                                                {{ $period->period_code }} — {{ $period->label }}
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                    @error('formPeriodId') <p class="mt-0.5 text-xs text-red-500">{{ $message }}</p> @enderror
+                                </div>
+                            </td>
+                            <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700">
+                                <div x-data="{ open: false, search: '', selectedId: @entangle('formWorkerId'), selectedText: '' }" 
+                                     x-init="selectedText = selectedId ? $refs.options.querySelector('[data-value=\"' + selectedId + '\"]')?.textContent || '' : ''"
+                                     class="relative" @click.away="open = false">
+                                    <input x-model="search" 
+                                           @focus="open = true" 
+                                           @keydown.escape="open = false"
+                                           :placeholder="selectedText || '{{ __('app.select_worker') }}'"
+                                           class="w-full text-xs border border-emerald-400 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500">
+                                    <div x-show="open" x-ref="options" class="absolute z-50 mt-1 w-48 max-h-60 overflow-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">
+                                        @foreach ($workers as $worker)
+                                            <div x-show="!search || '{{ strtolower($worker->full_name . ' ' . $worker->nie) }}'.includes(search.toLowerCase())"
+                                                 @click="selectedId = '{{ $worker->id }}'; selectedText = '{{ $worker->full_name }} ({{ $worker->nie ?? '—' }})'; open = false; $wire.set('formWorkerId', '{{ $worker->id }}')"
+                                                 data-value="{{ $worker->id }}"
+                                                 class="px-3 py-2 text-xs hover:bg-emerald-50 dark:hover:bg-emerald-900/20 cursor-pointer {{ $worker->id == $formWorkerId ? 'bg-emerald-50 dark:bg-emerald-900/20' : '' }}">
+                                                {{ $worker->full_name }} <span class="text-gray-500">({{ $worker->nie ?? '—' }})</span>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                    @error('formWorkerId') <p class="mt-0.5 text-xs text-red-500">{{ $message }}</p> @enderror
+                                </div>
+                            </td>
+                            <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700">
+                                <div x-data="{ open: false, search: '', selectedId: @entangle('formProjectMonthId'), selectedText: '' }" 
+                                     x-init="selectedText = selectedId ? $refs.options.querySelector('[data-value=\"' + selectedId + '\"]')?.textContent || '' : ''"
+                                     class="relative" @click.away="open = false">
+                                    <input x-model="search" 
+                                           @focus="open = true" 
+                                           @keydown.escape="open = false"
+                                           :placeholder="selectedText || '{{ __('app.select_project_month') }}'"
+                                           class="w-full text-xs border border-emerald-400 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500">
+                                    <div x-show="open" x-ref="options" class="absolute z-50 mt-1 w-56 max-h-60 overflow-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">
+                                        @foreach ($projectMonths as $pm)
+                                            <div x-show="!search || '{{ strtolower($pm->monthlyPeriod?->period_code . ' ' . $pm->client?->name . ' ' . $pm->project?->name) }}'.includes(search.toLowerCase())"
+                                                 @click="selectedId = '{{ $pm->id }}'; selectedText = '{{ $pm->monthlyPeriod?->period_code }} — {{ $pm->client?->name }} / {{ Str::limit($pm->project?->name, 20) }}'; open = false; $wire.set('formProjectMonthId', '{{ $pm->id }}')"
+                                                 data-value="{{ $pm->id }}"
+                                                 class="px-3 py-2 text-xs hover:bg-emerald-50 dark:hover:bg-emerald-900/20 cursor-pointer {{ $pm->id == $formProjectMonthId ? 'bg-emerald-50 dark:bg-emerald-900/20' : '' }}">
+                                                <div class="font-medium">{{ $pm->monthlyPeriod?->period_code }} — {{ $pm->client?->name }}</div>
+                                                <div class="text-gray-500 dark:text-gray-400 truncate">{{ Str::limit($pm->project?->name, 25) }}</div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                    @error('formProjectMonthId') <p class="mt-0.5 text-xs text-red-500">{{ $message }}</p> @enderror
+                                </div>
+                            </td>
+                            <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700">
+                                <input wire:model="formPaymentDate" type="date" 
+                                    class="w-full text-xs border border-emerald-400 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500">
+                            </td>
+                            <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700">
+                                <select wire:model="formPaymentType" class="w-full text-xs border border-emerald-400 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500">
+                                    @foreach ($paymentTypes as $key => $label)
+                                        <option value="{{ $key }}">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                            </td>
+                            <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700">
+                                <input wire:model="formAmount" type="number" step="0.01" placeholder="0.00" 
+                                    class="w-full text-xs text-right border border-emerald-400 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 tabular-nums">
+                            </td>
+                            <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700">
+                                <input wire:model="formReference" type="text" placeholder="{{ __('app.reference') }}" 
+                                    class="w-full text-xs border border-emerald-400 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500">
+                            </td>
+                            <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700">
+                                <input wire:model="formNotes" type="text" placeholder="{{ __('app.notes') }}" 
+                                    class="w-full text-xs border border-emerald-400 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500">
+                            </td>
+                            <td class="px-3 py-2 text-center">
+                                <div class="flex items-center justify-center space-x-1">
+                                    <button wire:click="saveInline" class="p-1 rounded text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors" title="{{ __('app.save') }}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                                    </button>
+                                    <button wire:click="cancelCreate" class="p-1 rounded text-gray-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors" title="{{ __('app.cancel') }}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    @endif
                     @forelse ($rows as $row)
                         <tr class="hover:bg-emerald-50/30 dark:hover:bg-emerald-900/10 transition-colors {{ $loop->even ? 'bg-white dark:bg-gray-800' : 'bg-gray-50/50 dark:bg-gray-800/50' }}" wire:key="wp-{{ $row->id }}">
                             <td class="px-2 py-2 border-r border-gray-100 dark:border-gray-700">
@@ -256,22 +364,42 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.worker') }} *</label>
-                            <select wire:model="formWorkerId" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
-                                <option value="">{{ __('app.select_worker') }}</option>
-                                @foreach ($workers as $worker)
-                                    <option value="{{ $worker->id }}">{{ $worker->full_name }}</option>
-                                @endforeach
-                            </select>
+                            <div x-data="{ open: false, search: '', selectedId: '{{ $formWorkerId }}', selectedText: '{{ $workers->firstWhere('id', $formWorkerId)?->full_name ? addslashes($workers->firstWhere('id', $formWorkerId)->full_name) : '' }}' }" class="relative" @click.away="open = false">
+                                <input x-model="search"
+                                       @focus="open = true"
+                                       @keydown.escape="open = false"
+                                       :placeholder="selectedText || '{{ __('app.select_worker') }}'"
+                                       class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                <div x-show="open" class="absolute z-50 mt-1 w-full max-h-60 overflow-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">
+                                    @foreach ($workers as $worker)
+                                        <div x-show="!search || '{{ strtolower(addslashes($worker->full_name . ' ' . ($worker->nie ?? ''))) }}'.includes(search.toLowerCase())"
+                                             @click.stop="selectedId = '{{ $worker->id }}'; selectedText = '{{ addslashes($worker->full_name) }}'; search = ''; open = false; $wire.set('formWorkerId', '{{ $worker->id }}')"
+                                             class="px-3 py-2 text-xs hover:bg-emerald-50 dark:hover:bg-emerald-900/20 cursor-pointer {{ $worker->id == $formWorkerId ? 'bg-emerald-50 dark:bg-emerald-900/20' : '' }}">
+                                            {{ $worker->full_name }} <span class="text-gray-500">({{ $worker->nie ?? '—' }})</span>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
                             @error('formWorkerId') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.period') }} *</label>
-                            <select wire:model="formPeriodId" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
-                                <option value="">{{ __('app.select_period') }}</option>
-                                @foreach ($periods as $period)
-                                    <option value="{{ $period->id }}">{{ $period->period_code }} — {{ $period->label }}</option>
-                                @endforeach
-                            </select>
+                            <div x-data="{ open: false, search: '', selectedId: '{{ $formPeriodId }}', selectedText: '{{ $periods->firstWhere('id', $formPeriodId)?->period_code ? addslashes($periods->firstWhere('id', $formPeriodId)->period_code . ' — ' . $periods->firstWhere('id', $formPeriodId)->label) : '' }}' }" class="relative" @click.away="open = false">
+                                <input x-model="search"
+                                       @focus="open = true"
+                                       @keydown.escape="open = false"
+                                       :placeholder="selectedText || '{{ __('app.select_period') }}'"
+                                       class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                <div x-show="open" class="absolute z-50 mt-1 w-full max-h-60 overflow-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">
+                                    @foreach ($periods as $period)
+                                        <div x-show="!search || '{{ strtolower(addslashes($period->period_code . ' ' . $period->label)) }}'.includes(search.toLowerCase())"
+                                             @click.stop="selectedId = '{{ $period->id }}'; selectedText = '{{ addslashes($period->period_code . ' — ' . $period->label) }}'; search = ''; open = false; $wire.set('formPeriodId', '{{ $period->id }}')"
+                                             class="px-3 py-2 text-xs hover:bg-emerald-50 dark:hover:bg-emerald-900/20 cursor-pointer {{ $period->id == $formPeriodId ? 'bg-emerald-50 dark:bg-emerald-900/20' : '' }}">
+                                            {{ $period->period_code }} — {{ $period->label }}
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
                             @error('formPeriodId') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                         </div>
                     </div>
@@ -279,12 +407,23 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.project_month') }} *</label>
-                            <select wire:model="formProjectMonthId" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
-                                <option value="">{{ __('app.select_project') }}</option>
-                                @foreach ($projectMonths as $pm)
-                                    <option value="{{ $pm->id }}">{{ $pm->monthlyPeriod?->period_code ?? '' }} — {{ $pm->client?->name ?? '' }} / {{ $pm->project?->name ?? '' }}</option>
-                                @endforeach
-                            </select>
+                            <div x-data="{ open: false, search: '', selectedId: '{{ $formProjectMonthId }}', selectedText: '{{ $projectMonths->firstWhere('id', $formProjectMonthId)?->monthlyPeriod?->period_code ? addslashes($projectMonths->firstWhere('id', $formProjectMonthId)->monthlyPeriod?->period_code . ' — ' . $projectMonths->firstWhere('id', $formProjectMonthId)->client?->name . ' / ' . $projectMonths->firstWhere('id', $formProjectMonthId)->project?->name) : '' }}' }" class="relative" @click.away="open = false">
+                                <input x-model="search"
+                                       @focus="open = true"
+                                       @keydown.escape="open = false"
+                                       :placeholder="selectedText || '{{ __('app.select_project') }}'"
+                                       class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                <div x-show="open" class="absolute z-50 mt-1 w-full max-h-60 overflow-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">
+                                    @foreach ($projectMonths as $pm)
+                                        <div x-show="!search || '{{ strtolower(addslashes($pm->monthlyPeriod?->period_code . ' ' . $pm->client?->name . ' ' . $pm->project?->name)) }}'.includes(search.toLowerCase())"
+                                             @click.stop="selectedId = '{{ $pm->id }}'; selectedText = '{{ addslashes($pm->monthlyPeriod?->period_code . ' — ' . $pm->client?->name . ' / ' . $pm->project?->name) }}'; search = ''; open = false; $wire.set('formProjectMonthId', '{{ $pm->id }}')"
+                                             class="px-3 py-2 text-xs hover:bg-emerald-50 dark:hover:bg-emerald-900/20 cursor-pointer {{ $pm->id == $formProjectMonthId ? 'bg-emerald-50 dark:bg-emerald-900/20' : '' }}">
+                                            <div class="font-medium">{{ $pm->monthlyPeriod?->period_code }} — {{ $pm->client?->name }}</div>
+                                            <div class="text-gray-500 dark:text-gray-400 truncate">{{ $pm->project?->name }}</div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
                             @error('formProjectMonthId') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                         </div>
                         <div>
@@ -297,11 +436,25 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.payment_type') }} *</label>
-                            <select wire:model="formPaymentType" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
-                                @foreach ($paymentTypes as $key => $label)
-                                    <option value="{{ $key }}">{{ $label }}</option>
-                                @endforeach
-                            </select>
+                            @php
+                                $selectedPaymentLabel = $paymentTypes[$formPaymentType] ?? '';
+                            @endphp
+                            <div x-data="{ open: false, search: '', selectedId: '{{ $formPaymentType }}', selectedText: '{{ addslashes($selectedPaymentLabel) }}' }" class="relative" @click.away="open = false">
+                                <input x-model="search"
+                                       @focus="open = true"
+                                       @keydown.escape="open = false"
+                                       :placeholder="selectedText || '{{ __('app.select_payment_type') }}'"
+                                       class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                <div x-show="open" class="absolute z-50 mt-1 w-full max-h-60 overflow-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">
+                                    @foreach ($paymentTypes as $key => $label)
+                                        <div x-show="!search || '{{ strtolower(addslashes($label)) }}'.includes(search.toLowerCase())"
+                                             @click.stop="selectedId = '{{ $key }}'; selectedText = '{{ addslashes($label) }}'; search = ''; open = false; $wire.set('formPaymentType', '{{ $key }}')"
+                                             class="px-3 py-2 text-xs hover:bg-emerald-50 dark:hover:bg-emerald-900/20 cursor-pointer {{ $key == $formPaymentType ? 'bg-emerald-50 dark:bg-emerald-900/20' : '' }}">
+                                            {{ $label }}
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
                             @error('formPaymentType') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                         </div>
                         <div>

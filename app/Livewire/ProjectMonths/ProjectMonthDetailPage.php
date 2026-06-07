@@ -17,18 +17,27 @@ class ProjectMonthDetailPage extends Component
     public ProjectMonth $projectMonth;
 
     public bool $showAddWorkerModal = false;
+
     public bool $showImportModal = false;
 
     public string $formWorkerId = '';
+
     public string $formSocialSecurity = '0';
+
     public string $formHours = '0';
+
     public string $formDays = '0';
+
     public string $formRate = '0';
+
     public string $formSpecialNote = '';
 
     public $importFile = null;
+
     public array $importPreview = [];
+
     public array $importColumnMap = [];
+
     public int $importStep = 1;
 
     protected function rules(): array
@@ -38,9 +47,20 @@ class ProjectMonthDetailPage extends Component
             'formSocialSecurity' => 'nullable|numeric|min:0',
             'formHours' => 'nullable|numeric|min:0',
             'formDays' => 'nullable|numeric|min:0',
-            'formRate' => 'nullable|numeric|min:0',
             'formSpecialNote' => 'nullable|string|max:500',
         ];
+    }
+
+    public function updatedFormWorkerId(): void
+    {
+        if ($this->formWorkerId) {
+            $worker = Worker::find($this->formWorkerId);
+            if ($worker) {
+                $this->formRate = (string) $worker->rate;
+            }
+        } else {
+            $this->formRate = '0';
+        }
     }
 
     public function mount(ProjectMonth $projectMonth): void
@@ -109,6 +129,7 @@ class ProjectMonthDetailPage extends Component
 
         if (! $previousProjectMonth) {
             $this->dispatch('notify', type: 'error', message: __('app.no_previous_period_found'));
+
             return;
         }
 
@@ -116,19 +137,20 @@ class ProjectMonthDetailPage extends Component
         $copied = 0;
 
         foreach ($previousEntries as $entry) {
+            $worker = Worker::find($entry->worker_id);
             WorkerProjectEntry::create([
                 'project_month_id' => $this->projectMonth->id,
                 'worker_id' => $entry->worker_id,
                 'social_security' => 0,
                 'hours' => 0,
                 'days' => 0,
-                'rate' => $entry->rate,
+                'rate' => $worker?->rate ?? 0,
                 'special_note' => null,
             ]);
             $copied++;
         }
 
-        $this->dispatch('notify', type: 'success', message: $copied . ' ' . __('app.workers_copied'));
+        $this->dispatch('notify', type: 'success', message: $copied.' '.__('app.workers_copied'));
     }
 
     public function openImportModal(): void
@@ -148,7 +170,7 @@ class ProjectMonthDetailPage extends Component
         }
 
         $path = $this->importFile->getRealPath();
-        $service = new Mon83ImportService();
+        $service = new Mon83ImportService;
         $result = $service->parseFile($path);
 
         $this->importPreview = $result;
@@ -185,7 +207,7 @@ class ProjectMonthDetailPage extends Component
         }
 
         $path = $this->importFile->getRealPath();
-        $service = new Mon83ImportService();
+        $service = new Mon83ImportService;
         $result = $service->importMappedData($path, $this->importColumnMap, $this->projectMonth->id);
 
         $this->showImportModal = false;

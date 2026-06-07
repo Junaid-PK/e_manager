@@ -255,7 +255,8 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.rate') }}</label>
-                            <input wire:model="formRate" type="number" step="0.01" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500 tabular-nums">
+                            <input wire:model="formRate" type="number" step="0.01" readonly class="block w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-3 py-2 tabular-nums cursor-not-allowed">
+                            <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">{{ __('app.auto_populated_from_worker') }}</p>
                         </div>
                     </div>
 

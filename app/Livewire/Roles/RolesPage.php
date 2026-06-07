@@ -24,17 +24,17 @@ class RolesPage extends Component
 
     /** Permission matrix: module => actions (mirrors the seeder) */
     private array $matrix = [
-        'dashboard' => ['view'],
-        'invoices' => ['view', 'create', 'edit', 'delete', 'export'],
-        'movements' => ['view', 'create', 'edit', 'delete', 'export'],
-        'bank_accounts' => ['view', 'create', 'edit', 'delete'],
+        'dashboard' => ['view', 'access_all'],
+        'invoices' => ['view', 'create', 'edit', 'delete', 'export', 'access_all'],
+        'movements' => ['view', 'create', 'edit', 'delete', 'export', 'access_all'],
+        'bank_accounts' => ['view', 'create', 'edit', 'delete', 'access_all'],
         'expenses' => ['view', 'create', 'edit', 'delete', 'export', 'access_all'],
-        'credit_lines' => ['view', 'create', 'edit', 'delete'],
-        'companies_clients' => ['view', 'create', 'edit', 'delete'],
-        'reports' => ['view'],
-        'reminders' => ['view', 'create', 'edit', 'delete'],
-        'settings' => ['view', 'edit'],
-        'users' => ['view', 'create', 'edit', 'delete'],
+        'credit_lines' => ['view', 'create', 'edit', 'delete', 'access_all'],
+        'companies_clients' => ['view', 'create', 'edit', 'delete', 'access_all'],
+        'reports' => ['view', 'access_all'],
+        'reminders' => ['view', 'create', 'edit', 'delete', 'access_all'],
+        'settings' => ['view', 'edit', 'access_all'],
+        'users' => ['view', 'create', 'edit', 'delete', 'access_all'],
     ];
 
     public function mount(): void

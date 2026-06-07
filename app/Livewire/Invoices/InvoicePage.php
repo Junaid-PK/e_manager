@@ -140,7 +140,7 @@ class InvoicePage extends Component
 
     public function mount(): void
     {
-        $this->filterUserId = auth()->check() ? (string) auth()->id() : '';
+        $this->filterUserId = $this->canAccessAllInvoices() ? '' : (string) auth()->id();
 
         if (ctype_digit($this->editInvoiceId)) {
             $this->edit((int) $this->editInvoiceId);
@@ -149,7 +149,7 @@ class InvoicePage extends Component
 
     private function canAccessAllInvoices(): bool
     {
-        return (bool) auth()->user()?->isAdmin();
+        return (bool) auth()->user()?->isAdmin() || Gate::allows('invoices.access_all');
     }
 
     public function updatedFilterStatus(): void
@@ -563,7 +563,7 @@ class InvoicePage extends Component
         $this->filterStatus = '';
         $this->filterCompanyId = '';
         $this->filterClientId = '';
-        $this->filterUserId = auth()->check() ? (string) auth()->id() : '';
+        $this->filterUserId = $this->canAccessAllInvoices() ? '' : (string) auth()->id();
         $this->filterMonth = '';
         $this->filterPaymentType = '';
         $this->filterBankName = '';

@@ -12,35 +12,48 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Livewire\Component;
-use Livewire\WithPagination;
 use Livewire\WithFileUploads;
+use Livewire\WithPagination;
 use Maatwebsite\Excel\Facades\Excel;
 
 class MonthlyPeriodPage extends Component
 {
-    use WithBulkActions, WithFiltering, WithPagination, WithSorting, WithFileUploads;
+    use WithBulkActions, WithFileUploads, WithFiltering, WithPagination, WithSorting;
 
     public bool $showFormModal = false;
+
     public bool $showDeleteModal = false;
+
     public bool $showImportModal = false;
+
     public bool $showGenerateModal = false;
+
     public ?int $editingId = null;
 
     public string $viewMode = 'grid';
+
     public int $currentYear;
 
     public string $formPeriodCode = '';
+
     public int $formYear = 0;
+
     public int $formMonth = 1;
+
     public string $formLabel = '';
+
     public string $formStartDate = '';
+
     public string $formEndDate = '';
 
     public int $generateYear = 0;
 
     public $importFile = null;
+
     public array $importPreview = [];
+
     public array $importColumnMap = [];
+
     public int $importStep = 1;
 
     public function mount(): void
@@ -53,7 +66,7 @@ class MonthlyPeriodPage extends Component
     protected function rules(): array
     {
         return [
-            'formPeriodCode' => 'required|string|max:20|unique:monthly_periods,period_code,' . $this->editingId,
+            'formPeriodCode' => 'required|string|max:20|unique:monthly_periods,period_code,'.$this->editingId,
             'formYear' => 'required|integer|min:2000|max:2100',
             'formMonth' => 'required|integer|min:1|max:12',
             'formLabel' => 'required|string|max:100',
@@ -122,7 +135,7 @@ class MonthlyPeriodPage extends Component
         }
 
         $this->showGenerateModal = false;
-        $this->dispatch('notify', type: 'success', message: $created . ' ' . __('app.periods_generated'));
+        $this->dispatch('notify', type: 'success', message: $created.' '.__('app.periods_generated'));
     }
 
     public function create(): void
@@ -247,12 +260,12 @@ class MonthlyPeriodPage extends Component
 
     public function updatedImportFile(): void
     {
-        if (!$this->importFile) {
+        if (! $this->importFile) {
             return;
         }
 
         $path = $this->importFile->getRealPath();
-        $service = new MonthlyPeriodImportService();
+        $service = new MonthlyPeriodImportService;
         $result = $service->parseFile($path);
 
         $this->importPreview = $result;
@@ -282,12 +295,12 @@ class MonthlyPeriodPage extends Component
     public function importPeriods(): void
     {
         Gate::authorize('monthly_periods.create');
-        if (!$this->importFile) {
+        if (! $this->importFile) {
             return;
         }
 
         $path = $this->importFile->getRealPath();
-        $service = new MonthlyPeriodImportService();
+        $service = new MonthlyPeriodImportService;
         $result = $service->importMappedData($path, $this->importColumnMap);
 
         $this->showImportModal = false;
@@ -300,7 +313,7 @@ class MonthlyPeriodPage extends Component
             $this->dispatch('notify', type: 'success', message: $result['imported'].' '.__('app.rows_imported'));
         }
 
-        if (!empty($result['errors'])) {
+        if (! empty($result['errors'])) {
             foreach ($result['errors'] as $error) {
                 $this->dispatch('notify', type: 'error', message: $error);
             }
@@ -328,7 +341,7 @@ class MonthlyPeriodPage extends Component
         $stats = [
             'total' => $allPeriods->count(),
             'with_data' => $allPeriods->filter(fn ($p) => $p->has_data)->count(),
-            'without_data' => $allPeriods->filter(fn ($p) => !$p->has_data)->count(),
+            'without_data' => $allPeriods->filter(fn ($p) => ! $p->has_data)->count(),
         ];
 
         return view('livewire.monthly-periods.monthly-period-page', [

@@ -92,6 +92,11 @@ class MovementPage extends Component
         }
     }
 
+    private function canAccessAllMovements(): bool
+    {
+        return (bool) auth()->user()?->isAdmin() || Gate::allows('movements.access_all');
+    }
+
     protected function rules(): array
     {
         return [

@@ -16,7 +16,6 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
-use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -1126,7 +1125,7 @@ class ExpensePage extends Component
         $movementIds = $refs->where('kind', 'm')->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
 
         $expenses = $expenseIds === []
-            ? new EloquentCollection()
+            ? new EloquentCollection
             : $this->expenseQuery()
                 ->with([
                     'company' => fn ($q) => $this->canAccessAllExpenses() ? $q->withoutGlobalScope('ownedByUser') : $q,
@@ -1136,7 +1135,7 @@ class ExpensePage extends Component
                 ->keyBy('id');
 
         $movements = $movementIds === []
-            ? new EloquentCollection()
+            ? new EloquentCollection
             : $this->movementQuery()
                 ->with([
                     'bankAccount' => fn ($q) => $this->canAccessAllExpenses() ? $q->withoutGlobalScope('ownedByUser') : $q,

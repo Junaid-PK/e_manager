@@ -2,12 +2,11 @@
 
 namespace App\Livewire\Users;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithPagination;
-use App\Models\Role;
 
 class UsersPage extends Component
 {
@@ -16,12 +15,17 @@ class UsersPage extends Component
     public ?int $editingUserId = null;
 
     public string $name = '';
+
     public string $email = '';
+
     public string $password = '';
+
     public array $selectedRoles = [];
 
     public ?int $confirmingDeleteId = null;
+
     public bool $showFormModal = false;
+
     public bool $showDeleteModal = false;
 
     public function openCreateModal(): void
@@ -44,14 +48,14 @@ class UsersPage extends Component
     public function createUser(): void
     {
         $this->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|max:255|unique:users,email',
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email',
             'password' => 'required|string|min:8',
         ]);
 
         $user = User::create([
-            'name'     => $this->name,
-            'email'    => $this->email,
+            'name' => $this->name,
+            'email' => $this->email,
             'password' => Hash::make($this->password),
         ]);
 
@@ -65,12 +69,12 @@ class UsersPage extends Component
     public function updateUser(): void
     {
         $this->validate([
-            'name'  => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email,' . $this->editingUserId,
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email,'.$this->editingUserId,
         ]);
 
         $user = User::findOrFail($this->editingUserId);
-        $user->name  = $this->name;
+        $user->name = $this->name;
         $user->email = $this->email;
 
         if ($this->password !== '') {
@@ -98,11 +102,12 @@ class UsersPage extends Component
 
         // Sole-admin guard
         if ($user->isAdmin()) {
-            $adminRole  = Role::where('name', 'admin')->first();
+            $adminRole = Role::where('name', 'admin')->first();
             $adminCount = $adminRole ? $adminRole->users()->count() : 0;
 
             if ($adminCount <= 1) {
                 $this->addError('deleteUser', __('app.cannot_delete_sole_admin'));
+
                 return;
             }
         }
@@ -124,9 +129,9 @@ class UsersPage extends Component
     public function resetForm(): void
     {
         $this->editingUserId = null;
-        $this->name          = '';
-        $this->email         = '';
-        $this->password      = '';
+        $this->name = '';
+        $this->email = '';
+        $this->password = '';
         $this->selectedRoles = [];
         $this->resetValidation();
     }
@@ -134,7 +139,7 @@ class UsersPage extends Component
     public function render()
     {
         return view('livewire.users.users-page', [
-            'users'    => User::with('roles')->paginate(10),
+            'users' => User::with('roles')->paginate(10),
             'allRoles' => Role::orderBy('name')->get(),
         ])->layout('layouts.app');
     }

@@ -11,18 +11,27 @@ class SettingsPage extends Component
     public string $activeSection = 'general';
 
     public string $locale = 'en';
+
     public string $timezone = 'Europe/Madrid';
+
     public string $dateFormat = 'd/m/Y';
+
     public string $currencySymbol = '€';
 
     public float $defaultIvaRate = 21;
+
     public float $defaultRetentionRate = 0;
+
     public int $defaultPaymentTerms = 30;
 
     public string $profileName = '';
+
     public string $profileEmail = '';
+
     public string $currentPassword = '';
+
     public string $newPassword = '';
+
     public string $newPasswordConfirmation = '';
 
     public function mount(): void
@@ -77,8 +86,9 @@ class SettingsPage extends Component
             'newPassword' => 'new password',
         ]);
 
-        if (!Hash::check($this->currentPassword, Auth::user()->password)) {
+        if (! Hash::check($this->currentPassword, Auth::user()->password)) {
             $this->addError('currentPassword', 'The current password is incorrect.');
+
             return;
         }
 
