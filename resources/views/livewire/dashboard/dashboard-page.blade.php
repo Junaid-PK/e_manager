@@ -253,89 +253,10 @@
         </div>
     </section>
 
-    <section class="grid gap-6 xl:grid-cols-2">
-        <div class="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-            <div class="border-b border-slate-200 bg-[linear-gradient(90deg,var(--report-orange),#f39a4a)] px-5 py-4 text-slate-950 dark:border-slate-700">
-                <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-900/70">Cost Structure</p>
-                <h3 class="mt-1 text-xl font-black tracking-tight">Category lines by month</h3>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="min-w-full border-collapse">
-                    <thead>
-                        <tr class="bg-slate-100 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                            <th class="sticky left-0 z-10 border-b border-slate-200 bg-slate-100 px-4 py-3 text-left dark:border-slate-700 dark:bg-slate-800">Category</th>
-                            <th class="border-b border-slate-200 px-4 py-3 text-right dark:border-slate-700">Total</th>
-                            @foreach ($reportMonths as $month)
-                                <th class="border-b border-slate-200 px-4 py-3 text-right dark:border-slate-700">{{ $month['label'] }}</th>
-                            @endforeach
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse ($costBreakdown as $row)
-                            @php
-                                $expandedKey = 'category_' . md5($row['label']);
-                                $isExpanded = isset($expandedRows[$expandedKey]);
-                            @endphp
-                            <tr class="border-b border-slate-200 text-sm text-slate-800 dark:border-slate-700 dark:text-slate-100 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                                wire:click="toggleCategoryRow('{{ addslashes($row['label']) }}')">
-                                <th class="sticky left-0 z-10 border-r border-slate-200 bg-white px-4 py-3 text-left font-medium dark:border-slate-700 dark:bg-slate-900">
-                                    <div class="flex items-center gap-2">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
-                                             class="w-4 h-4 transition-transform {{ $isExpanded ? 'rotate-90' : '' }}">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                                        </svg>
-                                        {{ $row['label'] }}
-                                    </div>
-                                </th>
-                                <td class="px-4 py-3 text-right font-semibold">{{ fmt_number($row['total']) }} &euro;</td>
-                                @foreach ($row['monthly'] as $value)
-                                    <td class="px-4 py-3 text-right tabular-nums {{ $value != 0 ? '' : 'text-slate-300 dark:text-slate-600' }}">{{ $value != 0 ? fmt_number($value) . ' €' : '—' }}</td>
-                                @endforeach
-                            </tr>
-                            @if ($isExpanded)
-                                <tr class="border-b border-slate-200 dark:border-slate-700">
-                                    <td colspan="{{ count($reportMonths) + 2 }}" class="px-0 py-0">
-                                        <div class="bg-orange-50/30 dark:bg-orange-950/10 overflow-x-auto">
-                                            <table class="min-w-full">
-                                                <thead>
-                                                    <tr class="bg-orange-100/30 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-orange-900/20 dark:text-slate-400">
-                                                        <th class="px-4 py-2 text-left">{{ __('app.description') }}</th>
-                                                        <th class="px-4 py-2 text-right">{{ __('app.total') }}</th>
-                                                        @foreach ($expandedRows[$expandedKey]['months'] as $m)
-                                                            <th class="px-4 py-2 text-right">{{ $m['label'] }}</th>
-                                                        @endforeach
-                                                    </tr>
-                                                </thead>
-                                                <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
-                                                    @foreach ($expandedRows[$expandedKey]['rows'] as $detailRow)
-                                                        <tr class="text-xs text-slate-700 dark:text-slate-300">
-                                                            <td class="px-4 py-2">{{ $detailRow['label'] }}</td>
-                                                            <td class="px-4 py-2 text-right font-semibold">{{ fmt_number($detailRow['total']) }} &euro;</td>
-                                                            @foreach ($detailRow['monthly'] as $monthValue)
-                                                                <td class="px-4 py-2 text-right tabular-nums {{ $monthValue != 0 ? '' : 'text-slate-300 dark:text-slate-600' }}">
-                                                                    {{ $monthValue != 0 ? fmt_number($monthValue) . ' €' : '—' }}
-                                                                </td>
-                                                            @endforeach
-                                                        </tr>
-                                                    @endforeach
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endif
-                        @empty
-                            <tr>
-                                <td colspan="{{ count($reportMonths) + 2 }}" class="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400">{{ __('app.no_results') }}</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
+    <section class="grid gap-6 xl:grid-cols-1">
 
         <div class="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-            <div class="border-b border-slate-200 bg-[linear-gradient(90deg,#f2b94b,#ef7f2d)] px-5 py-4 text-slate-950 dark:border-slate-700">
+            <div class="border-b border-slate-200 bg-purple-400 px-5 py-4 text-slate-950 dark:border-slate-700">
                 <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-900/70">Cost Structure</p>
                 <h3 class="mt-1 text-xl font-black tracking-tight">Types lines by month</h3>
             </div>
