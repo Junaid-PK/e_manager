@@ -34,15 +34,7 @@ class DashboardPage extends Component
 
     public string $selectedInvoiceProject = '';
 
-    public bool $showDetailModal = false;
-
-    public string $detailTitle = '';
-
-    public string $detailType = '';
-
-    public string $detailKey = '';
-
-    public array $detailRows = [];
+    public array $expandedRows = [];
 
     public function mount(): void
     {
@@ -122,10 +114,19 @@ class DashboardPage extends Component
         ActivityLog::log('invoice_paid', "Invoice #{$invoice->invoice_number} marked as paid", $invoice);
     }
 
-    public function showTypeDetails(string $typeLabel): void
+    public function toggleTypeRow(string $typeLabel): void
     {
+        $key = 'type_' . md5($typeLabel);
+        if (isset($this->expandedRows[$key])) {
+            unset($this->expandedRows[$key]);
+            return;
+        }
+
         $period = $this->resolveReportingPeriod();
+        $reportMonths = $this->getReportMonths($period['from'], $period['to']);
+        $monthKeys = collect($reportMonths)->pluck('key')->all();
         $normalizedType = $this->normalizeTypeForLookup($typeLabel);
+        $monthExpr = $this->monthBucketExpression('date');
 
         $typeLabels = MovementType::query()
             ->orderBy('sort_order')
@@ -137,80 +138,120 @@ class DashboardPage extends Component
             ])
             ->all();
 
-        $this->detailTitle = $typeLabels[$normalizedType] ?? $typeLabel;
-        $this->detailType = 'type';
-        $this->detailKey = $typeLabel;
-
         $rows = $this->applyDateRange($this->applyOwnerFilter(BankMovement::query()), 'date', $period['from'], $period['to'])
             ->whereRaw('COALESCE(NULLIF(type, \'\'), ?) = ?', [__('app.none'), $typeLabel])
             ->selectRaw("COALESCE(NULLIF(category, ''), ?) as category_label", [__('app.none')])
+            ->selectRaw("{$monthExpr} as ym")
             ->selectRaw('COALESCE(SUM(COALESCE(deposit, 0) - COALESCE(withdrawal, 0)), 0) as total_amount')
-            ->groupBy('category_label')
+            ->groupBy('category_label', 'ym')
             ->orderByDesc('total_amount')
             ->get();
 
-        $this->detailRows = $rows->map(fn ($row) => [
-            'label' => (string) $row->category_label,
-            'amount' => round((float) $row->total_amount, 2),
-        ])->all();
+        $grouped = [];
+        foreach ($rows as $row) {
+            $label = (string) $row->category_label;
+            if (!isset($grouped[$label])) {
+                $grouped[$label] = [
+                    'label' => $label,
+                    'total' => 0,
+                    'monthly' => array_fill_keys($monthKeys, 0),
+                ];
+            }
+            $amount = round((float) $row->total_amount, 2);
+            $grouped[$label]['total'] += $amount;
+            $grouped[$label]['monthly'][$row->ym] = $amount;
+        }
 
-        $this->showDetailModal = true;
+        $this->expandedRows[$key] = [
+            'title' => $typeLabels[$normalizedType] ?? $typeLabel,
+            'rows' => array_values($grouped),
+            'months' => $reportMonths,
+        ];
     }
 
-    public function showCategoryDetails(string $categoryLabel): void
+    public function toggleCategoryRow(string $categoryLabel): void
     {
-        $period = $this->resolveReportingPeriod();
+        $key = 'category_' . md5($categoryLabel);
+        if (isset($this->expandedRows[$key])) {
+            unset($this->expandedRows[$key]);
+            return;
+        }
 
-        $this->detailTitle = $categoryLabel;
-        $this->detailType = 'category';
-        $this->detailKey = $categoryLabel;
+        $period = $this->resolveReportingPeriod();
+        $reportMonths = $this->getReportMonths($period['from'], $period['to']);
+        $monthKeys = collect($reportMonths)->pluck('key')->all();
+        $monthExpr = $this->monthBucketExpression('date');
 
         $expenseRows = $this->applyDateRange($this->applyOwnerFilter(Expense::query()), 'date', $period['from'], $period['to'])
             ->whereRaw("COALESCE(NULLIF(category, ''), ?) = ?", [__('app.none'), $categoryLabel])
             ->selectRaw('description as label')
+            ->selectRaw("{$monthExpr} as ym")
             ->selectRaw('COALESCE(SUM(amount), 0) as total_amount')
-            ->groupBy('description')
+            ->groupBy('label', 'ym')
             ->orderByDesc('total_amount')
             ->get();
 
         $movementRows = $this->applyDateRange($this->applyOwnerFilter(BankMovement::query()), 'date', $period['from'], $period['to'])
             ->whereRaw("COALESCE(NULLIF(category, ''), ?) = ?", [__('app.none'), $categoryLabel])
             ->selectRaw("COALESCE(NULLIF(concept, ''), type) as label")
+            ->selectRaw("{$monthExpr} as ym")
             ->selectRaw('COALESCE(SUM(COALESCE(deposit, 0) - COALESCE(withdrawal, 0)), 0) as total_amount')
-            ->groupBy('label')
+            ->groupBy('label', 'ym')
             ->orderByDesc('total_amount')
             ->get();
 
-        $combined = collect();
+        $grouped = [];
 
         foreach ($expenseRows as $row) {
-            $key = (string) $row->label;
-            $combined[$key] = ($combined[$key] ?? 0) + (float) $row->total_amount;
+            $label = (string) $row->label;
+            if (!isset($grouped[$label])) {
+                $grouped[$label] = [
+                    'label' => $label,
+                    'total' => 0,
+                    'monthly' => array_fill_keys($monthKeys, 0),
+                ];
+            }
+            $amount = round((float) $row->total_amount, 2);
+            $grouped[$label]['total'] += $amount;
+            $grouped[$label]['monthly'][$row->ym] = ($grouped[$label]['monthly'][$row->ym] ?? 0) + $amount;
         }
 
         foreach ($movementRows as $row) {
-            $key = (string) $row->label;
-            $combined[$key] = ($combined[$key] ?? 0) + (float) $row->total_amount;
+            $label = (string) $row->label;
+            if (!isset($grouped[$label])) {
+                $grouped[$label] = [
+                    'label' => $label,
+                    'total' => 0,
+                    'monthly' => array_fill_keys($monthKeys, 0),
+                ];
+            }
+            $amount = round((float) $row->total_amount, 2);
+            $grouped[$label]['total'] += $amount;
+            $grouped[$label]['monthly'][$row->ym] = ($grouped[$label]['monthly'][$row->ym] ?? 0) + $amount;
         }
 
-        $this->detailRows = $combined
-            ->map(fn ($amount, $label) => [
-                'label' => $label,
-                'amount' => round((float) $amount, 2),
-            ])
-            ->sortByDesc('amount')
-            ->values()
-            ->all();
-
-        $this->showDetailModal = true;
+        $this->expandedRows[$key] = [
+            'title' => $categoryLabel,
+            'rows' => collect($grouped)
+                ->sortByDesc('total')
+                ->values()
+                ->all(),
+            'months' => $reportMonths,
+        ];
     }
 
-    public function showExecutiveRowDetails(string $rowKey): void
+    public function toggleExecutiveRow(string $rowKey): void
     {
-        $period = $this->resolveReportingPeriod();
+        $key = 'executive_' . $rowKey;
+        if (isset($this->expandedRows[$key])) {
+            unset($this->expandedRows[$key]);
+            return;
+        }
 
-        $this->detailType = 'executive';
-        $this->detailKey = $rowKey;
+        $period = $this->resolveReportingPeriod();
+        $reportMonths = $this->getReportMonths($period['from'], $period['to']);
+        $monthKeys = collect($reportMonths)->pluck('key')->all();
+        $monthExpr = $this->monthBucketExpression('date');
 
         $typeLabels = MovementType::query()
             ->orderBy('sort_order')
@@ -229,7 +270,7 @@ class DashboardPage extends Component
             'ledger_expenses' => 'S.Social',
             'purchase_movements' => 'AEAT',
             'cash_in' => 'Compra',
-            'cash_out' => 'Gasto',
+            'cash_out' => 'GASTOS',
             'total_cost' => 'PROVEEDOR',
             'margin' => 'VARIOS',
             'cash_delta' => 'IVA',
@@ -237,42 +278,49 @@ class DashboardPage extends Component
 
         switch ($rowKey) {
             case 'billing':
-                $this->detailTitle = __('app.dashboard_billing');
+                $title = __('app.dashboard_billing');
                 $rows = $this->applyDateRange($this->applyOwnerFilter(Invoice::query()), 'date_issued', $period['from'], $period['to'])
                     ->selectRaw('invoice_number as label')
+                    ->selectRaw("{$monthExpr} as ym")
                     ->selectRaw('COALESCE(SUM(total), 0) as total_amount')
-                    ->groupBy('label')
+                    ->groupBy('label', 'ym')
                     ->orderByDesc('total_amount')
                     ->get();
                 break;
             default:
                 $dbType = $typeMapping[$rowKey] ?? $rowKey;
-                $this->detailTitle = $movementLabel($dbType);
+                $title = $movementLabel($dbType);
                 $rows = $this->applyDateRange($this->applyOwnerFilter(BankMovement::query()), 'date', $period['from'], $period['to'])
                     ->whereRaw('LOWER(type) = LOWER(?)', [$dbType])
                     ->selectRaw("COALESCE(NULLIF(concept, ''), type) as label")
+                    ->selectRaw("{$monthExpr} as ym")
                     ->selectRaw('COALESCE(SUM(COALESCE(deposit, 0) - COALESCE(withdrawal, 0)), 0) as total_amount')
-                    ->groupBy('label')
+                    ->groupBy('label', 'ym')
                     ->orderByDesc('total_amount')
                     ->get();
                 break;
         }
 
-        $this->detailRows = $rows->map(fn ($row) => [
-            'label' => (string) $row->label,
-            'amount' => round((float) $row->total_amount, 2),
-        ])->all();
+        $grouped = [];
+        foreach ($rows as $row) {
+            $label = (string) $row->label;
+            if (!isset($grouped[$label])) {
+                $grouped[$label] = [
+                    'label' => $label,
+                    'total' => 0,
+                    'monthly' => array_fill_keys($monthKeys, 0),
+                ];
+            }
+            $amount = round((float) $row->total_amount, 2);
+            $grouped[$label]['total'] += $amount;
+            $grouped[$label]['monthly'][$row->ym] = $amount;
+        }
 
-        $this->showDetailModal = true;
-    }
-
-    public function closeDetailModal(): void
-    {
-        $this->showDetailModal = false;
-        $this->detailRows = [];
-        $this->detailTitle = '';
-        $this->detailType = '';
-        $this->detailKey = '';
+        $this->expandedRows[$key] = [
+            'title' => $title,
+            'rows' => array_values($grouped),
+            'months' => $reportMonths,
+        ];
     }
 
     private function resolveReportingPeriod(): array
@@ -330,7 +378,7 @@ class DashboardPage extends Component
         $expenseLedgerTotals = $this->bankMovementTotalsByType('S.Social', $from, $to);
         $purchaseMovementTotals = $this->bankMovementTotalsByType('AEAT', $from, $to);
         $cashInTotals = $this->bankMovementTotalsByType('Compra', $from, $to);
-        $cashOutTotals = $this->bankMovementTotalsByType('Gasto', $from, $to);
+        $cashOutTotals = $this->bankMovementTotalsByType('GASTOS', $from, $to);
         $totalCostTotals = $this->bankMovementTotalsByType('PROVEEDOR', $from, $to);
         $marginTotals = $this->bankMovementTotalsByType('VARIOS', $from, $to);
         $cashDeltaTotals = $this->bankMovementTotalsByType('IVA', $from, $to);
@@ -341,7 +389,7 @@ class DashboardPage extends Component
             ['key' => 'ledger_expenses', 'label' => $movementLabel('S.Social'), 'accent' => 'cost', 'values' => $expenseLedgerTotals],
             ['key' => 'purchase_movements', 'label' => $movementLabel('AEAT'), 'accent' => 'cost', 'values' => $purchaseMovementTotals],
             ['key' => 'cash_in', 'label' => $movementLabel('Compra'), 'accent' => 'cash-in', 'values' => $cashInTotals],
-            ['key' => 'cash_out', 'label' => $movementLabel('Gasto'), 'accent' => 'cash-out', 'values' => $cashOutTotals],
+            ['key' => 'cash_out', 'label' => $movementLabel('GASTOS'), 'accent' => 'cash-out', 'values' => $cashOutTotals],
             ['key' => 'total_cost', 'label' => $movementLabel('PROVEEDOR'), 'accent' => 'total-cost', 'values' => $totalCostTotals, 'emphasis' => true],
             ['key' => 'margin', 'label' => $movementLabel('VARIOS'), 'accent' => 'margin', 'values' => $marginTotals, 'emphasis' => true],
             ['key' => 'cash_delta', 'label' => $movementLabel('IVA'), 'accent' => 'delta', 'values' => $cashDeltaTotals, 'emphasis' => true],
