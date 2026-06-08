@@ -175,7 +175,7 @@ class DashboardPage extends Component
 
         $movementRows = $this->applyDateRange($this->applyOwnerFilter(BankMovement::query()), 'date', $period['from'], $period['to'])
             ->whereRaw("COALESCE(NULLIF(category, ''), ?) = ?", [__('app.none'), $categoryLabel])
-            ->selectRaw("COALESCE(NULLIF(description, ''), type) as label")
+            ->selectRaw("COALESCE(NULLIF(concept, ''), type) as label")
             ->selectRaw('COALESCE(SUM(COALESCE(deposit, 0) - COALESCE(withdrawal, 0)), 0) as total_amount')
             ->groupBy('label')
             ->orderByDesc('total_amount')
@@ -238,7 +238,7 @@ class DashboardPage extends Component
                 $this->detailTitle = $movementLabel($rowKey);
                 $rows = $this->applyDateRange($this->applyOwnerFilter(BankMovement::query()), 'date', $period['from'], $period['to'])
                     ->whereRaw('LOWER(type) = LOWER(?)', [$rowKey])
-                    ->selectRaw("COALESCE(NULLIF(description, ''), type) as label")
+                    ->selectRaw("COALESCE(NULLIF(concept, ''), type) as label")
                     ->selectRaw('COALESCE(SUM(COALESCE(deposit, 0) - COALESCE(withdrawal, 0)), 0) as total_amount')
                     ->groupBy('label')
                     ->orderByDesc('total_amount')
@@ -353,7 +353,7 @@ class DashboardPage extends Component
             $billingValue = $billingRow['monthly'][$monthIndex] ?? 0;
             $othersSum = $otherRows->sum(fn ($row) => $row['monthly'][$monthIndex] ?? 0);
 
-            return round($billingValue - $othersSum, 2);
+            return round($billingValue + $othersSum, 2);
         })->all();
 
         $finalResultTotal = round(array_sum($finalResultMonthly), 2);
