@@ -42,24 +42,36 @@
 
             {{-- Filters --}}
             <div class="flex flex-wrap items-center gap-2">
-                <select wire:model.live="filterPeriodId" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 pl-3 pr-8 focus:ring-emerald-500 focus:border-emerald-500">
-                    <option value="">{{ __('app.all_periods') }}</option>
-                    @foreach ($periods as $period)
-                        <option value="{{ $period->id }}">{{ $period->period_code }} — {{ $period->label }}</option>
-                    @endforeach
-                </select>
-                <select wire:model.live="filterClientId" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 pl-3 pr-8 focus:ring-emerald-500 focus:border-emerald-500">
-                    <option value="">{{ __('app.all_clients') }}</option>
-                    @foreach ($clients as $client)
-                        <option value="{{ $client->id }}">{{ $client->name }}</option>
-                    @endforeach
-                </select>
-                <select wire:model.live="filterProjectId" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 pl-3 pr-8 focus:ring-emerald-500 focus:border-emerald-500">
-                    <option value="">{{ __('app.all_projects') }}</option>
-                    @foreach ($projects as $project)
-                        <option value="{{ $project->id }}">{{ $project->name }}</option>
-                    @endforeach
-                </select>
+                <x-custom-select
+                    wire-model="filterPeriodId"
+                    :options="$periods->map(fn ($period) => [
+                        'value' => (string) $period->id,
+                        'label' => $period->period_code . ' — ' . $period->label,
+                    ])->all()"
+                    :value="$filterPeriodId"
+                    :placeholder="__('app.all_periods')"
+                    :empty-label="__('app.all_periods')"
+                />
+                <x-custom-select
+                    wire-model="filterClientId"
+                    :options="$clients->map(fn ($client) => [
+                        'value' => (string) $client->id,
+                        'label' => $client->name,
+                    ])->all()"
+                    :value="$filterClientId"
+                    :placeholder="__('app.all_clients')"
+                    :empty-label="__('app.all_clients')"
+                />
+                <x-custom-select
+                    wire-model="filterProjectId"
+                    :options="$projects->map(fn ($project) => [
+                        'value' => (string) $project->id,
+                        'label' => $project->name,
+                    ])->all()"
+                    :value="$filterProjectId"
+                    :placeholder="__('app.all_projects')"
+                    :empty-label="__('app.all_projects')"
+                />
 
                 @if ($search || $filterPeriodId || $filterClientId || $filterProjectId)
                     <button wire:click="clearFilters" class="inline-flex items-center px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">

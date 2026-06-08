@@ -11,12 +11,16 @@
         </div>
         <div class="flex items-center gap-3">
             <label class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('app.period') }}:</label>
-            <select wire:model.live="selectedPeriodId" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 pl-3 pr-8 focus:ring-emerald-500 focus:border-emerald-500">
-                <option value="">{{ __('app.select_period') }}</option>
-                @foreach ($periods as $period)
-                    <option value="{{ $period->id }}">{{ $period->period_code }} — {{ $period->label }}</option>
-                @endforeach
-            </select>
+            <x-custom-select
+                wire-model="selectedPeriodId"
+                :options="$periods->map(fn ($period) => [
+                    'value' => (string) $period->id,
+                    'label' => $period->period_code . ' — ' . $period->label,
+                ])->all()"
+                :value="$selectedPeriodId"
+                :placeholder="__('app.select_period')"
+                :empty-label="__('app.select_period')"
+            />
         </div>
     </div>
 </x-slot>
