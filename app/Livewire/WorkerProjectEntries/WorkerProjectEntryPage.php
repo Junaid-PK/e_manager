@@ -37,6 +37,8 @@ class WorkerProjectEntryPage extends Component
 
     public string $filterWorkerId = '';
 
+    public string $bulkFilterPeriodId = '';
+
     public string $formProjectMonthId = '';
 
     public string $formWorkerId = '';
@@ -73,6 +75,53 @@ class WorkerProjectEntryPage extends Component
                 $this->formRate = (string) $worker->rate;
             }
         }
+    }
+
+    public function updatedFormHours(): void
+    {
+        if ($this->editingId) {
+            return;
+        }
+
+        $hours = (float) ($this->formHours ?: 0);
+        $rate = (float) ($this->formRate ?: 0);
+
+        $this->formDays = (string) round($hours / 8, 2);
+        $this->formSocialSecurity = (string) round($hours * $rate * 0.25, 2);
+    }
+
+    public function updatedFormRate(): void
+    {
+        if ($this->editingId) {
+            return;
+        }
+
+        $hours = (float) ($this->formHours ?: 0);
+        $rate = (float) ($this->formRate ?: 0);
+
+        $this->formSocialSecurity = (string) round($hours * $rate * 0.25, 2);
+    }
+
+    public function updatedBulkRows($value, $key): void
+    {
+        if (! str_contains($key, '.')) {
+            return;
+        }
+
+        [$index, $field] = explode('.', $key, 2);
+
+        if (! in_array($field, ['hours', 'rate'], true) || ! isset($this->bulkRows[$index])) {
+            return;
+        }
+
+        $hours = (float) ($this->bulkRows[$index]['hours'] ?? 0);
+        $rate = (float) ($this->bulkRows[$index]['rate'] ?? 0);
+
+        if ($field === 'hours') {
+            $this->bulkRows[$index]['days'] = (string) round($hours / 8, 2);
+        }
+
+        $this->bulkRows[$index]['social_security'] = (string) round($hours * $rate * 0.25, 2);
     }
 
     public function selectWorker(string $workerId): void
@@ -249,6 +298,7 @@ class WorkerProjectEntryPage extends Component
             ['worker_id' => '', 'special_note' => '', 'social_security' => '0', 'hours' => '0', 'days' => '0', 'rate' => '0'],
         ];
         $this->formProjectMonthId = $this->filterProjectMonthId ?: '';
+        $this->bulkFilterPeriodId = $this->filterPeriodId ?: '';
         $this->showBulkCreateModal = true;
     }
 
@@ -341,6 +391,11 @@ class WorkerProjectEntryPage extends Component
             'periods' => MonthlyPeriod::orderByDesc('year')->orderByDesc('month')->get(),
             'workers' => Worker::orderBy('full_name')->get(),
             'projectMonths' => $this->getFilteredProjectMonths(),
+            'bulkProjectMonths' => $this->getBulkProjectMonths(),
+            'workerOptions' => Worker::orderBy('full_name')->get()->map(fn ($w) => [
+                'value' => (string) $w->id,
+                'label' => $w->full_name.' ('.($w->nie ?: '—').')',
+            ])->all(),
         ])->layout('layouts.app');
     }
 
@@ -350,6 +405,18 @@ class WorkerProjectEntryPage extends Component
 
         if ($this->filterPeriodId) {
             $query->where('monthly_period_id', (int) $this->filterPeriodId);
+        }
+
+        return $query->get();
+    }
+
+    protected function getBulkProjectMonths()
+    {
+        $query = ProjectMonth::with(['monthlyPeriod', 'client', 'project'])
+            ->orderByDesc('id');
+
+        if ($this->bulkFilterPeriodId) {
+            $query->where('monthly_period_id', (int) $this->bulkFilterPeriodId);
         }
 
         return $query->get();

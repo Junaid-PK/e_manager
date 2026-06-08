@@ -49,6 +49,24 @@ class WorkerProjectEntry extends Model
             $entry->worker?->touchMonthlySummaryForPeriod($entry->projectMonth?->monthly_period_id);
         });
 
+        static::created(function ($entry) {
+            $projectMonth = $entry->projectMonth;
+            if (! $projectMonth) {
+                return;
+            }
+
+            WorkerPayment::create([
+                'worker_id' => $entry->worker_id,
+                'monthly_period_id' => $projectMonth->monthly_period_id,
+                'project_month_id' => $entry->project_month_id,
+                'payment_date' => now()->format('Y-m-d'),
+                'payment_type' => 'bank',
+                'amount' => (float) $entry->total_amount,
+                'reference' => 'Auto',
+                'notes' => __('app.auto_payment_from_worker_project_entry', ['id' => $entry->id]),
+            ]);
+        });
+
         static::deleted(function ($entry) {
             $entry->projectMonth?->recalculateTotals();
             $entry->worker?->touchMonthlySummaryForPeriod($entry->projectMonth?->monthly_period_id);

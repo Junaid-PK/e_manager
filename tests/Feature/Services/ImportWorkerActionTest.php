@@ -234,6 +234,55 @@ class ImportWorkerActionTest extends TestCase
     }
 
     /** @test */
+    public function it_marks_previously_imported_workers_as_removed_when_missing_from_sheet(): void
+    {
+        Worker::create([
+            'full_name' => 'Kept Worker',
+            'nie' => 'X111111',
+            'bank_account' => 'ES111111111',
+            'import_status' => 'new',
+            'last_imported_at' => now()->subWeek(),
+        ]);
+
+        Worker::create([
+            'full_name' => 'Removed Worker',
+            'nie' => 'X222222',
+            'bank_account' => 'ES222222222',
+            'import_status' => 'new',
+            'last_imported_at' => now()->subWeek(),
+        ]);
+
+        $filePath = $this->createTestExcel([
+            ['full_name', 'nie', 'bank_account'],
+            ['Kept Worker', 'X111111', 'ES111111111'],
+        ]);
+
+        $result = $this->action->execute($filePath, [
+            'full_name' => 0,
+            'nie' => 1,
+            'bank_account' => 2,
+        ]);
+
+        $this->assertEquals(1, $result['skipped']);
+        $this->assertEquals(1, $result['removed']);
+
+        $this->assertDatabaseHas('workers', [
+            'nie' => 'X111111',
+            'import_status' => 'new',
+        ]);
+
+        $this->assertDatabaseHas('workers', [
+            'nie' => 'X222222',
+            'import_status' => 'removed',
+        ]);
+
+        $this->assertDatabaseHas('worker_import_entries', [
+            'nie' => 'X222222',
+            'status_at_import' => 'removed',
+        ]);
+    }
+
+    /** @test */
     public function it_tracks_import_history(): void
     {
         $filePath = $this->createTestExcel([

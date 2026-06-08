@@ -500,6 +500,7 @@ return [
     'no_worker_payments' => 'No worker payments yet. Add your first payment.',
     'import_worker_payments' => 'Import Worker Payments',
     'upload_excel_file_worker_payments' => 'Upload your Excel file to import worker payment data.',
+    'auto_payment_from_worker_project_entry' => 'Auto payment from worker project entry #:id',
     'all_project_months' => 'All Project Months',
     'project_month' => 'Project Month',
 

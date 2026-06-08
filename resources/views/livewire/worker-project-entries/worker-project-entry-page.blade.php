@@ -455,15 +455,29 @@
                     </button>
                 </div>
 
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.project_month') }} *</label>
-                    <select wire:model="formProjectMonthId" class="block w-full max-w-md text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
-                        <option value="">{{ __('app.select_project_month') }}</option>
-                        @foreach ($projectMonths as $pm)
-                            <option value="{{ $pm->id }}">{{ $pm->monthlyPeriod?->period_code }} — {{ $pm->client?->name }} — {{ Str::limit($pm->project?->name, 40) }}</option>
-                        @endforeach
-                    </select>
-                    @error('formProjectMonthId') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                <div class="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.period') }}</label>
+                        <select wire:model.live="bulkFilterPeriodId" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                            <option value="">{{ __('app.all_periods') }}</option>
+                            @foreach ($periods as $period)
+                                <option value="{{ $period->id }}">{{ $period->period_code }} — {{ $period->label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.project_month') }} *</label>
+                        <x-custom-select
+                            wire-model="formProjectMonthId"
+                            :options="$bulkProjectMonths->map(fn ($pm) => [
+                                'value' => (string) $pm->id,
+                                'label' => $pm->monthlyPeriod?->period_code . ' — ' . $pm->client?->name . ' — ' . Str::limit($pm->project?->name, 40),
+                            ])->all()"
+                            :value="$formProjectMonthId"
+                            :placeholder="__('app.select_project_month')"
+                        />
+                        @error('formProjectMonthId') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                    </div>
                 </div>
 
                 <div class="overflow-x-auto">
@@ -483,12 +497,13 @@
                             @foreach ($bulkRows as $index => $row)
                                 <tr class="border-b border-gray-100 dark:border-gray-700">
                                     <td class="px-3 py-2">
-                                        <select wire:model="bulkRows.{{ $index }}.worker_id" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-emerald-500 focus:border-emerald-500">
-                                            <option value="">—</option>
-                                            @foreach ($workers as $worker)
-                                                <option value="{{ $worker->id }}">{{ $worker->full_name }}</option>
-                                            @endforeach
-                                        </select>
+                                        <x-custom-select
+                                            wire-model="bulkRows.{{ $index }}.worker_id"
+                                            :options="$workerOptions"
+                                            :value="$row['worker_id']"
+                                            :placeholder="__('app.select_worker')"
+                                            compact
+                                        />
                                     </td>
                                     <td class="px-3 py-2">
                                         <input type="text" wire:model="bulkRows.{{ $index }}.special_note" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-emerald-500 focus:border-emerald-500">

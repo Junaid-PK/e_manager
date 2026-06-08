@@ -494,6 +494,7 @@ return [
     'no_worker_payments' => 'Sin pagos a trabajadores todavía. Añade tu primer pago.',
     'import_worker_payments' => 'Importar Pagos a Trabajadores',
     'upload_excel_file_worker_payments' => 'Sube tu archivo Excel para importar datos de pagos a trabajadores.',
+    'auto_payment_from_worker_project_entry' => 'Pago automático de entrada de proyecto de trabajador #:id',
     'all_project_months' => 'Todos los Meses de Proyecto',
     'project_month' => 'Mes de Proyecto',
 

@@ -34,7 +34,7 @@ class ImportWorkerAction
 
         $sheet = $data[0];
         $rows = array_slice($sheet, 1);
-        $processedWorkerIds = [];
+        $presentWorkerIds = [];
         $skippedNies = [];
         $errors = [];
         $newCount = 0;
@@ -66,6 +66,7 @@ class ImportWorkerAction
                     // Skip duplicate worker - do not update
                     $skippedNies[] = $nie ?: $bankAccount;
                     $skippedCount++;
+                    $presentWorkerIds[] = $existingWorker->id;
 
                     // Create import entry to track it was skipped
                     WorkerImportEntry::create([
@@ -97,7 +98,7 @@ class ImportWorkerAction
                 }
 
                 $worker = Worker::create($createData);
-                $processedWorkerIds[] = $worker->id;
+                $presentWorkerIds[] = $worker->id;
                 $newCount++;
 
                 // Create import entry
@@ -114,18 +115,40 @@ class ImportWorkerAction
             }
         }
 
+        // Detect workers that were previously imported but are missing from this sheet
+        $presentWorkerIds = array_unique($presentWorkerIds);
+        $removedWorkers = Worker::whereNotNull('last_imported_at')
+            ->whereNotIn('id', $presentWorkerIds)
+            ->get();
+
+        $removedCount = 0;
+        foreach ($removedWorkers as $removedWorker) {
+            $removedWorker->update(['import_status' => 'removed']);
+
+            WorkerImportEntry::create([
+                'worker_import_id' => $workerImport->id,
+                'worker_id' => $removedWorker->id,
+                'full_name' => $removedWorker->full_name,
+                'nie' => $removedWorker->nie,
+                'bank_account' => $removedWorker->bank_account,
+                'status_at_import' => 'removed',
+            ]);
+
+            $removedCount++;
+        }
+
         // Update import counts
         $workerImport->update([
             'new_count' => $newCount,
             'active_count' => 0,
-            'removed_count' => 0,
+            'removed_count' => $removedCount,
         ]);
 
         return [
-            'imported' => count($processedWorkerIds),
+            'imported' => $newCount,
             'new' => $newCount,
             'active' => 0,
-            'removed' => 0,
+            'removed' => $removedCount,
             'skipped' => $skippedCount,
             'errors' => $errors,
         ];
