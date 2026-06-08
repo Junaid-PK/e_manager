@@ -34,6 +34,16 @@ class DashboardPage extends Component
 
     public string $selectedInvoiceProject = '';
 
+    public bool $showDetailModal = false;
+
+    public string $detailTitle = '';
+
+    public string $detailType = '';
+
+    public string $detailKey = '';
+
+    public array $detailRows = [];
+
     public function mount(): void
     {
         $this->statsDateFrom = now()->startOfYear()->format('Y-m-d');
@@ -110,6 +120,147 @@ class DashboardPage extends Component
         $invoice = Invoice::findOrFail($invoiceId);
         $invoice->update(['status' => 'paid', 'amount_paid' => $invoice->total, 'amount_remaining' => 0]);
         ActivityLog::log('invoice_paid', "Invoice #{$invoice->invoice_number} marked as paid", $invoice);
+    }
+
+    public function showTypeDetails(string $typeLabel): void
+    {
+        $period = $this->resolveReportingPeriod();
+        $normalizedType = $this->normalizeTypeForLookup($typeLabel);
+
+        $typeLabels = MovementType::query()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->flatMap(fn (MovementType $type) => [
+                $this->normalizeTypeForLookup((string) $type->slug) => (string) $type->name,
+                $this->normalizeTypeForLookup((string) $type->name) => (string) $type->name,
+            ])
+            ->all();
+
+        $this->detailTitle = $typeLabels[$normalizedType] ?? $typeLabel;
+        $this->detailType = 'type';
+        $this->detailKey = $typeLabel;
+
+        $rows = $this->applyDateRange($this->applyOwnerFilter(BankMovement::query()), 'date', $period['from'], $period['to'])
+            ->whereRaw('COALESCE(NULLIF(type, \'\'), ?) = ?', [__('app.none'), $typeLabel])
+            ->selectRaw("COALESCE(NULLIF(category, ''), ?) as category_label", [__('app.none')])
+            ->selectRaw('COALESCE(SUM(COALESCE(deposit, 0) - COALESCE(withdrawal, 0)), 0) as total_amount')
+            ->groupBy('category_label')
+            ->orderByDesc('total_amount')
+            ->get();
+
+        $this->detailRows = $rows->map(fn ($row) => [
+            'label' => (string) $row->category_label,
+            'amount' => round((float) $row->total_amount, 2),
+        ])->all();
+
+        $this->showDetailModal = true;
+    }
+
+    public function showCategoryDetails(string $categoryLabel): void
+    {
+        $period = $this->resolveReportingPeriod();
+
+        $this->detailTitle = $categoryLabel;
+        $this->detailType = 'category';
+        $this->detailKey = $categoryLabel;
+
+        $expenseRows = $this->applyDateRange($this->applyOwnerFilter(Expense::query()), 'date', $period['from'], $period['to'])
+            ->whereRaw("COALESCE(NULLIF(category, ''), ?) = ?", [__('app.none'), $categoryLabel])
+            ->selectRaw('description as label')
+            ->selectRaw('COALESCE(SUM(amount), 0) as total_amount')
+            ->groupBy('description')
+            ->orderByDesc('total_amount')
+            ->get();
+
+        $movementRows = $this->applyDateRange($this->applyOwnerFilter(BankMovement::query()), 'date', $period['from'], $period['to'])
+            ->whereRaw("COALESCE(NULLIF(category, ''), ?) = ?", [__('app.none'), $categoryLabel])
+            ->selectRaw("COALESCE(NULLIF(description, ''), type) as label")
+            ->selectRaw('COALESCE(SUM(COALESCE(deposit, 0) - COALESCE(withdrawal, 0)), 0) as total_amount')
+            ->groupBy('label')
+            ->orderByDesc('total_amount')
+            ->get();
+
+        $combined = collect();
+
+        foreach ($expenseRows as $row) {
+            $key = (string) $row->label;
+            $combined[$key] = ($combined[$key] ?? 0) + (float) $row->total_amount;
+        }
+
+        foreach ($movementRows as $row) {
+            $key = (string) $row->label;
+            $combined[$key] = ($combined[$key] ?? 0) + (float) $row->total_amount;
+        }
+
+        $this->detailRows = $combined
+            ->map(fn ($amount, $label) => [
+                'label' => $label,
+                'amount' => round((float) $amount, 2),
+            ])
+            ->sortByDesc('amount')
+            ->values()
+            ->all();
+
+        $this->showDetailModal = true;
+    }
+
+    public function showExecutiveRowDetails(string $rowKey): void
+    {
+        $period = $this->resolveReportingPeriod();
+
+        $this->detailType = 'executive';
+        $this->detailKey = $rowKey;
+
+        $typeLabels = MovementType::query()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->flatMap(fn (MovementType $type) => [
+                $this->normalizeTypeForLookup((string) $type->slug) => (string) $type->name,
+                $this->normalizeTypeForLookup((string) $type->name) => (string) $type->name,
+            ])
+            ->all();
+
+        $movementLabel = fn (string $type): string => $typeLabels[$this->normalizeTypeForLookup($type)] ?? $type;
+
+        switch ($rowKey) {
+            case 'billing':
+                $this->detailTitle = __('app.dashboard_billing');
+                $rows = $this->applyDateRange($this->applyOwnerFilter(Invoice::query()), 'date_issued', $period['from'], $period['to'])
+                    ->selectRaw('invoice_number as label')
+                    ->selectRaw('COALESCE(SUM(total), 0) as total_amount')
+                    ->groupBy('label')
+                    ->orderByDesc('total_amount')
+                    ->get();
+                break;
+            default:
+                $this->detailTitle = $movementLabel($rowKey);
+                $rows = $this->applyDateRange($this->applyOwnerFilter(BankMovement::query()), 'date', $period['from'], $period['to'])
+                    ->whereRaw('LOWER(type) = LOWER(?)', [$rowKey])
+                    ->selectRaw("COALESCE(NULLIF(description, ''), type) as label")
+                    ->selectRaw('COALESCE(SUM(COALESCE(deposit, 0) - COALESCE(withdrawal, 0)), 0) as total_amount')
+                    ->groupBy('label')
+                    ->orderByDesc('total_amount')
+                    ->get();
+                break;
+        }
+
+        $this->detailRows = $rows->map(fn ($row) => [
+            'label' => (string) $row->label,
+            'amount' => round((float) $row->total_amount, 2),
+        ])->all();
+
+        $this->showDetailModal = true;
+    }
+
+    public function closeDetailModal(): void
+    {
+        $this->showDetailModal = false;
+        $this->detailRows = [];
+        $this->detailTitle = '';
+        $this->detailType = '';
+        $this->detailKey = '';
     }
 
     private function resolveReportingPeriod(): array
