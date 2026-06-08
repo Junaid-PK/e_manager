@@ -235,7 +235,7 @@
                                 <th class="sticky left-0 z-10 border-r border-slate-200 bg-white px-4 py-3 text-left font-medium dark:border-slate-700 dark:bg-slate-900">{{ $row['label'] }}</th>
                                 <td class="px-4 py-3 text-right font-semibold">{{ fmt_number($row['total']) }} &euro;</td>
                                 @foreach ($row['monthly'] as $value)
-                                    <td class="px-4 py-3 text-right tabular-nums {{ $value > 0 ? '' : 'text-slate-300 dark:text-slate-600' }}">{{ $value > 0 ? fmt_number($value) . ' €' : '—' }}</td>
+                                    <td class="px-4 py-3 text-right tabular-nums {{ $value != 0 ? '' : 'text-slate-300 dark:text-slate-600' }}">{{ $value != 0 ? fmt_number($value) . ' €' : '—' }}</td>
                                 @endforeach
                             </tr>
                         @empty
@@ -270,7 +270,7 @@
                                 <th class="sticky left-0 z-10 border-r border-slate-200 bg-white px-4 py-3 text-left font-medium dark:border-slate-700 dark:bg-slate-900">{{ $row['label'] }}</th>
                                 <td class="px-4 py-3 text-right font-semibold">{{ fmt_number($row['total']) }} &euro;</td>
                                 @foreach ($row['monthly'] as $value)
-                                    <td class="px-4 py-3 text-right tabular-nums {{ $value > 0 ? '' : 'text-slate-300 dark:text-slate-600' }}">{{ $value > 0 ? fmt_number($value) . ' €' : '—' }}</td>
+                                    <td class="px-4 py-3 text-right tabular-nums {{ $value != 0 ? '' : 'text-slate-300 dark:text-slate-600' }}">{{ $value != 0 ? fmt_number($value) . ' €' : '—' }}</td>
                                 @endforeach
                             </tr>
                         @empty
