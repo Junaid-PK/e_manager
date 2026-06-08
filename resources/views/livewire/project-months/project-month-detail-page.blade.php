@@ -60,7 +60,7 @@
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-2">
             @can('worker_project_entries.create')
-                <button wire:click="$set('showAddWorkerModal', true)" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors">
+                <button wire:click="startAddingWorker" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                     </svg>
@@ -101,6 +101,70 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    @if ($isAddingWorker)
+                        <tr class="bg-emerald-50/50 dark:bg-emerald-900/10 border-l-4 border-emerald-400" wire:key="pme-create-row">
+                            <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700">
+                                <span class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{{ __('app.new') }}</span>
+                            </td>
+                            <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700">
+                                <div x-data="{ open: false, search: '', selectedId: @entangle('formWorkerId'), selectedText: '' }"
+                                     x-init="selectedText = selectedId ? $refs.options.querySelector('[data-value=\"' + selectedId + '\"]')?.textContent || '' : ''"
+                                     class="relative" @click.away="open = false">
+                                    <input x-model="search"
+                                           @focus="open = true"
+                                           @keydown.escape="open = false"
+                                           :placeholder="selectedText || '{{ __('app.select_worker') }}'"
+                                           class="w-full text-xs border border-emerald-400 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500">
+                                    <div x-show="open" x-ref="options" class="absolute z-50 mt-1 w-56 max-h-60 overflow-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">
+                                        @foreach ($workers as $worker)
+                                            <div x-show="!search || '{{ strtolower(addslashes($worker->full_name . ' ' . ($worker->nie ?? ''))) }}'.includes(search.toLowerCase())"
+                                                 @click="selectedId = '{{ $worker->id }}'; selectedText = '{{ addslashes($worker->full_name) }} ({{ addslashes($worker->nie ?? '—') }})'; open = false; $wire.set('formWorkerId', '{{ $worker->id }}')"
+                                                 data-value="{{ $worker->id }}"
+                                                 class="px-3 py-2 text-xs hover:bg-emerald-50 dark:hover:bg-emerald-900/20 cursor-pointer {{ $worker->id == $formWorkerId ? 'bg-emerald-50 dark:bg-emerald-900/20' : '' }}">
+                                                {{ $worker->full_name }} <span class="text-gray-500">({{ $worker->nie ?? '—' }})</span>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                    @error('formWorkerId') <p class="mt-0.5 text-xs text-red-500">{{ $message }}</p> @enderror
+                                </div>
+                            </td>
+                            <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700">
+                                <input wire:model="formSocialSecurity" type="number" step="0.01" placeholder="0.00"
+                                    class="w-full text-xs text-right border border-emerald-400 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 tabular-nums">
+                            </td>
+                            <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700">
+                                <input wire:model.live="formHours" type="number" step="0.01" placeholder="0.00"
+                                    class="w-full text-xs text-right border border-emerald-400 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 tabular-nums">
+                            </td>
+                            <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700">
+                                <input wire:model="formDays" type="number" step="0.01" placeholder="0.00"
+                                    class="w-full text-xs text-right border border-emerald-400 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 tabular-nums">
+                            </td>
+                            <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700">
+                                <input wire:model="formRate" type="number" step="0.01" placeholder="0.00"
+                                    class="w-full text-xs text-right border border-emerald-400 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 tabular-nums">
+                            </td>
+                            <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700 text-right">
+                                <span class="text-xs text-gray-400">—</span>
+                            </td>
+                            <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700 text-right">
+                                <span class="text-xs text-gray-400">—</span>
+                            </td>
+                            <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700 text-right">
+                                <span class="text-xs text-gray-400">—</span>
+                            </td>
+                            <td class="px-3 py-2 text-center">
+                                <div class="flex items-center justify-center space-x-1">
+                                    <button wire:click="addWorker" class="p-1 rounded text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors" title="{{ __('app.save') }}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                                    </button>
+                                    <button wire:click="cancelAddingWorker" class="p-1 rounded text-gray-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors" title="{{ __('app.cancel') }}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    @endif
                     @forelse ($entries as $entry)
                         @php
                             $expectedHours = (float) $entry->days * 8;
@@ -191,7 +255,7 @@
                                 </div>
                                 <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">{{ __('app.no_workers_in_project') }}</p>
                                 @can('worker_project_entries.create')
-                                    <button wire:click="$set('showAddWorkerModal', true)" class="text-sm text-emerald-600 dark:text-emerald-400 hover:underline">{{ __('app.add_first_worker') }}</button>
+                                    <button wire:click="startAddingWorker" class="text-sm text-emerald-600 dark:text-emerald-400 hover:underline">{{ __('app.add_first_worker') }}</button>
                                 @endcan
                             </td>
                         </tr>
@@ -215,64 +279,6 @@
             </table>
         </div>
     </div>
-
-    {{-- Add Worker Modal --}}
-    @if ($showAddWorkerModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center" x-data x-on:keydown.escape.window="$wire.set('showAddWorkerModal', false)">
-            <div class="absolute inset-0 bg-gray-900/50 dark:bg-gray-900/70" wire:click="$set('showAddWorkerModal', false)"></div>
-            <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg mx-4 p-6 z-10">
-                <div class="flex items-center justify-between mb-5">
-                    <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ __('app.add_worker') }}</h3>
-                    <button wire:click="$set('showAddWorkerModal', false); resetForm()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
-                    </button>
-                </div>
-
-                <form wire:submit="addWorker" class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.worker') }} *</label>
-                        <select wire:model="formWorkerId" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
-                            <option value="">{{ __('app.select_worker') }}</option>
-                            @foreach ($workers as $worker)
-                                <option value="{{ $worker->id }}">{{ $worker->full_name }} ({{ $worker->nie ?? '—' }})</option>
-                            @endforeach
-                        </select>
-                        @error('formWorkerId') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
-                    </div>
-
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.social_security') }}</label>
-                            <input wire:model="formSocialSecurity" type="number" step="0.01" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500 tabular-nums">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.hours') }}</label>
-                            <input wire:model="formHours" type="number" step="0.01" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500 tabular-nums">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.days') }}</label>
-                            <input wire:model="formDays" type="number" step="0.01" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500 tabular-nums">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.rate') }}</label>
-                            <input wire:model="formRate" type="number" step="0.01" readonly class="block w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-3 py-2 tabular-nums cursor-not-allowed">
-                            <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">{{ __('app.auto_populated_from_worker') }}</p>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.special_note') }}</label>
-                        <input wire:model="formSpecialNote" type="text" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
-                    </div>
-
-                    <div class="flex items-center justify-end space-x-3 pt-2">
-                        <button type="button" wire:click="$set('showAddWorkerModal', false); resetForm()" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">{{ __('app.cancel') }}</button>
-                        <button type="submit" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors">{{ __('app.add') }}</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    @endif
 
     {{-- Import Modal --}}
     @if ($showImportModal)
@@ -317,15 +323,20 @@
                                             <tr>
                                                 <td class="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">{{ $header }}</td>
                                                 <td class="px-3 py-2">
-                                                    <select wire:model="importColumnMap.{{ $idx }}" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 pl-2 pr-6">
-                                                        <option value="">—</option>
-                                                        <option value="nie">NIE / DNI</option>
-                                                        <option value="name">{{ __('app.worker_name') }}</option>
-                                                        <option value="social_security">{{ __('app.social_security') }}</option>
-                                                        <option value="hours">{{ __('app.hours') }}</option>
-                                                        <option value="days">{{ __('app.days') }}</option>
-                                                        <option value="rate">{{ __('app.rate') }}</option>
-                                                    </select>
+                                                    <x-custom-select
+                                                        wire-model="importColumnMap.{{ $idx }}"
+                                                        :options="[
+                                                            ['value' => '', 'label' => '—'],
+                                                            ['value' => 'nie', 'label' => 'NIE / DNI'],
+                                                            ['value' => 'name', 'label' => __('app.worker_name')],
+                                                            ['value' => 'social_security', 'label' => __('app.social_security')],
+                                                            ['value' => 'hours', 'label' => __('app.hours')],
+                                                            ['value' => 'days', 'label' => __('app.days')],
+                                                            ['value' => 'rate', 'label' => __('app.rate')],
+                                                        ]"
+                                                        :value="$importColumnMap[$idx] ?? ''"
+                                                        compact
+                                                    />
                                                 </td>
                                                 <td class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">{{ $importPreview['rows'][0][$idx] ?? '—' }}</td>
                                             </tr>

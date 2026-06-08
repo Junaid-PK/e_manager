@@ -16,7 +16,7 @@ class ProjectMonthDetailPage extends Component
 
     public ProjectMonth $projectMonth;
 
-    public bool $showAddWorkerModal = false;
+    public bool $isAddingWorker = false;
 
     public bool $showImportModal = false;
 
@@ -57,10 +57,44 @@ class ProjectMonthDetailPage extends Component
             $worker = Worker::find($this->formWorkerId);
             if ($worker) {
                 $this->formRate = (string) $worker->rate;
+                $this->autoCalculateFromHours();
             }
         } else {
             $this->formRate = '0';
         }
+    }
+
+    public function updatedFormHours(): void
+    {
+        $this->autoCalculateFromHours();
+    }
+
+    public function updatedFormRate(): void
+    {
+        $this->autoCalculateFromHours();
+    }
+
+    private function autoCalculateFromHours(): void
+    {
+        $hours = (float) ($this->formHours ?: 0);
+        $rate = (float) ($this->formRate ?: 0);
+
+        if ($hours > 0) {
+            $this->formDays = (string) round($hours / 8, 2);
+            $this->formSocialSecurity = (string) round($hours * $rate * 0.25, 2);
+        }
+    }
+
+    public function startAddingWorker(): void
+    {
+        $this->isAddingWorker = true;
+        $this->resetForm();
+    }
+
+    public function cancelAddingWorker(): void
+    {
+        $this->isAddingWorker = false;
+        $this->resetForm();
     }
 
     public function mount(ProjectMonth $projectMonth): void
@@ -83,7 +117,7 @@ class ProjectMonthDetailPage extends Component
             'special_note' => $this->formSpecialNote ?: null,
         ]);
 
-        $this->showAddWorkerModal = false;
+        $this->isAddingWorker = false;
         $this->resetForm();
         $this->dispatch('notify', type: 'success', message: __('app.worker_added'));
     }
