@@ -224,6 +224,17 @@ class DashboardPage extends Component
 
         $movementLabel = fn (string $type): string => $typeLabels[$this->normalizeTypeForLookup($type)] ?? $type;
 
+        $typeMapping = [
+            'collected' => 'Nomina',
+            'ledger_expenses' => 'S.Social',
+            'purchase_movements' => 'AEAT',
+            'cash_in' => 'Compra',
+            'cash_out' => 'Gasto',
+            'total_cost' => 'PROVEEDOR',
+            'margin' => 'VARIOS',
+            'cash_delta' => 'IVA',
+        ];
+
         switch ($rowKey) {
             case 'billing':
                 $this->detailTitle = __('app.dashboard_billing');
@@ -235,9 +246,10 @@ class DashboardPage extends Component
                     ->get();
                 break;
             default:
-                $this->detailTitle = $movementLabel($rowKey);
+                $dbType = $typeMapping[$rowKey] ?? $rowKey;
+                $this->detailTitle = $movementLabel($dbType);
                 $rows = $this->applyDateRange($this->applyOwnerFilter(BankMovement::query()), 'date', $period['from'], $period['to'])
-                    ->whereRaw('LOWER(type) = LOWER(?)', [$rowKey])
+                    ->whereRaw('LOWER(type) = LOWER(?)', [$dbType])
                     ->selectRaw("COALESCE(NULLIF(concept, ''), type) as label")
                     ->selectRaw('COALESCE(SUM(COALESCE(deposit, 0) - COALESCE(withdrawal, 0)), 0) as total_amount')
                     ->groupBy('label')
