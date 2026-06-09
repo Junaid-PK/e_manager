@@ -118,6 +118,16 @@
                                 };
                                 $expandedKey = 'executive_' . $row['key'];
                                 $isExpanded = isset($expandedRows[$expandedKey]);
+
+                                // Shift NOMINA, S.SOCIAL, and IVA values one month forward for display
+                                $displayMonthly = $row['monthly'];
+                                if (in_array($row['key'], ['collected', 'ledger_expenses', 'cash_delta'])) {
+                                    $displayMonthly = [];
+                                    $monthCount = count($row['monthly']);
+                                    for ($i = 0; $i < $monthCount; $i++) {
+                                        $displayMonthly[] = $i === 0 ? 0 : ($row['monthly'][$i - 1] ?? 0);
+                                    }
+                                }
                             @endphp
                             <tr class="border-b border-slate-200 text-sm dark:border-slate-700 {{ $accentRow }} cursor-pointer hover:opacity-80 transition-opacity"
                                 wire:click="toggleExecutiveRow('{{ $row['key'] }}')">
@@ -131,7 +141,7 @@
                                     </div>
                                 </th>
                                 <td class="px-4 py-3 text-right font-bold {{ $isEmphasis ? 'text-base' : '' }}">{{ fmt_number($row['total']) }} &euro;</td>
-                                @foreach ($row['monthly'] as $value)
+                                @foreach ($displayMonthly as $value)
                                     <td class="px-4 py-3 text-right tabular-nums {{ $isEmphasis ? 'font-semibold' : '' }}">
                                         {{ fmt_number($value) }} &euro;
                                     </td>
