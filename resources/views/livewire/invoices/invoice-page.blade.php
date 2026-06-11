@@ -330,8 +330,11 @@
                        @cell-next="moveNext($event.detail.row, $event.detail.col)"
                        @cell-prev="movePrev($event.detail.row, $event.detail.col)">
                     @forelse ($invoices as $invoice)
-                        @php $rowIdx = $loop->index; @endphp
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" wire:key="invoice-{{ $invoice->id }}">
+                        @php
+                            $rowIdx = $loop->index;
+                            $isDuplicate = in_array($invoice->invoice_number, $duplicateInvoiceNumbers);
+                        @endphp
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors {{ $isDuplicate ? 'bg-red-50 dark:bg-red-900/20' : '' }}" wire:key="invoice-{{ $invoice->id }}">
                             <td class="px-4 py-3">
                                 <input type="checkbox" wire:model.live="selected" value="{{ $invoice->id }}" class="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 dark:bg-gray-700">
                             </td>

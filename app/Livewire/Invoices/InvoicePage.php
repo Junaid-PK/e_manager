@@ -117,12 +117,17 @@ class InvoicePage extends Component
 
     protected function rules(): array
     {
+        $uniqueInvoiceRule = 'unique:invoices,invoice_number';
+        if ($this->editingId) {
+            $uniqueInvoiceRule .= ',' . $this->editingId;
+        }
+
         return [
             'formCompanyId' => 'required|exists:companies,id',
             'formClientId' => 'required|exists:clients,id',
             'formProjectName' => 'nullable|string|max:500',
             'formProjectLocation' => 'nullable|string|max:500',
-            'formInvoiceNumber' => 'required|string|max:100',
+            'formInvoiceNumber' => 'required|string|max:100|' . $uniqueInvoiceRule,
             'formMonth' => 'nullable|string|max:20',
             'formDateIssued' => 'required|date',
             'formDateDue' => 'required|date|after_or_equal:formDateIssued',
@@ -726,6 +731,16 @@ class InvoicePage extends Component
         return $this->buildQuery()->paginate($this->perPage);
     }
 
+    protected function getDuplicateInvoiceNumbers(): array
+    {
+        return Invoice::query()
+            ->select('invoice_number')
+            ->groupBy('invoice_number')
+            ->havingRaw('COUNT(*) > 1')
+            ->pluck('invoice_number')
+            ->all();
+    }
+
     /**
      * Apply sorting with natural order support for invoice_number.
      * Sorts numeric values (1-9) first, then alphanumeric like 26/F-1, 26/F-5.
@@ -810,6 +825,7 @@ class InvoicePage extends Component
             'clients' => Client::orderBy('name')->get(['id', 'name']),
             'bankAccounts' => BankAccount::orderBy('bank_name')->get(['id', 'bank_name']),
             'invoiceUsers' => $invoiceUsers,
+            'duplicateInvoiceNumbers' => $this->getDuplicateInvoiceNumbers(),
         ])->layout('layouts.app');
     }
 }
