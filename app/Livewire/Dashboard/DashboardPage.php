@@ -292,7 +292,7 @@ class DashboardPage extends Component
                 $title = $movementLabel($dbType);
                 $rows = $this->applyDateRange($this->applyOwnerFilter(BankMovement::query()), 'date', $period['from'], $period['to'])
                     ->whereRaw('LOWER(type) = LOWER(?)', [$dbType])
-                    ->selectRaw("COALESCE(NULLIF(concept, ''), type) as label")
+                    ->selectRaw("COALESCE(NULLIF(category, ''), type) as label")
                     ->selectRaw("{$monthExpr} as ym")
                     ->selectRaw('COALESCE(SUM(COALESCE(deposit, 0) - COALESCE(withdrawal, 0)), 0) as total_amount')
                     ->groupBy('label', 'ym')
