@@ -38,6 +38,8 @@ class InvoicePage extends Component
 
     public ?int $editingId = null;
 
+    public bool $editingPaidInvoice = false;
+
     #[\Livewire\Attributes\Url(as: 'edit')]
     public string $editInvoiceId = '';
 
@@ -206,6 +208,7 @@ class InvoicePage extends Component
     {
         $this->resetForm();
         $this->editingId = null;
+        $this->editingPaidInvoice = false;
         $this->showFormModal = true;
     }
 
@@ -213,6 +216,7 @@ class InvoicePage extends Component
     {
         $invoice = Invoice::findOrFail($id);
         $this->editingId = $id;
+        $this->editingPaidInvoice = $invoice->status === 'paid';
         $this->formCompanyId = (string) $invoice->company_id;
         $this->formClientId = (string) $invoice->client_id;
         $this->formProjectName = $invoice->project?->name ?? '';
@@ -277,7 +281,18 @@ class InvoicePage extends Component
         ];
 
         if ($this->editingId) {
-            Invoice::findOrFail($this->editingId)->update($data);
+            $invoice = Invoice::findOrFail($this->editingId);
+
+            if ($this->editingPaidInvoice) {
+                $invoice->update([
+                    'date_issued' => $this->formDateIssued,
+                    'date_due' => $this->formDateDue,
+                    'bank_date' => $this->formBankDate ?: null,
+                ]);
+            } else {
+                $invoice->update($data);
+            }
+
             $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
         } else {
             Invoice::create($data);
@@ -318,6 +333,7 @@ class InvoicePage extends Component
         $invoice = Invoice::findOrFail($id);
         $this->resetForm();
         $this->editingId = null;
+        $this->editingPaidInvoice = false;
         $this->formCompanyId = (string) $invoice->company_id;
         $this->formClientId = (string) $invoice->client_id;
         $this->formProjectName = $invoice->project?->name ?? '';
@@ -337,9 +353,33 @@ class InvoicePage extends Component
         $this->showFormModal = true;
     }
 
+    public function quickUpdateBankDate(int $id, string $date): void
+    {
+        $invoice = Invoice::findOrFail($id);
+        $resolved = trim($date) ?: null;
+
+        if ((string) ($invoice->bank_date?->format('Y-m-d') ?? '') === (string) $resolved) {
+            $this->skipRender();
+
+            return;
+        }
+
+        $invoice->update(['bank_date' => $resolved]);
+        $this->skipRender();
+        $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
+    }
+
     public function quickUpdatePaymentType(int $id, string $type): void
     {
         $invoice = Invoice::findOrFail($id);
+
+        if ($invoice->status === 'paid') {
+            $this->skipRender();
+            $this->dispatch('notify', type: 'error', message: __('app.paid_invoice_not_editable'));
+
+            return;
+        }
+
         $type = trim($type);
         if ($type === '') {
             if ($invoice->payment_type === null) {
@@ -373,6 +413,14 @@ class InvoicePage extends Component
     public function quickUpdateBankName(int $id, string $name): void
     {
         $invoice = Invoice::findOrFail($id);
+
+        if ($invoice->status === 'paid') {
+            $this->skipRender();
+            $this->dispatch('notify', type: 'error', message: __('app.paid_invoice_not_editable'));
+
+            return;
+        }
+
         $resolved = trim($name) ?: null;
 
         if (($invoice->bank_name ?? null) === $resolved) {
@@ -389,6 +437,14 @@ class InvoicePage extends Component
     public function quickUpdateAmountPaid(int $id, string $value): void
     {
         $invoice = Invoice::findOrFail($id);
+
+        if ($invoice->status === 'paid') {
+            $this->skipRender();
+            $this->dispatch('notify', type: 'error', message: __('app.paid_invoice_not_editable'));
+
+            return;
+        }
+
         $amountPaid = max(0, (float) str_replace(',', '.', $value));
         $amountRemaining = max(0, round((float) $invoice->total - $amountPaid, 2));
         $invoice->update(['amount_paid' => $amountPaid, 'amount_remaining' => $amountRemaining]);
@@ -398,6 +454,14 @@ class InvoicePage extends Component
     public function quickUpdateProjectText(int $id, string $text): void
     {
         $invoice = Invoice::findOrFail($id);
+
+        if ($invoice->status === 'paid') {
+            $this->skipRender();
+            $this->dispatch('notify', type: 'error', message: __('app.paid_invoice_not_editable'));
+
+            return;
+        }
+
         $invoice->update([
             'project_id' => $this->resolveOrCreateProjectId((int) $invoice->company_id, $text),
         ]);
@@ -451,6 +515,13 @@ class InvoicePage extends Component
     public function quickStatusUpdate(int $id, string $status): void
     {
         $invoice = Invoice::findOrFail($id);
+
+        if ($invoice->status === 'paid') {
+            $this->skipRender();
+            $this->dispatch('notify', type: 'error', message: __('app.paid_invoice_not_editable'));
+
+            return;
+        }
 
         if ((string) $invoice->status === $status) {
             $this->skipRender();
@@ -809,6 +880,7 @@ class InvoicePage extends Component
         $this->formBankName = '';
         $this->formNotes = '';
         $this->formStatus = 'pending';
+        $this->editingPaidInvoice = false;
         $this->resetValidation();
     }
 

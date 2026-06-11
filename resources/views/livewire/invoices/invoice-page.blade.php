@@ -356,73 +356,92 @@
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-right">{{ fmt_number($invoice->iva_amount) }} &euro;</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-right">{{ fmt_number($invoice->retention_amount) }} &euro;</td>
                             <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900 dark:text-gray-100">{{ fmt_number($invoice->total) }} &euro;</td>
+                            @php
+                                $isPaid = $invoice->status === 'paid';
+                                $statusOptions = collect(['pending','paid','partial','overdue','cancelled'])
+                                    ->map(fn($s) => ['value' => $s, 'label' => __('app.'.$s)])->all();
+                                $statusColors = [
+                                    'paid'      => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+                                    'pending'   => 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
+                                    'overdue'   => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+                                    'cancelled' => 'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300',
+                                    'partial'   => 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+                                ];
+                            @endphp
                             <td class="px-4 py-3" x-data="{ statusOpen: false }" @click.outside="statusOpen = false">
                                 <div class="relative">
-                                    @php
-                                    $statusOptions = collect(['pending','paid','partial','overdue','cancelled'])
-                                        ->map(fn($s) => ['value' => $s, 'label' => __('app.'.$s)])->all();
-                                    $statusColors = [
-                                        'paid'      => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-                                        'pending'   => 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
-                                        'overdue'   => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-                                        'cancelled' => 'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300',
-                                        'partial'   => 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-                                    ];
-                                    @endphp
-                                    <x-custom-select
-                                        wire:key="status-{{ $invoice->id }}"
-                                        :options="$statusOptions"
-                                        :value="$invoice->status"
-                                        :badge-colors="$statusColors"
-                                        submit-method="quickStatusUpdate"
-                                        :submit-arg="$invoice->id"
-                                        :nav-row="$rowIdx"
-                                        :nav-col="0" />
+                                    @if ($isPaid)
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $statusColors[$invoice->status] ?? $statusColors['pending'] }}">
+                                            {{ __('app.'.$invoice->status) }}
+                                        </span>
+                                    @else
+                                        <x-custom-select
+                                            wire:key="status-{{ $invoice->id }}"
+                                            :options="$statusOptions"
+                                            :value="$invoice->status"
+                                            :badge-colors="$statusColors"
+                                            submit-method="quickStatusUpdate"
+                                            :submit-arg="$invoice->id"
+                                            :nav-row="$rowIdx"
+                                            :nav-col="0" />
+                                    @endif
                                 </div>
                             </td>
                             <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[8rem] align-top">
-                                <x-custom-select compact
-                                    wire:key="pay-{{ $invoice->id }}"
-                                    :options="$invoicePaymentOptions"
-                                    :value="$invoice->payment_type ?? ''"
-                                    :empty-label="__('app.payment_type') . '…'"
-                                    allow-custom
-                                    submit-method="quickUpdatePaymentType"
-                                    :submit-arg="$invoice->id"
-                                    :nav-row="$rowIdx"
-                                    :nav-col="1" />
+                                @if ($isPaid)
+                                    <span class="text-gray-400 dark:text-gray-500">{{ $invoice->payment_type ? __('app.'.$invoice->payment_type) : '—' }}</span>
+                                @else
+                                    <x-custom-select compact
+                                        wire:key="pay-{{ $invoice->id }}"
+                                        :options="$invoicePaymentOptions"
+                                        :value="$invoice->payment_type ?? ''"
+                                        :empty-label="__('app.payment_type') . '…'"
+                                        allow-custom
+                                        submit-method="quickUpdatePaymentType"
+                                        :submit-arg="$invoice->id"
+                                        :nav-row="$rowIdx"
+                                        :nav-col="1" />
+                                @endif
                             </td>
                             <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[9rem] align-top">
-                                <x-custom-select compact
-                                    wire:key="bank-{{ $invoice->id }}"
-                                    :options="$bankSelectOptions"
-                                    :value="$invoice->bank_name ?? ''"
-                                    placeholder="—"
-                                    allow-custom
-                                    submit-method="quickUpdateBankName"
-                                    :submit-arg="$invoice->id"
-                                    :nav-row="$rowIdx"
-                                    :nav-col="2" />
+                                @if ($isPaid)
+                                    <span class="text-gray-400 dark:text-gray-500">{{ $invoice->bank_name ?? '—' }}</span>
+                                @else
+                                    <x-custom-select compact
+                                        wire:key="bank-{{ $invoice->id }}"
+                                        :options="$bankSelectOptions"
+                                        :value="$invoice->bank_name ?? ''"
+                                        placeholder="—"
+                                        allow-custom
+                                        submit-method="quickUpdateBankName"
+                                        :submit-arg="$invoice->id"
+                                        :nav-row="$rowIdx"
+                                        :nav-col="2" />
+                                @endif
                             </td>
                             <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
-                                <div x-data="{ editing: false, val: '{{ addslashes(fmt_number($invoice->amount_paid ?? 0)) }}' }" class="flex items-center justify-end gap-1">
-                                    <template x-if="!editing">
-                                        <span class="{{ (float) $invoice->amount_paid > 0 ? 'text-green-600 dark:text-green-400 font-medium' : 'text-gray-400' }}" x-text="val + ' €'"></span>
-                                    </template>
-                                    <template x-if="editing">
-                                        <input type="text" x-ref="amtInput" x-model="val"
-                                               @keydown.enter="editing = false; $wire.call('quickUpdateAmountPaid', {{ $invoice->id }}, val)"
-                                               @blur="editing = false; $wire.call('quickUpdateAmountPaid', {{ $invoice->id }}, val)"
-                                               @keydown.escape="editing = false"
-                                               class="w-24 text-xs text-right border border-emerald-400 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500">
-                                    </template>
-                                    <button @click="editing = true; $nextTick(() => { if ($refs.amtInput) $refs.amtInput.focus(); })"
-                                            class="text-gray-300 hover:text-emerald-500 dark:text-gray-600 dark:hover:text-emerald-400 transition-colors flex-shrink-0">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
-                                        </svg>
-                                    </button>
-                                </div>
+                                @if ($isPaid)
+                                    <span class="{{ (float) $invoice->amount_paid > 0 ? 'text-green-600 dark:text-green-400 font-medium' : 'text-gray-400' }}">{{ fmt_number($invoice->amount_paid ?? 0) }} €</span>
+                                @else
+                                    <div x-data="{ editing: false, val: '{{ addslashes(fmt_number($invoice->amount_paid ?? 0)) }}' }" class="flex items-center justify-end gap-1">
+                                        <template x-if="!editing">
+                                            <span class="{{ (float) $invoice->amount_paid > 0 ? 'text-green-600 dark:text-green-400 font-medium' : 'text-gray-400' }}" x-text="val + ' €'"></span>
+                                        </template>
+                                        <template x-if="editing">
+                                            <input type="text" x-ref="amtInput" x-model="val"
+                                                   @keydown.enter="editing = false; $wire.call('quickUpdateAmountPaid', {{ $invoice->id }}, val)"
+                                                   @blur="editing = false; $wire.call('quickUpdateAmountPaid', {{ $invoice->id }}, val)"
+                                                   @keydown.escape="editing = false"
+                                                   class="w-24 text-xs text-right border border-emerald-400 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500">
+                                        </template>
+                                        <button @click="editing = true; $nextTick(() => { if ($refs.amtInput) $refs.amtInput.focus(); })"
+                                                class="text-gray-300 hover:text-emerald-500 dark:text-gray-600 dark:hover:text-emerald-400 transition-colors flex-shrink-0">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                @endif
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 max-w-[140px]"><span title="{{ $invoice->company?->name }}">{{ \Illuminate\Support\Str::limit($invoice->company?->name ?? '—', 28) }}</span></td>
                             <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
@@ -434,7 +453,26 @@
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->date_issued?->format('d/m/Y') ?? '—' }}</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->date_due?->format('d/m/Y') ?? '—' }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->bank_date?->format('d/m/Y') ?? '—' }}</td>
+                            <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
+                                <div x-data="{ editing: false, val: '{{ $invoice->bank_date?->format('Y-m-d') ?? '' }}' }" class="flex items-center justify-end gap-1">
+                                    <template x-if="!editing">
+                                        <span class="text-gray-500 dark:text-gray-400" x-text="val ? new Date(val).toLocaleDateString('es-ES', {day:'2-digit',month:'2-digit',year:'numeric'}) : '—'"></span>
+                                    </template>
+                                    <template x-if="editing">
+                                        <input type="date" x-ref="bankDateInput" x-model="val"
+                                               @keydown.enter="editing = false; $wire.call('quickUpdateBankDate', {{ $invoice->id }}, val)"
+                                               @blur="editing = false; $wire.call('quickUpdateBankDate', {{ $invoice->id }}, val)"
+                                               @keydown.escape="editing = false"
+                                               class="w-32 text-xs border border-emerald-400 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500">
+                                    </template>
+                                    <button @click="editing = true; $nextTick(() => { if ($refs.bankDateInput) $refs.bankDateInput.focus(); })"
+                                            class="text-gray-300 hover:text-emerald-500 dark:text-gray-600 dark:hover:text-emerald-400 transition-colors flex-shrink-0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </td>
                             <td class="px-4 py-3 text-right">
                                 <div class="relative" x-data="{ open: false }" @click.outside="open = false">
                                     <button @click="open = !open" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
@@ -458,7 +496,9 @@
                                             <button wire:click="duplicate({{ $invoice->id }})" @click="open = false" class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">{{ __('app.duplicate') }}</button>
                                         @endcan
                                         @can('invoices.edit')
-                                            <button wire:click="quickStatusUpdate({{ $invoice->id }}, 'paid')" @click="open = false" class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">{{ __('app.mark_as_paid') }}</button>
+                                            @if ($invoice->status !== 'paid')
+                                                <button wire:click="quickStatusUpdate({{ $invoice->id }}, 'paid')" @click="open = false" class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">{{ __('app.mark_as_paid') }}</button>
+                                            @endif
                                         @endcan
                                         @can('reminders.create')
                                             <button wire:click="openReminderModal({{ $invoice->id }})" @click="open = false" class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">{{ __('app.set_reminder') }}</button>
@@ -527,9 +567,11 @@
                             <div>
                                 <div class="flex items-center justify-between mb-1">
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('app.company') }} *</label>
-                                    <button type="button" wire:click="openQuickCompanyForm" class="text-xs text-emerald-600 dark:text-emerald-400 hover:underline">+ {{ __('app.add') }}</button>
+                                    @if (! $editingPaidInvoice)
+                                        <button type="button" wire:click="openQuickCompanyForm" class="text-xs text-emerald-600 dark:text-emerald-400 hover:underline">+ {{ __('app.add') }}</button>
+                                    @endif
                                 </div>
-                                <select wire:model.live="formCompanyId" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                <select wire:model.live="formCompanyId" {{ $editingPaidInvoice ? 'disabled' : '' }} class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 dark:disabled:text-gray-500">
                                     <option value="">{{ __('app.select_company') }}</option>
                                     @foreach ($allCompanies as $company)
                                         <option value="{{ $company->id }}">{{ $company->name }}</option>
@@ -540,9 +582,11 @@
                             <div>
                                 <div class="flex items-center justify-between mb-1">
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('app.client') }} *</label>
-                                    <button type="button" wire:click="openQuickClientForm" class="text-xs text-emerald-600 dark:text-emerald-400 hover:underline">+ {{ __('app.add') }}</button>
+                                    @if (! $editingPaidInvoice)
+                                        <button type="button" wire:click="openQuickClientForm" class="text-xs text-emerald-600 dark:text-emerald-400 hover:underline">+ {{ __('app.add') }}</button>
+                                    @endif
                                 </div>
-                                <select wire:model="formClientId" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                <select wire:model="formClientId" {{ $editingPaidInvoice ? 'disabled' : '' }} class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 dark:disabled:text-gray-500">
                                     <option value="">{{ __('app.select_client') }}</option>
                                     @foreach ($clients as $client)
                                         <option value="{{ $client->id }}">{{ $client->name }}</option>
@@ -553,24 +597,24 @@
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.project') }}</label>
-                                    <input wire:model="formProjectName" type="text" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                    <input wire:model="formProjectName" type="text" {{ $editingPaidInvoice ? 'disabled' : '' }} class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 dark:disabled:text-gray-500">
                                     @error('formProjectName') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.location') }}</label>
-                                    <input wire:model="formProjectLocation" type="text" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                    <input wire:model="formProjectLocation" type="text" {{ $editingPaidInvoice ? 'disabled' : '' }} class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 dark:disabled:text-gray-500">
                                     @error('formProjectLocation') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                                 </div>
                             </div>
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.invoice_number') }} *</label>
-                                    <input wire:model="formInvoiceNumber" type="text" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                    <input wire:model="formInvoiceNumber" type="text" {{ $editingPaidInvoice ? 'disabled' : '' }} class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 dark:disabled:text-gray-500">
                                     @error('formInvoiceNumber') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.month') }}</label>
-                                    <input wire:model="formMonth" type="text" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                    <input wire:model="formMonth" type="text" {{ $editingPaidInvoice ? 'disabled' : '' }} class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 dark:disabled:text-gray-500">
                                     @error('formMonth') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                                 </div>
                             </div>
@@ -594,25 +638,25 @@
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.bank_name') }}</label>
-                                    <x-custom-select :options="$bankSelectOptions" :value="$formBankName ?? ''" allow-custom wire-model="formBankName" placeholder="—" />
+                                    <x-custom-select :options="$bankSelectOptions" :value="$formBankName ?? ''" allow-custom wire-model="formBankName" placeholder="—" :disabled="$editingPaidInvoice" />
                                     @error('formBankName') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                                 </div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.amount') }} *</label>
-                                <input wire:model.live="formAmount" type="number" step="0.01" min="0" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                <input wire:model.live="formAmount" type="number" step="0.01" min="0" {{ $editingPaidInvoice ? 'disabled' : '' }} class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 dark:disabled:text-gray-500">
                                 @error('formAmount') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                             </div>
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.iva_rate') }} (%)</label>
-                                    <input wire:model.live="formIvaRate" type="number" step="0.01" min="0" max="100" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                    <input wire:model.live="formIvaRate" type="number" step="0.01" min="0" max="100" {{ $editingPaidInvoice ? 'disabled' : '' }} class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 dark:disabled:text-gray-500">
                                     @error('formIvaRate') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('app.iva') }}: {{ fmt_number((float)$formAmount * (float)$formIvaRate / 100) }} &euro;</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.retention_rate') }} (%)</label>
-                                    <input wire:model.live="formRetentionRate" type="number" step="0.01" min="0" max="100" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                    <input wire:model.live="formRetentionRate" type="number" step="0.01" min="0" max="100" {{ $editingPaidInvoice ? 'disabled' : '' }} class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 dark:disabled:text-gray-500">
                                     @error('formRetentionRate') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('app.retention') }}: {{ fmt_number((float)$formAmount * (float)$formRetentionRate / 100) }} &euro;</p>
                                 </div>
@@ -632,19 +676,19 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.payment_type') }}</label>
                                     @php $formPayOpts = collect(\App\Models\Invoice::PAYMENT_TYPES)->map(fn ($pt) => ['value' => $pt, 'label' => __('app.' . $pt)])->all(); @endphp
-                                    <x-custom-select :options="$formPayOpts" :value="$formPaymentType ?? ''" :empty-label="__('app.none')" wire-model="formPaymentType" />
+                                    <x-custom-select :options="$formPayOpts" :value="$formPaymentType ?? ''" :empty-label="__('app.none')" wire-model="formPaymentType" :disabled="$editingPaidInvoice" />
                                     @error('formPaymentType') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.cobrado') }}</label>
-                                    <input wire:model="formAmountPaid" type="number" step="0.01" min="0" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                    <input wire:model="formAmountPaid" type="number" step="0.01" min="0" {{ $editingPaidInvoice ? 'disabled' : '' }} class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 dark:disabled:text-gray-500">
                                     @error('formAmountPaid') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                                 </div>
                             </div>
                             @if ($editingId)
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.status') }}</label>
-                                    <select wire:model="formStatus" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                    <select wire:model="formStatus" {{ $editingPaidInvoice ? 'disabled' : '' }} class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 dark:disabled:text-gray-500">
                                         <option value="pending">{{ __('app.pending') }}</option>
                                         <option value="paid">{{ __('app.paid') }}</option>
                                         <option value="partial">{{ __('app.partial') }}</option>
@@ -656,7 +700,7 @@
                             @endif
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.notes') }}</label>
-                                <textarea wire:model="formNotes" rows="3" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500"></textarea>
+                                <textarea wire:model="formNotes" rows="3" {{ $editingPaidInvoice ? 'disabled' : '' }} class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 dark:disabled:text-gray-500"></textarea>
                                 @error('formNotes') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                             </div>
                             <div class="flex items-center justify-end space-x-3 pt-4">
