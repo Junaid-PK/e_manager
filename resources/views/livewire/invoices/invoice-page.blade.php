@@ -260,6 +260,7 @@
                         </th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.status') }}</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.payment_type') }}</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.paid_date') }}</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.bank_name') }}</th>
                         <th wire:click="sortBy('amount_paid')" class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider cursor-pointer select-none group {{ $sortField === 'amount_paid' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400' }}">
                             <span class="flex items-center justify-end space-x-1">
@@ -319,7 +320,6 @@
                                 @endif
                             </span>
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.paid_date') }}</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.actions') }}</th>
                     </tr>
                 </thead>
@@ -404,6 +404,26 @@
                                         :nav-col="1" />
                                 @endif
                             </td>
+                            <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
+                                <div x-data="{ editing: false, val: '{{ $invoice->paid_date?->format('Y-m-d') ?? '' }}' }" class="flex items-center justify-end gap-1">
+                                    <template x-if="!editing">
+                                        <span class="text-gray-500 dark:text-gray-400" x-text="val ? new Date(val).toLocaleDateString('es-ES', {day:'2-digit',month:'2-digit',year:'numeric'}) : '—'"></span>
+                                    </template>
+                                    <template x-if="editing">
+                                        <input type="date" x-ref="paidDateInput" x-model="val"
+                                               @keydown.enter="editing = false; $wire.call('quickUpdatePaidDate', {{ $invoice->id }}, val)"
+                                               @blur="editing = false; $wire.call('quickUpdatePaidDate', {{ $invoice->id }}, val)"
+                                               @keydown.escape="editing = false"
+                                               class="w-32 text-xs border border-emerald-400 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500">
+                                    </template>
+                                    <button @click="editing = true; $nextTick(() => { if ($refs.paidDateInput) $refs.paidDateInput.focus(); })"
+                                            class="text-gray-300 hover:text-emerald-500 dark:text-gray-600 dark:hover:text-emerald-400 transition-colors flex-shrink-0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </td>
                             <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[9rem] align-top">
                                 @if ($isPaid)
                                     <span class="text-gray-400 dark:text-gray-500">{{ $invoice->bank_name ?? '—' }}</span>
@@ -455,26 +475,6 @@
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->date_issued?->format('d/m/Y') ?? '—' }}</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->date_due?->format('d/m/Y') ?? '—' }}</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->bank_date?->format('d/m/Y') ?? '—' }}</td>
-                            <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
-                                <div x-data="{ editing: false, val: '{{ $invoice->paid_date?->format('Y-m-d') ?? '' }}' }" class="flex items-center justify-end gap-1">
-                                    <template x-if="!editing">
-                                        <span class="text-gray-500 dark:text-gray-400" x-text="val ? new Date(val).toLocaleDateString('es-ES', {day:'2-digit',month:'2-digit',year:'numeric'}) : '—'"></span>
-                                    </template>
-                                    <template x-if="editing">
-                                        <input type="date" x-ref="paidDateInput" x-model="val"
-                                               @keydown.enter="editing = false; $wire.call('quickUpdatePaidDate', {{ $invoice->id }}, val)"
-                                               @blur="editing = false; $wire.call('quickUpdatePaidDate', {{ $invoice->id }}, val)"
-                                               @keydown.escape="editing = false"
-                                               class="w-32 text-xs border border-emerald-400 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500">
-                                    </template>
-                                    <button @click="editing = true; $nextTick(() => { if ($refs.paidDateInput) $refs.paidDateInput.focus(); })"
-                                            class="text-gray-300 hover:text-emerald-500 dark:text-gray-600 dark:hover:text-emerald-400 transition-colors flex-shrink-0">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </td>
                             <td class="px-4 py-3 text-right">
                                 <div class="relative" x-data="{ open: false }" @click.outside="open = false">
                                     <button @click="open = !open" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
