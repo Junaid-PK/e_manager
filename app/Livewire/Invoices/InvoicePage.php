@@ -109,6 +109,8 @@ class InvoicePage extends Component
 
     public string $formBankDate = '';
 
+    public string $formPaidDate = '';
+
     public string $formBankName = '';
 
     public string $formNotes = '';
@@ -231,6 +233,7 @@ class InvoicePage extends Component
         $this->formPaymentType = $invoice->payment_type ?? '';
         $this->formAmountPaid = (string) ($invoice->amount_paid ?? 0);
         $this->formBankDate = $invoice->bank_date?->format('Y-m-d') ?? '';
+        $this->formPaidDate = $invoice->paid_date?->format('Y-m-d') ?? '';
         $this->formBankName = $invoice->bank_name ?? '';
         $this->formNotes = $invoice->notes ?? '';
         $this->formStatus = $invoice->status;
@@ -275,6 +278,7 @@ class InvoicePage extends Component
             'amount_remaining' => max(0, $amountRemaining),
             'payment_type' => $this->formPaymentType ?: null,
             'bank_date' => $this->formBankDate ?: null,
+            'paid_date' => $this->formPaidDate ?: null,
             'bank_name' => $this->formBankName ?: null,
             'notes' => $this->formNotes ?: null,
             'status' => $this->formStatus,
@@ -288,6 +292,7 @@ class InvoicePage extends Component
                     'date_issued' => $this->formDateIssued,
                     'date_due' => $this->formDateDue,
                     'bank_date' => $this->formBankDate ?: null,
+                    'paid_date' => $this->formPaidDate ?: null,
                 ]);
             } else {
                 $invoice->update($data);
@@ -365,6 +370,22 @@ class InvoicePage extends Component
         }
 
         $invoice->update(['bank_date' => $resolved]);
+        $this->skipRender();
+        $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
+    }
+
+    public function quickUpdatePaidDate(int $id, string $date): void
+    {
+        $invoice = Invoice::findOrFail($id);
+        $resolved = trim($date) ?: null;
+
+        if ((string) ($invoice->paid_date?->format('Y-m-d') ?? '') === (string) $resolved) {
+            $this->skipRender();
+
+            return;
+        }
+
+        $invoice->update(['paid_date' => $resolved]);
         $this->skipRender();
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
@@ -877,6 +898,7 @@ class InvoicePage extends Component
         $this->formPaymentType = '';
         $this->formAmountPaid = '0';
         $this->formBankDate = '';
+        $this->formPaidDate = '';
         $this->formBankName = '';
         $this->formNotes = '';
         $this->formStatus = 'pending';

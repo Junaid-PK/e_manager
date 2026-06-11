@@ -319,6 +319,7 @@
                                 @endif
                             </span>
                         </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.paid_date') }}</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.actions') }}</th>
                     </tr>
                 </thead>
@@ -453,19 +454,20 @@
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->date_issued?->format('d/m/Y') ?? '—' }}</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->date_due?->format('d/m/Y') ?? '—' }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->bank_date?->format('d/m/Y') ?? '—' }}</td>
                             <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
-                                <div x-data="{ editing: false, val: '{{ $invoice->bank_date?->format('Y-m-d') ?? '' }}' }" class="flex items-center justify-end gap-1">
+                                <div x-data="{ editing: false, val: '{{ $invoice->paid_date?->format('Y-m-d') ?? '' }}' }" class="flex items-center justify-end gap-1">
                                     <template x-if="!editing">
                                         <span class="text-gray-500 dark:text-gray-400" x-text="val ? new Date(val).toLocaleDateString('es-ES', {day:'2-digit',month:'2-digit',year:'numeric'}) : '—'"></span>
                                     </template>
                                     <template x-if="editing">
-                                        <input type="date" x-ref="bankDateInput" x-model="val"
-                                               @keydown.enter="editing = false; $wire.call('quickUpdateBankDate', {{ $invoice->id }}, val)"
-                                               @blur="editing = false; $wire.call('quickUpdateBankDate', {{ $invoice->id }}, val)"
+                                        <input type="date" x-ref="paidDateInput" x-model="val"
+                                               @keydown.enter="editing = false; $wire.call('quickUpdatePaidDate', {{ $invoice->id }}, val)"
+                                               @blur="editing = false; $wire.call('quickUpdatePaidDate', {{ $invoice->id }}, val)"
                                                @keydown.escape="editing = false"
                                                class="w-32 text-xs border border-emerald-400 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500">
                                     </template>
-                                    <button @click="editing = true; $nextTick(() => { if ($refs.bankDateInput) $refs.bankDateInput.focus(); })"
+                                    <button @click="editing = true; $nextTick(() => { if ($refs.paidDateInput) $refs.paidDateInput.focus(); })"
                                             class="text-gray-300 hover:text-emerald-500 dark:text-gray-600 dark:hover:text-emerald-400 transition-colors flex-shrink-0">
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
@@ -512,7 +514,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="19" class="px-4 py-12 text-center">
+                            <td colspan="20" class="px-4 py-12 text-center">
                                 <div class="flex flex-col items-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" class="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v7.5m2.25-6.466a9.016 9.016 0 0 0-3.461-.203c-.536.072-.974.478-1.021 1.017a4.559 4.559 0 0 0-.018.402c0 .464.336.844.775.994l2.49.849c.44.15.775.53.775.994 0 .136-.006.27-.018.402-.047.539-.485.945-1.021 1.017a9.077 9.077 0 0 1-3.461-.203M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
@@ -637,10 +639,15 @@
                                     @error('formBankDate') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.bank_name') }}</label>
-                                    <x-custom-select :options="$bankSelectOptions" :value="$formBankName ?? ''" allow-custom wire-model="formBankName" placeholder="—" :disabled="$editingPaidInvoice" />
-                                    @error('formBankName') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.paid_date') }}</label>
+                                    <input wire:model="formPaidDate" type="date" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                    @error('formPaidDate') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                                 </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.bank_name') }}</label>
+                                <x-custom-select :options="$bankSelectOptions" :value="$formBankName ?? ''" allow-custom wire-model="formBankName" placeholder="—" :disabled="$editingPaidInvoice" />
+                                @error('formBankName') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.amount') }} *</label>
