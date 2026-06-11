@@ -119,13 +119,13 @@
                                 $expandedKey = 'executive_' . $row['key'];
                                 $isExpanded = isset($expandedRows[$expandedKey]);
 
-                                // Shift NOMINA, S.SOCIAL, and IVA values one month forward for display
+                                // Shift NOMINA, S.SOCIAL, and IVA values one month backward for display
                                 $displayMonthly = $row['monthly'];
                                 if (in_array($row['key'], ['collected', 'ledger_expenses', 'cash_delta'])) {
                                     $displayMonthly = [];
                                     $monthCount = count($row['monthly']);
                                     for ($i = 0; $i < $monthCount; $i++) {
-                                        $displayMonthly[] = $i === 0 ? 0 : ($row['monthly'][$i - 1] ?? 0);
+                                        $displayMonthly[] = $i === $monthCount - 1 ? 0 : ($row['monthly'][$i + 1] ?? 0);
                                     }
                                 }
                             @endphp
