@@ -260,8 +260,8 @@
                         </th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.status') }}</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.payment_type') }}</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.paid_date') }}</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.bank_name') }}</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.paid_date') }}</th>
                         <th wire:click="sortBy('amount_paid')" class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider cursor-pointer select-none group {{ $sortField === 'amount_paid' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400' }}">
                             <span class="flex items-center justify-end space-x-1">
                                 <span>{{ __('app.cobrado') }}</span>
@@ -404,6 +404,22 @@
                                         :nav-col="1" />
                                 @endif
                             </td>
+                            <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[9rem] align-top">
+                                @if ($isPaid)
+                                    <span class="text-gray-400 dark:text-gray-500">{{ $invoice->bank_name ?? '—' }}</span>
+                                @else
+                                    <x-custom-select compact
+                                        wire:key="bank-{{ $invoice->id }}"
+                                        :options="$bankSelectOptions"
+                                        :value="$invoice->bank_name ?? ''"
+                                        placeholder="—"
+                                        allow-custom
+                                        submit-method="quickUpdateBankName"
+                                        :submit-arg="$invoice->id"
+                                        :nav-row="$rowIdx"
+                                        :nav-col="2" />
+                                @endif
+                            </td>
                             <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
                                 <div x-data="{ editing: false, val: '{{ $invoice->paid_date?->format('Y-m-d') ?? '' }}' }" class="flex items-center justify-end gap-1">
                                     <template x-if="!editing">
@@ -423,22 +439,6 @@
                                         </svg>
                                     </button>
                                 </div>
-                            </td>
-                            <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[9rem] align-top">
-                                @if ($isPaid)
-                                    <span class="text-gray-400 dark:text-gray-500">{{ $invoice->bank_name ?? '—' }}</span>
-                                @else
-                                    <x-custom-select compact
-                                        wire:key="bank-{{ $invoice->id }}"
-                                        :options="$bankSelectOptions"
-                                        :value="$invoice->bank_name ?? ''"
-                                        placeholder="—"
-                                        allow-custom
-                                        submit-method="quickUpdateBankName"
-                                        :submit-arg="$invoice->id"
-                                        :nav-row="$rowIdx"
-                                        :nav-col="2" />
-                                @endif
                             </td>
                             <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
                                 @if ($isPaid)
