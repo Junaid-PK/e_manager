@@ -279,9 +279,10 @@ class DashboardPage extends Component
         switch ($rowKey) {
             case 'billing':
                 $title = __('app.dashboard_billing');
+                $invoiceMonthExpr = $this->monthBucketExpression('date_issued');
                 $rows = $this->applyDateRange($this->applyOwnerFilter(Invoice::query()), 'date_issued', $period['from'], $period['to'])
                     ->selectRaw('invoice_number as label')
-                    ->selectRaw("{$monthExpr} as ym")
+                    ->selectRaw("{$invoiceMonthExpr} as ym")
                     ->selectRaw('COALESCE(SUM(total), 0) as total_amount')
                     ->groupBy('label', 'ym')
                     ->orderByDesc('total_amount')
