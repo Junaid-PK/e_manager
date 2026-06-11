@@ -52,6 +52,8 @@ class DashboardPage extends Component
         $dashboardHighlights = $this->buildDashboardHighlights($executiveReport);
         $costBreakdown = $this->buildCostBreakdown($reportMonths, $period['from'], $period['to']);
         $typeBreakdown = $this->buildTypeBreakdown($reportMonths, $period['from'], $period['to']);
+        $reportYears = $this->getReportYears($period['from'], $period['to']);
+        $typeBreakdownByYear = $this->buildTypeBreakdownByYear($reportYears, $period['from'], $period['to']);
 
         $bankAccounts = $this->applyOwnerFilter(BankAccount::query())
             ->orderBy('bank_name')
@@ -78,6 +80,8 @@ class DashboardPage extends Component
             'dashboardHighlights',
             'costBreakdown',
             'typeBreakdown',
+            'reportYears',
+            'typeBreakdownByYear',
             'bankAccounts',
             'totalBankBalance',
             'overdueInvoices',
@@ -166,6 +170,62 @@ class DashboardPage extends Component
             'title' => $typeLabels[$normalizedType] ?? $typeLabel,
             'rows' => array_values($grouped),
             'months' => $reportMonths,
+        ];
+    }
+
+    public function toggleTypeYearRow(string $typeLabel): void
+    {
+        $key = 'type_year_' . md5($typeLabel);
+        if (isset($this->expandedRows[$key])) {
+            unset($this->expandedRows[$key]);
+
+            return;
+        }
+
+        $period = $this->resolveReportingPeriod();
+        $reportYears = $this->getReportYears($period['from'], $period['to']);
+        $yearKeys = collect($reportYears)->pluck('key')->all();
+        $normalizedType = $this->normalizeTypeForLookup($typeLabel);
+        $yearExpr = $this->yearBucketExpression('date');
+
+        $typeLabels = MovementType::query()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->flatMap(fn (MovementType $type) => [
+                $this->normalizeTypeForLookup((string) $type->slug) => (string) $type->name,
+                $this->normalizeTypeForLookup((string) $type->name) => (string) $type->name,
+            ])
+            ->all();
+
+        $rows = $this->applyDateRange($this->applyOwnerFilter(BankMovement::query()), 'date', $period['from'], $period['to'])
+            ->whereRaw('COALESCE(NULLIF(type, \'\'), ?) = ?', [__('app.none'), $typeLabel])
+            ->selectRaw("COALESCE(NULLIF(category, ''), ?) as category_label", [__('app.none')])
+            ->selectRaw("{$yearExpr} as yr")
+            ->selectRaw('COALESCE(SUM(COALESCE(deposit, 0) - COALESCE(withdrawal, 0)), 0) as total_amount')
+            ->groupBy('category_label', 'yr')
+            ->orderByDesc('total_amount')
+            ->get();
+
+        $grouped = [];
+        foreach ($rows as $row) {
+            $label = (string) $row->category_label;
+            if (!isset($grouped[$label])) {
+                $grouped[$label] = [
+                    'label' => $label,
+                    'total' => 0,
+                    'monthly' => array_fill_keys($yearKeys, 0),
+                ];
+            }
+            $amount = round((float) $row->total_amount, 2);
+            $grouped[$label]['total'] += $amount;
+            $grouped[$label]['monthly'][$row->yr] = $amount;
+        }
+
+        $this->expandedRows[$key] = [
+            'title' => $typeLabels[$normalizedType] ?? $typeLabel,
+            'rows' => array_values($grouped),
+            'months' => $reportYears,
         ];
     }
 
@@ -350,6 +410,23 @@ class DashboardPage extends Component
             ])
             ->values()
             ->all();
+    }
+
+    private function getReportYears(Carbon $from, Carbon $to): array
+    {
+        $years = [];
+        $current = $from->copy()->startOfYear();
+        $end = $to->copy()->startOfYear();
+
+        while ($current->lessThanOrEqualTo($end)) {
+            $years[] = [
+                'key' => $current->format('Y'),
+                'label' => $current->format('Y'),
+            ];
+            $current->addYear();
+        }
+
+        return $years;
     }
 
     private function buildExecutiveReport(array $reportMonths, Carbon $from, Carbon $to): array
@@ -618,6 +695,52 @@ class DashboardPage extends Component
             ->all();
     }
 
+    private function buildTypeBreakdownByYear(array $reportYears, Carbon $from, Carbon $to): array
+    {
+        $yearKeys = collect($reportYears)->pluck('key')->all();
+        $typeLabels = MovementType::query()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->flatMap(fn (MovementType $type) => [
+                $this->normalizeTypeForLookup((string) $type->slug) => (string) $type->name,
+                $this->normalizeTypeForLookup((string) $type->name) => (string) $type->name,
+            ])
+            ->all();
+
+        $yearExpr = $this->yearBucketExpression('date');
+        $rows = $this->applyDateRange($this->applyOwnerFilter(BankMovement::query()), 'date', $from, $to)
+            ->selectRaw("COALESCE(NULLIF(type, ''), ?) as type_slug", [__('app.none')])
+            ->selectRaw("{$yearExpr} as yr")
+            ->selectRaw($this->bankMovementSumExpression().' as total_amount')
+            ->groupBy('type_slug', 'yr')
+            ->get();
+
+        $totals = [];
+        foreach ($rows as $row) {
+            $typeSlug = (string) $row->type_slug;
+            $totals[$typeSlug][$row->yr] = round((float) $row->total_amount, 2);
+        }
+
+        return collect($totals)
+            ->map(function (array $values, string $typeSlug) use ($yearKeys, $typeLabels) {
+                $yearly = collect($yearKeys)
+                    ->map(fn (string $yearKey) => round((float) ($values[$yearKey] ?? 0), 2))
+                    ->all();
+
+                $normalizedSlug = $this->normalizeTypeForLookup($typeSlug);
+
+                return [
+                    'label' => $typeLabels[$normalizedSlug] ?? str($typeSlug)->replace('_', ' ')->headline()->toString(),
+                    'monthly' => $yearly,
+                    'total' => round(array_sum($yearly), 2),
+                ];
+            })
+            ->sortByDesc('total')
+            ->values()
+            ->all();
+    }
+
     private function monthlyTotals(Builder $query, string $dateColumn, string $sumExpression, Carbon $from, Carbon $to): array
     {
         $monthExpr = $this->monthBucketExpression($dateColumn);
@@ -635,6 +758,13 @@ class DashboardPage extends Component
         return DB::connection()->getDriverName() === 'sqlite'
             ? "strftime('%Y-%m', {$column})"
             : "DATE_FORMAT({$column}, '%Y-%m')";
+    }
+
+    private function yearBucketExpression(string $column): string
+    {
+        return DB::connection()->getDriverName() === 'sqlite'
+            ? "strftime('%Y', {$column})"
+            : "DATE_FORMAT({$column}, '%Y')";
     }
 
     private function applyDateRange(Builder $query, string $column, ?Carbon $from = null, ?Carbon $to = null): Builder
