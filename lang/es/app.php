@@ -156,6 +156,7 @@ return [
 
     'bank_name' => 'Nombre del Banco',
     'bank_date' => 'Fecha Banco',
+    'paid_date' => 'Fecha de Pago',
     'account_number' => 'Número de Cuenta (IBAN)',
     'holder_name' => 'Titular',
     'currency' => 'Divisa',
@@ -181,6 +182,7 @@ return [
     'dismiss' => 'Descartar',
     'snooze' => 'Posponer',
     'mark_as_paid' => 'Marcar como Pagado',
+    'paid_invoice_not_editable' => 'Las facturas pagadas no se pueden editar.',
 
     'total_receivable' => 'Total por Cobrar',
     'total_payable' => 'Total por Pagar',

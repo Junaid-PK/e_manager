@@ -156,6 +156,7 @@ return [
 
     'bank_name' => 'Bank Name',
     'bank_date' => 'Bank Date',
+    'paid_date' => 'Paid Date',
     'account_number' => 'Account Number (IBAN)',
     'holder_name' => 'Holder Name',
     'currency' => 'Currency',
@@ -181,6 +182,7 @@ return [
     'dismiss' => 'Dismiss',
     'snooze' => 'Snooze',
     'mark_as_paid' => 'Mark as Paid',
+    'paid_invoice_not_editable' => 'Paid invoices cannot be edited.',
 
     'total_receivable' => 'Total Receivable',
     'total_payable' => 'Total Payable',
