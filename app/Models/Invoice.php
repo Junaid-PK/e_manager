@@ -4,13 +4,14 @@ namespace App\Models;
 
 use App\Models\Concerns\OwnedByAuthenticatedUser;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Invoice extends Model
 {
-    use OwnedByAuthenticatedUser;
+    use HasFactory, OwnedByAuthenticatedUser;
 
     public const PAYMENT_TYPES = ['confirming', 'cheque', 'transfer', 'cash', 'other'];
 

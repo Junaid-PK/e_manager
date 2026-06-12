@@ -25,7 +25,7 @@ class RolesPage extends Component
     /** Permission matrix: module => actions (mirrors the seeder) */
     private array $matrix = [
         'dashboard' => ['view', 'access_all'],
-        'invoices' => ['view', 'create', 'edit', 'delete', 'export', 'access_all'],
+        'invoices' => ['view', 'create', 'edit', 'delete', 'export', 'access_all', 'payment_summary'],
         'movements' => ['view', 'create', 'edit', 'delete', 'export', 'access_all'],
         'bank_accounts' => ['view', 'create', 'edit', 'delete', 'access_all'],
         'expenses' => ['view', 'create', 'edit', 'delete', 'export', 'access_all'],
@@ -168,7 +168,7 @@ class RolesPage extends Component
         return view('livewire.roles.roles-page', [
             'roles' => Role::withCount('users')->orderBy('name')->get(),
             'permissionMatrix' => $this->getPermissionMatrix(),
-            'allActions' => ['view', 'create', 'edit', 'delete', 'export', 'access_all'],
+            'allActions' => ['view', 'create', 'edit', 'delete', 'export', 'access_all', 'payment_summary'],
         ])->layout('layouts.app');
     }
 }

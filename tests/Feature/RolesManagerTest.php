@@ -15,6 +15,7 @@ class RolesManagerTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
     private Role $adminRole;
 
     protected function setUp(): void
@@ -38,7 +39,7 @@ class RolesManagerTest extends TestCase
 
     // ── createRole ─────────────────────────────────────────────────────────
 
-    public function test_createRole_creates_role_with_unique_name(): void
+    public function test_create_role_creates_role_with_unique_name(): void
     {
         $this->actingAs($this->admin);
 
@@ -50,7 +51,7 @@ class RolesManagerTest extends TestCase
         $this->assertDatabaseHas('roles', ['name' => 'editor']);
     }
 
-    public function test_createRole_rejects_duplicate_name(): void
+    public function test_create_role_rejects_duplicate_name(): void
     {
         $this->actingAs($this->admin);
         Role::create(['name' => 'editor']);
@@ -65,7 +66,7 @@ class RolesManagerTest extends TestCase
         $this->assertEquals($countBefore, Role::count());
     }
 
-    public function test_createRole_requires_name(): void
+    public function test_create_role_requires_name(): void
     {
         $this->actingAs($this->admin);
 
@@ -77,7 +78,7 @@ class RolesManagerTest extends TestCase
 
     // ── editRole ───────────────────────────────────────────────────────────
 
-    public function test_editRole_loads_role_and_permissions_into_form(): void
+    public function test_edit_role_loads_role_and_permissions_into_form(): void
     {
         $this->actingAs($this->admin);
         $role = Role::create(['name' => 'editor']);
@@ -93,7 +94,7 @@ class RolesManagerTest extends TestCase
 
     // ── saveRole ───────────────────────────────────────────────────────────
 
-    public function test_saveRole_updates_name_and_syncs_permissions(): void
+    public function test_save_role_updates_name_and_syncs_permissions(): void
     {
         $this->actingAs($this->admin);
         $role = Role::create(['name' => 'editor']);
@@ -113,7 +114,7 @@ class RolesManagerTest extends TestCase
         $this->assertTrue($role->permissions->contains('name', 'invoices.edit'));
     }
 
-    public function test_saveRole_creates_missing_selected_permissions_before_syncing(): void
+    public function test_save_role_creates_missing_selected_permissions_before_syncing(): void
     {
         $this->actingAs($this->admin);
         $role = Role::create(['name' => 'editor']);
@@ -132,7 +133,7 @@ class RolesManagerTest extends TestCase
         $this->assertTrue($role->permissions->contains('name', 'expenses.export'));
     }
 
-    public function test_saveRole_prevents_renaming_admin_role(): void
+    public function test_save_role_prevents_renaming_admin_role(): void
     {
         $this->actingAs($this->admin);
 
@@ -146,7 +147,7 @@ class RolesManagerTest extends TestCase
         $this->assertEquals('admin', $this->adminRole->name);
     }
 
-    public function test_saveRole_allows_saving_admin_role_without_rename(): void
+    public function test_save_role_allows_saving_admin_role_without_rename(): void
     {
         $this->actingAs($this->admin);
         $perm = Permission::create(['name' => 'invoices.view']);
@@ -159,7 +160,7 @@ class RolesManagerTest extends TestCase
             ->assertHasNoErrors();
     }
 
-    public function test_saveRole_rejects_duplicate_name_for_other_role(): void
+    public function test_save_role_rejects_duplicate_name_for_other_role(): void
     {
         $this->actingAs($this->admin);
         Role::create(['name' => 'viewer']);
@@ -174,7 +175,7 @@ class RolesManagerTest extends TestCase
 
     // ── deleteRole ─────────────────────────────────────────────────────────
 
-    public function test_deleteRole_removes_role_with_no_users(): void
+    public function test_delete_role_removes_role_with_no_users(): void
     {
         $this->actingAs($this->admin);
         $role = Role::create(['name' => 'temp-role']);
@@ -185,7 +186,7 @@ class RolesManagerTest extends TestCase
         $this->assertNull(Role::find($role->id));
     }
 
-    public function test_deleteRole_prevents_deleting_admin_role(): void
+    public function test_delete_role_prevents_deleting_admin_role(): void
     {
         $this->actingAs($this->admin);
 
@@ -196,7 +197,7 @@ class RolesManagerTest extends TestCase
         $this->assertNotNull(Role::find($this->adminRole->id));
     }
 
-    public function test_deleteRole_prevents_deleting_role_with_assigned_users(): void
+    public function test_delete_role_prevents_deleting_role_with_assigned_users(): void
     {
         $this->actingAs($this->admin);
         $role = Role::create(['name' => 'editor']);
@@ -210,7 +211,7 @@ class RolesManagerTest extends TestCase
         $this->assertNotNull(Role::find($role->id));
     }
 
-    public function test_deleteRole_detaches_permissions_before_deleting(): void
+    public function test_delete_role_detaches_permissions_before_deleting(): void
     {
         $this->actingAs($this->admin);
         $role = Role::create(['name' => 'temp-role']);
@@ -227,12 +228,12 @@ class RolesManagerTest extends TestCase
 
     // ── getPermissionMatrix ────────────────────────────────────────────────
 
-    public function test_getPermissionMatrix_returns_modules_and_actions(): void
+    public function test_get_permission_matrix_returns_modules_and_actions(): void
     {
         $this->actingAs($this->admin);
 
         $component = Livewire::test(RolesPage::class);
-        $matrix = (new RolesPage())->getPermissionMatrix();
+        $matrix = (new RolesPage)->getPermissionMatrix();
 
         $this->assertArrayHasKey('invoices', $matrix);
         $this->assertContains('view', $matrix['invoices']);
@@ -240,5 +241,6 @@ class RolesManagerTest extends TestCase
         $this->assertContains('edit', $matrix['invoices']);
         $this->assertContains('delete', $matrix['invoices']);
         $this->assertContains('export', $matrix['invoices']);
+        $this->assertContains('payment_summary', $matrix['invoices']);
     }
 }
