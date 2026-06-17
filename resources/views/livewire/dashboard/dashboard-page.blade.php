@@ -102,6 +102,9 @@
                         </tr>
                     </thead>
                     <tbody>
+                        @php
+                            $displayedMonthlyByKey = [];
+                        @endphp
                         @foreach ($executiveReport as $row)
                             @php
                                 $isEmphasis = (bool) ($row['emphasis'] ?? false);
@@ -128,6 +131,25 @@
                                         $displayMonthly[] = $i === $monthCount - 1 ? 0 : ($row['monthly'][$i + 1] ?? 0);
                                     }
                                 }
+
+                                // Recompute the final result row from the displayed values of all other rows
+                                if ($row['key'] === 'final_result') {
+                                    $displayMonthly = [];
+                                    $monthCount = count($row['monthly']);
+                                    for ($i = 0; $i < $monthCount; $i++) {
+                                        $monthTotal = 0;
+                                        foreach ($displayedMonthlyByKey as $key => $values) {
+                                            if ($key === 'final_result') {
+                                                continue;
+                                            }
+                                            $monthTotal += $values[$i] ?? 0;
+                                        }
+                                        $displayMonthly[] = round($monthTotal, 2);
+                                    }
+                                }
+
+                                $displayedMonthlyByKey[$row['key']] = $displayMonthly;
+                                $displayTotal = round(array_sum($displayMonthly), 2);
                             @endphp
                             <tr class="border-b border-slate-200 text-sm dark:border-slate-700 {{ $accentRow }} cursor-pointer hover:opacity-80 transition-opacity"
                                 wire:click="toggleExecutiveRow('{{ $row['key'] }}')">
@@ -140,7 +162,7 @@
                                         {{ $row['label'] }}
                                     </div>
                                 </th>
-                                <td class="px-4 py-3 text-right font-bold {{ $isEmphasis ? 'text-base' : '' }}">{{ fmt_number($row['total']) }} &euro;</td>
+                                <td class="px-4 py-3 text-right font-bold {{ $isEmphasis ? 'text-base' : '' }}">{{ fmt_number($displayTotal) }} &euro;</td>
                                 @foreach ($displayMonthly as $value)
                                     <td class="px-4 py-3 text-right tabular-nums {{ $isEmphasis ? 'font-semibold' : '' }}">
                                         {{ fmt_number($value) }} &euro;
