@@ -3,6 +3,7 @@
 namespace App\Livewire\BankAccounts;
 
 use App\Models\BankAccount;
+use App\Services\BankMovementBalanceService;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 
@@ -76,6 +77,7 @@ class BankAccountPage extends Component
 
         if ($this->editingId) {
             BankAccount::findOrFail($this->editingId)->update($data);
+            app(BankMovementBalanceService::class)->recalculateAccount($this->editingId);
             $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
         } else {
             $data['current_balance'] = $this->formInitialBalance;
