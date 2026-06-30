@@ -18,8 +18,6 @@ class PaymentSummaryPage extends Component
 
     public string $search = '';
 
-    public bool $partialOnly = false;
-
     public function updatedDateFrom(): void
     {
         $this->resetPage();
@@ -35,17 +33,11 @@ class PaymentSummaryPage extends Component
         $this->resetPage();
     }
 
-    public function updatedPartialOnly(): void
-    {
-        $this->resetPage();
-    }
-
     public function clearFilters(): void
     {
         $this->search = '';
         $this->dateFrom = '';
         $this->dateTo = '';
-        $this->partialOnly = false;
         $this->resetPage();
     }
 
@@ -94,7 +86,12 @@ class PaymentSummaryPage extends Component
             $linked = $invoices->only($ids)->values();
             $movement->setRelation('linked_invoices', $linked);
             $movement->linked_invoices_total = $linked->sum('total');
+            $movement->remaining_amount = max(0, round($movement->linked_invoices_total - (float) $movement->deposit, 2));
         });
+
+        $movements = $movements
+            ->filter(fn (BankMovement $movement) => $movement->remaining_amount > 0.005)
+            ->values();
 
         if ($this->search) {
             $search = strtolower($this->search);
@@ -116,12 +113,6 @@ class PaymentSummaryPage extends Component
                         || str_contains(strtolower((string) $invoice->company?->name), $search)
                         || str_contains(strtolower((string) $invoice->client?->name), $search);
                 });
-            })->values();
-        }
-
-        if ($this->partialOnly) {
-            $movements = $movements->filter(function (BankMovement $movement) {
-                return $movement->linked_invoices_total > (float) $movement->deposit + 0.005;
             })->values();
         }
 

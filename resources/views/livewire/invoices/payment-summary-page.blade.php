@@ -55,12 +55,7 @@
                 <input wire:model.live="dateFrom" type="date" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 px-3 focus:ring-emerald-500 focus:border-emerald-500" placeholder="{{ __('app.from') }}">
                 <input wire:model.live="dateTo" type="date" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 px-3 focus:ring-emerald-500 focus:border-emerald-500" placeholder="{{ __('app.to') }}">
 
-                <label class="inline-flex items-center px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors select-none">
-                    <input wire:model.live="partialOnly" type="checkbox" class="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 dark:bg-gray-700 mr-2">
-                    {{ __('app.partial_only') }}
-                </label>
-
-                @if ($search || $dateFrom || $dateTo || $partialOnly)
+                @if ($search || $dateFrom || $dateTo)
                     <button wire:click="clearFilters" class="inline-flex items-center px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5 mr-1">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -71,7 +66,7 @@
             </div>
         </div>
 
-        @if ($search || $dateFrom || $dateTo || $partialOnly)
+        @if ($search || $dateFrom || $dateTo)
             <div class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
                 {{ __('app.total_records_shown') }}: {{ $stats['movement_count'] ?? 0 }}
             </div>
@@ -159,7 +154,7 @@
                                     </td>
                                     <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900 dark:text-gray-100 align-top">{{ fmt_number($movement->linked_invoices_total) }} &euro;</td>
                                     <td class="px-4 py-3 text-sm text-right text-emerald-600 dark:text-emerald-400 font-medium align-top">{{ fmt_number($movement->deposit) }} &euro;</td>
-                                    <td class="px-4 py-3 text-sm text-right text-red-600 dark:text-red-400 font-medium align-top">{{ fmt_number(max(0, round($movement->linked_invoices_total - (float) $movement->deposit, 2))) }} &euro;</td>
+                                    <td class="px-4 py-3 text-sm text-right text-red-600 dark:text-red-400 font-medium align-top">{{ fmt_number($movement->remaining_amount) }} &euro;</td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -171,7 +166,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" class="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v7.5m2.25-6.466a9.016 9.016 0 0 0-3.461-.203c-.536.072-.974.478-1.021 1.017a4.559 4.559 0 0 0-.018.402c0 .464.336.844.775.994l2.49.849c.44.15.775.53.775.994 0 .136-.006.27-.018.402-.047.539-.485.945-1.021 1.017a9.077 9.077 0 0 1-3.461-.203M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                         </svg>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">{{ $partialOnly ? __('app.no_partial_payments') : __('app.no_payment_movements') }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">{{ __('app.no_payment_movements') }}</p>
                     </div>
                 </div>
             @endforelse

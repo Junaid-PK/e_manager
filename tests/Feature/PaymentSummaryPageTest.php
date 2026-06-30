@@ -78,17 +78,14 @@ class PaymentSummaryPageTest extends TestCase
             ->assertRedirect(route('dashboard'));
     }
 
-    public function test_shows_all_payment_movements_by_default_grouped_by_date(): void
+    public function test_shows_partial_payment_movements_by_default_grouped_by_date(): void
     {
         $user = $this->createUserWithPermission();
         $this->actingAs($user);
 
         $invoiceA = Invoice::factory()->create(['total' => 10000]);
         $invoiceB = Invoice::factory()->create(['total' => 5000]);
-        $this->createMovementWithInvoices('2026-01-26', 15000, [$invoiceA, $invoiceB]);
-
-        // Not shown: invoice without a movement
-        Invoice::factory()->create(['total' => 3000]);
+        $this->createMovementWithInvoices('2026-01-26', 12000, [$invoiceA, $invoiceB]);
 
         Livewire::actingAs($user)
             ->test(\App\Livewire\Invoices\PaymentSummaryPage::class)
@@ -98,20 +95,19 @@ class PaymentSummaryPageTest extends TestCase
             ->assertSee('1 movement');
     }
 
-    public function test_partial_only_filter_hides_fully_collected_movements(): void
+    public function test_hides_fully_collected_movements_by_default(): void
     {
         $user = $this->createUserWithPermission();
         $this->actingAs($user);
 
-        $partialInvoice = Invoice::factory()->create(['total' => 10000]);
         $fullyPaidInvoice = Invoice::factory()->create(['total' => 5000]);
+        $partialInvoice = Invoice::factory()->create(['total' => 10000]);
 
-        $partialMovement = $this->createMovementWithInvoices('2026-01-26', 8000, [$partialInvoice]);
-        $fullMovement = $this->createMovementWithInvoices('2026-01-26', 5000, [$fullyPaidInvoice]);
+        $this->createMovementWithInvoices('2026-01-26', 5000, [$fullyPaidInvoice]);
+        $this->createMovementWithInvoices('2026-01-26', 8000, [$partialInvoice]);
 
         Livewire::actingAs($user)
             ->test(\App\Livewire\Invoices\PaymentSummaryPage::class)
-            ->set('partialOnly', true)
             ->assertSee((string) $partialInvoice->invoice_number)
             ->assertDontSee((string) $fullyPaidInvoice->invoice_number)
             ->assertSee('1 movement');
@@ -127,14 +123,14 @@ class PaymentSummaryPageTest extends TestCase
         $invoiceC = Invoice::factory()->create(['total' => 12000]);
 
         $this->createMovementWithInvoices('2026-01-26', 13000, [$invoiceA, $invoiceB]);
-        $this->createMovementWithInvoices('2026-01-26', 12000, [$invoiceC]);
+        $this->createMovementWithInvoices('2026-01-26', 10000, [$invoiceC]);
 
-        // Total invoiced = 27,000; collected = 25,000; remaining = 2,000
+        // Total invoiced = 27,000; collected = 23,000; remaining = 4,000
         Livewire::actingAs($user)
             ->test(\App\Livewire\Invoices\PaymentSummaryPage::class)
             ->assertSee('27,000')
-            ->assertSee('25,000')
-            ->assertSee('2,000');
+            ->assertSee('23,000')
+            ->assertSee('4,000');
     }
 
     public function test_uses_movement_deposit_when_less_than_linked_invoice_total(): void
@@ -160,9 +156,9 @@ class PaymentSummaryPageTest extends TestCase
         $invoiceB = Invoice::factory()->create(['total' => 2000]);
         $invoiceC = Invoice::factory()->create(['total' => 3000]);
 
-        $this->createMovementWithInvoices('2026-01-15', 1000, [$invoiceA]);
-        $this->createMovementWithInvoices('2026-01-26', 2000, [$invoiceB]);
-        $this->createMovementWithInvoices('2026-02-01', 3000, [$invoiceC]);
+        $this->createMovementWithInvoices('2026-01-15', 500, [$invoiceA]);
+        $this->createMovementWithInvoices('2026-01-26', 1000, [$invoiceB]);
+        $this->createMovementWithInvoices('2026-02-01', 1500, [$invoiceC]);
 
         Livewire::actingAs($user)
             ->test(\App\Livewire\Invoices\PaymentSummaryPage::class)
@@ -187,8 +183,8 @@ class PaymentSummaryPageTest extends TestCase
             'total' => 2000,
         ]);
 
-        $this->createMovementWithInvoices('2026-01-26', 1000, [$invoiceA]);
-        $this->createMovementWithInvoices('2026-01-26', 2000, [$invoiceB]);
+        $this->createMovementWithInvoices('2026-01-26', 500, [$invoiceA]);
+        $this->createMovementWithInvoices('2026-01-26', 1000, [$invoiceB]);
 
         Livewire::actingAs($user)
             ->test(\App\Livewire\Invoices\PaymentSummaryPage::class)
@@ -205,7 +201,7 @@ class PaymentSummaryPageTest extends TestCase
         $invoiceA = Invoice::factory()->create(['total' => 1000]);
         $invoiceB = Invoice::factory()->create(['total' => 2000]);
 
-        $this->createMovementWithInvoices('2026-01-26', 1000, [$invoiceA]);
+        $this->createMovementWithInvoices('2026-01-26', 500, [$invoiceA]);
         BankMovement::create([
             'bank_account_id' => BankAccount::create([
                 'bank_name' => 'LA CAIXA',
@@ -218,7 +214,7 @@ class PaymentSummaryPageTest extends TestCase
             'type' => 'transfer',
             'concept' => 'CONF:ANTICIPO',
             'reference' => 'VEST-REF',
-            'deposit' => 2000,
+            'deposit' => 1000,
             'listado_extra' => [
                 'linked_invoice_ids' => [$invoiceB->id],
             ],
@@ -243,8 +239,8 @@ class PaymentSummaryPageTest extends TestCase
             'total' => 2000,
         ]);
 
-        $this->createMovementWithInvoices('2026-01-26', 1000, [$invoiceA]);
-        $this->createMovementWithInvoices('2026-01-26', 2000, [$invoiceB]);
+        $this->createMovementWithInvoices('2026-01-26', 500, [$invoiceA]);
+        $this->createMovementWithInvoices('2026-01-26', 1000, [$invoiceB]);
 
         $searchTerm = (string) $invoiceA->client->name;
 
@@ -289,6 +285,24 @@ class PaymentSummaryPageTest extends TestCase
 
         Livewire::actingAs($user)
             ->test(\App\Livewire\Invoices\PaymentSummaryPage::class)
+            ->assertSee('No payment movements found');
+    }
+
+    public function test_hides_fully_paid_movement_even_when_search_matches(): void
+    {
+        $user = $this->createUserWithPermission();
+        $this->actingAs($user);
+
+        $fullyPaidInvoice = Invoice::factory()->create([
+            'invoice_number' => 'INV-FULLY-PAID',
+            'total' => 5000,
+        ]);
+        $this->createMovementWithInvoices('2026-01-26', 5000, [$fullyPaidInvoice]);
+
+        Livewire::actingAs($user)
+            ->test(\App\Livewire\Invoices\PaymentSummaryPage::class)
+            ->set('search', 'INV-FULLY-PAID')
+            ->assertDontSee('INV-FULLY-PAID')
             ->assertSee('No payment movements found');
     }
 }
