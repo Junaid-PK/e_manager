@@ -5,8 +5,8 @@
 <div>
     <div class="mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
-            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ __('app.invoices') }}</p>
-            <p class="mt-2 text-2xl font-bold tabular-nums text-gray-900 dark:text-gray-100">{{ $stats['invoice_count'] ?? 0 }}</p>
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ __('app.movements') }}</p>
+            <p class="mt-2 text-2xl font-bold tabular-nums text-gray-900 dark:text-gray-100">{{ $stats['movement_count'] ?? 0 }}</p>
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ trans_choice('app.invoice_stat_lines', $stats['invoice_count'] ?? 0, ['count' => $stats['invoice_count'] ?? 0]) }}</p>
         </div>
         <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
@@ -73,16 +73,16 @@
 
         @if ($search || $dateFrom || $dateTo || $partialOnly)
             <div class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
-                {{ __('app.total_records_shown') }}: {{ $stats['invoice_count'] ?? 0 }}
+                {{ __('app.total_records_shown') }}: {{ $stats['movement_count'] ?? 0 }}
             </div>
         @endif
 
         <div class="overflow-x-auto">
-            @forelse ($groupedInvoices as $date => $invoices)
+            @forelse ($groupedMovements as $date => $movements)
                 @php
-                    $groupTotal = $invoices->sum('total');
-                    $groupPaid = $invoices->sum('amount_paid');
-                    $groupRemaining = $invoices->sum('amount_remaining');
+                    $groupTotal = $movements->sum('linked_invoices_total');
+                    $groupPaid = $movements->sum(fn ($m) => (float) $m->deposit);
+                    $groupRemaining = max(0, round($groupTotal - $groupPaid, 2));
                 @endphp
                 <div class="border-b border-gray-200 dark:border-gray-700 last:border-b-0">
                     <div class="bg-gray-50 dark:bg-gray-700/50 px-4 py-3 flex items-center justify-between">
@@ -94,7 +94,7 @@
                                 {{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}
                             </h3>
                             <span class="text-xs text-gray-500 dark:text-gray-400">
-                                {{ $invoices->count() }} {{ trans_choice('app.invoice_stat_lines', $invoices->count(), ['count' => $invoices->count()]) }}
+                                {{ $movements->count() }} {{ trans_choice('app.movement_stat_lines', $movements->count(), ['count' => $movements->count()]) }}
                             </span>
                         </div>
                         <div class="flex items-center space-x-4 text-sm">
@@ -112,29 +112,54 @@
                     <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead class="bg-gray-50 dark:bg-gray-700/50">
                             <tr>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.invoice_number') }}</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.company') }}</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.client') }}</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.movement') }}</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.invoices') }}</th>
                                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.total') }}</th>
                                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.amount_paid') }}</th>
                                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.amount_remaining') }}</th>
-                                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('app.actions') }}</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                            @foreach ($invoices as $invoice)
+                            @foreach ($movements as $movement)
                                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                    <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">{{ $invoice->invoice_number }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->company?->name ?? '—' }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->client?->name ?? '—' }}</td>
-                                    <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900 dark:text-gray-100">{{ fmt_number($invoice->total) }} &euro;</td>
-                                    <td class="px-4 py-3 text-sm text-right text-emerald-600 dark:text-emerald-400 font-medium">{{ fmt_number($invoice->amount_paid) }} &euro;</td>
-                                    <td class="px-4 py-3 text-sm text-right text-red-600 dark:text-red-400 font-medium">{{ fmt_number($invoice->amount_remaining) }} &euro;</td>
-                                    <td class="px-4 py-3 text-right">
-                                        <a href="{{ route('invoices', ['edit' => $invoice->id]) }}" class="text-sm text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors">
-                                            {{ __('app.view') }}
-                                        </a>
+                                    <td class="px-4 py-3 align-top">
+                                        <div class="text-sm text-gray-900 dark:text-gray-100">
+                                            <span class="block truncate max-w-[12rem]" title="{{ $movement->concept }}">{{ $movement->concept }}</span>
+                                        </div>
+                                        @if ($movement->beneficiary)
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[12rem]" title="{{ $movement->beneficiary }}">{{ $movement->beneficiary }}</p>
+                                        @endif
+                                        @if ($movement->reference)
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[12rem]" title="{{ $movement->reference }}">{{ $movement->reference }}</p>
+                                        @endif
+                                        @if ($movement->bankAccount)
+                                            <p class="text-xs text-emerald-600 dark:text-emerald-400">{{ $movement->bankAccount->bank_name }}</p>
+                                        @endif
                                     </td>
+                                    <td class="px-4 py-3 align-top">
+                                        @if ($movement->linked_invoices->isNotEmpty())
+                                            <div class="space-y-2">
+                                                @foreach ($movement->linked_invoices as $invoice)
+                                                    <div class="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3 py-2 dark:border-emerald-800/70 dark:bg-emerald-950/30">
+                                                        <div class="flex items-start justify-between gap-3">
+                                                            <div class="min-w-0">
+                                                                <p class="truncate text-sm font-medium text-emerald-900 dark:text-emerald-200">{{ $invoice->invoice_number }}</p>
+                                                                <p class="truncate text-xs text-emerald-700/80 dark:text-emerald-300/80">{{ $invoice->client?->name ?? $invoice->company?->name ?? '—' }}</p>
+                                                            </div>
+                                                            <a href="{{ route('invoices', ['edit' => $invoice->id]) }}" class="inline-flex shrink-0 items-center rounded-lg border border-emerald-300/80 px-2 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-100 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/40">
+                                                                {{ __('app.view') }}
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        @else
+                                            <span class="text-sm text-gray-400 dark:text-gray-500">—</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900 dark:text-gray-100 align-top">{{ fmt_number($movement->linked_invoices_total) }} &euro;</td>
+                                    <td class="px-4 py-3 text-sm text-right text-emerald-600 dark:text-emerald-400 font-medium align-top">{{ fmt_number($movement->deposit) }} &euro;</td>
+                                    <td class="px-4 py-3 text-sm text-right text-red-600 dark:text-red-400 font-medium align-top">{{ fmt_number(max(0, round($movement->linked_invoices_total - (float) $movement->deposit, 2))) }} &euro;</td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -146,7 +171,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" class="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v7.5m2.25-6.466a9.016 9.016 0 0 0-3.461-.203c-.536.072-.974.478-1.021 1.017a4.559 4.559 0 0 0-.018.402c0 .464.336.844.775.994l2.49.849c.44.15.775.53.775.994 0 .136-.006.27-.018.402-.047.539-.485.945-1.021 1.017a9.077 9.077 0 0 1-3.461-.203M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                         </svg>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">{{ $partialOnly ? __('app.no_partial_payments') : __('app.no_paid_invoices') }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">{{ $partialOnly ? __('app.no_partial_payments') : __('app.no_payment_movements') }}</p>
                     </div>
                 </div>
             @endforelse

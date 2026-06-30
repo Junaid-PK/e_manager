@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Invoices;
 
+use App\Models\BankMovement;
 use App\Models\Invoice;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
@@ -48,66 +49,108 @@ class PaymentSummaryPage extends Component
         $this->resetPage();
     }
 
-    protected function baseQuery()
+    /**
+     * @return \Illuminate\Support\Collection<int, BankMovement>
+     */
+    protected function getMovements()
     {
-        $query = Invoice::query()
-            ->where('amount_paid', '>', 0)
-            ->whereNotNull('paid_date');
-
-        if ($this->partialOnly) {
-            $query->whereColumn('amount_paid', '<', 'total');
-        }
-
-        if ($this->search) {
-            $search = $this->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('invoice_number', 'like', "%{$search}%")
-                    ->orWhereHas('company', fn ($q) => $q->where('name', 'like', "%{$search}%"))
-                    ->orWhereHas('client', fn ($q) => $q->where('name', 'like', "%{$search}%"));
-            });
-        }
+        $query = BankMovement::query()
+            ->whereNotNull('deposit')
+            ->where('deposit', '>', 0)
+            ->whereNotNull('listado_extra')
+            ->whereJsonLength('listado_extra->linked_invoice_ids', '>', 0)
+            ->with('bankAccount:id,bank_name');
 
         if ($this->dateFrom) {
-            $query->where('paid_date', '>=', $this->dateFrom);
+            $query->where('date', '>=', $this->dateFrom);
         }
 
         if ($this->dateTo) {
-            $query->where('paid_date', '<=', $this->dateTo);
+            $query->where('date', '<=', $this->dateTo);
         }
 
-        return $query;
+        $movements = $query->orderBy('date', 'desc')->get();
+
+        $allInvoiceIds = $movements->flatMap(function (BankMovement $movement) {
+            return collect($movement->listado_extra['linked_invoice_ids'] ?? [])
+                ->map(fn ($id) => (int) $id)
+                ->filter(fn ($id) => $id > 0);
+        })->unique()->values()->all();
+
+        $invoices = $allInvoiceIds !== []
+            ? Invoice::query()
+                ->with(['company:id,name', 'client:id,name'])
+                ->whereIn('id', $allInvoiceIds)
+                ->get()
+                ->keyBy('id')
+            : collect();
+
+        $movements->each(function (BankMovement $movement) use ($invoices) {
+            $ids = collect($movement->listado_extra['linked_invoice_ids'] ?? [])
+                ->map(fn ($id) => (int) $id)
+                ->filter(fn ($id) => $id > 0)
+                ->values()
+                ->all();
+            $linked = $invoices->only($ids)->values();
+            $movement->setRelation('linked_invoices', $linked);
+            $movement->linked_invoices_total = $linked->sum('total');
+        });
+
+        if ($this->search) {
+            $search = strtolower($this->search);
+            $movements = $movements->filter(function (BankMovement $movement) use ($search) {
+                if (str_contains(strtolower((string) $movement->concept), $search)) {
+                    return true;
+                }
+
+                if (str_contains(strtolower((string) $movement->reference), $search)) {
+                    return true;
+                }
+
+                if (str_contains(strtolower((string) $movement->bankAccount?->bank_name), $search)) {
+                    return true;
+                }
+
+                return $movement->linked_invoices->contains(function (Invoice $invoice) use ($search) {
+                    return str_contains(strtolower((string) $invoice->invoice_number), $search)
+                        || str_contains(strtolower((string) $invoice->company?->name), $search)
+                        || str_contains(strtolower((string) $invoice->client?->name), $search);
+                });
+            })->values();
+        }
+
+        if ($this->partialOnly) {
+            $movements = $movements->filter(function (BankMovement $movement) {
+                return $movement->linked_invoices_total > (float) $movement->deposit + 0.005;
+            })->values();
+        }
+
+        return $movements;
     }
 
-    protected function getGroupedInvoices()
+    protected function getGroupedMovements()
     {
-        $invoices = $this->baseQuery()
-            ->with(['company:id,name', 'client:id,name'])
-            ->orderBy('paid_date', 'desc')
-            ->orderBy('invoice_number')
-            ->get();
-
-        return $invoices->groupBy(function ($invoice) {
-            return $invoice->paid_date->format('Y-m-d');
+        return $this->getMovements()->groupBy(function (BankMovement $movement) {
+            return $movement->date->format('Y-m-d');
         });
     }
 
     protected function getStats(): array
     {
-        $row = $this->baseQuery()
-            ->toBase()
-            ->selectRaw(
-                'COUNT(*) as invoice_count, '.
-                'COALESCE(SUM(total), 0) as total_sum, '.
-                'COALESCE(SUM(amount_paid), 0) as amount_paid_sum, '.
-                'COALESCE(SUM(amount_remaining), 0) as amount_remaining_sum'
-            )
-            ->first();
+        $movements = $this->getMovements();
+
+        $invoiceCount = $movements->sum(fn (BankMovement $m) => $m->linked_invoices->count());
+        $movementCount = $movements->count();
+        $totalSum = $movements->sum(fn (BankMovement $m) => $m->linked_invoices_total);
+        $paidSum = $movements->sum(fn (BankMovement $m) => (float) $m->deposit);
+        $remainingSum = max(0, round($totalSum - $paidSum, 2));
 
         return [
-            'invoice_count' => (int) ($row->invoice_count ?? 0),
-            'total_sum' => (float) ($row->total_sum ?? 0),
-            'amount_paid_sum' => (float) ($row->amount_paid_sum ?? 0),
-            'amount_remaining_sum' => (float) ($row->amount_remaining_sum ?? 0),
+            'invoice_count' => $invoiceCount,
+            'movement_count' => $movementCount,
+            'total_sum' => $totalSum,
+            'amount_paid_sum' => $paidSum,
+            'amount_remaining_sum' => $remainingSum,
         ];
     }
 
@@ -116,7 +159,7 @@ class PaymentSummaryPage extends Component
         Gate::authorize('invoices.payment_summary');
 
         return view('livewire.invoices.payment-summary-page', [
-            'groupedInvoices' => $this->getGroupedInvoices(),
+            'groupedMovements' => $this->getGroupedMovements(),
             'stats' => $this->getStats(),
         ])->layout('layouts.app');
     }
