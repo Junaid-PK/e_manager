@@ -12,7 +12,6 @@
     'navRow'      => null,
     'navCol'      => null,
     'multiple'    => false,
-    'autoOpen'    => false,
 ])
 
 @php
@@ -45,7 +44,6 @@ $hasNav          = $navRow !== null && $navCol !== null;
     options: @js($opts),
     allowCustom: @js((bool) $allowCustom),
     multiple: @js((bool) $multiple),
-    autoOpen: @js((bool) $autoOpen),
     placeholder: @js($placeholder),
     emptyLabel: @js($emptyLabel),
     submitMethod: @js($submitMethod),
@@ -116,16 +114,12 @@ $hasNav          = $navRow !== null && $navCol !== null;
         }));
     },
     init() {
-        if (this.multiple) {
-            try {
-                const parsed = this.selected ? JSON.parse(this.selected) : [];
-                this.selectedValues = Array.isArray(parsed) ? parsed.map(v => String(v)) : [];
-            } catch (e) {
-                this.selectedValues = [];
-            }
-        }
-        if (this.autoOpen) {
-            this.$nextTick(() => this.onOpen());
+        if (!this.multiple) return;
+        try {
+            const parsed = this.selected ? JSON.parse(this.selected) : [];
+            this.selectedValues = Array.isArray(parsed) ? parsed.map(v => String(v)) : [];
+        } catch (e) {
+            this.selectedValues = [];
         }
     },
     async callSubmit(value) {
