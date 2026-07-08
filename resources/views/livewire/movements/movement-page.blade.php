@@ -165,7 +165,55 @@
         @endif
 
         <div class="overflow-x-auto"
-             x-data="movementTableColumns('movements', @js(auth()->id()))"
+             x-data="{
+                 ...movementTableColumns('movements', @js(auth()->id())),
+                 movementTypeOptions: @js($movementTypeOpts),
+                 categoryOptions: @js($categoryOpts),
+                 inlineDropdown: { open: false, kind: null, id: null, search: '', customInput: '', submitting: false, top: 0, left: 0, width: 200 },
+                 get inlineOptions() {
+                     return this.inlineDropdown.kind === 'type' ? this.movementTypeOptions : this.categoryOptions;
+                 },
+                 get filteredInlineOptions() {
+                     const q = this.inlineDropdown.search.toLowerCase();
+                     return q ? this.inlineOptions.filter(option => option.label.toLowerCase().includes(q)) : this.inlineOptions;
+                 },
+                 openInlineDropdown(kind, id, event) {
+                     const rect = event.currentTarget.getBoundingClientRect();
+                     this.inlineDropdown.kind = kind;
+                     this.inlineDropdown.id = id;
+                     this.inlineDropdown.search = '';
+                     this.inlineDropdown.customInput = '';
+                     this.inlineDropdown.top = rect.bottom + 4;
+                     this.inlineDropdown.left = rect.left;
+                     this.inlineDropdown.width = Math.max(rect.width, 200);
+                     this.inlineDropdown.open = true;
+                     this.$nextTick(() => this.$refs.inlineDropdownSearch?.focus());
+                 },
+                 closeInlineDropdown() {
+                     if (this.inlineDropdown.submitting) return;
+                     this.inlineDropdown.open = false;
+                     this.inlineDropdown.search = '';
+                     this.inlineDropdown.customInput = '';
+                 },
+                 async chooseInlineDropdown(value) {
+                     if (this.inlineDropdown.submitting || !this.inlineDropdown.id) return;
+                     this.inlineDropdown.submitting = true;
+                     try {
+                         const method = this.inlineDropdown.kind === 'type' ? 'quickUpdateType' : 'quickUpdateCategory';
+                         await $wire.call(method, this.inlineDropdown.id, value);
+                         this.closeInlineDropdown();
+                     } finally {
+                         this.inlineDropdown.submitting = false;
+                     }
+                 },
+                 async saveInlineCustom() {
+                     const value = this.inlineDropdown.customInput.trim();
+                     if (!value) return;
+                     await this.chooseInlineDropdown(value);
+                 },
+             }"
+             @click.outside="closeInlineDropdown()"
+             @keydown.escape.window="closeInlineDropdown()"
              @keydown.window="
                  const activeTag = document.activeElement ? document.activeElement.tagName : '';
                  if (event.key === 'F2' && !['INPUT','TEXTAREA','SELECT'].includes(activeTag)) {
@@ -174,6 +222,52 @@
                      if (first) first.focus();
                  }
              ">
+            <div x-show="inlineDropdown.open"
+                 x-transition:enter="transition ease-out duration-100"
+                 x-transition:enter-start="opacity-0 scale-95"
+                 x-transition:enter-end="opacity-100 scale-100"
+                 x-transition:leave="transition ease-in duration-75"
+                 x-transition:leave-start="opacity-100 scale-100"
+                 x-transition:leave-end="opacity-0 scale-95"
+                 class="fixed z-[9999] flex flex-col rounded-lg border border-gray-200 bg-white text-gray-900 shadow-xl dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                 style="display: none;"
+                 x-bind:style="'top:' + inlineDropdown.top + 'px;left:' + inlineDropdown.left + 'px;min-width:' + inlineDropdown.width + 'px;max-width:min(100vw - 16px, 22rem)'"
+                 @click.stop>
+                <div class="border-b border-gray-100 p-2 dark:border-gray-700">
+                    <input type="text"
+                           x-ref="inlineDropdownSearch"
+                           x-model="inlineDropdown.search"
+                           @keydown.escape.stop="closeInlineDropdown()"
+                           @keydown.enter.prevent="filteredInlineOptions.length === 1 && chooseInlineDropdown(filteredInlineOptions[0].value)"
+                           placeholder="{{ __('app.search') }}…"
+                           class="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900 placeholder:text-gray-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder:text-gray-400">
+                </div>
+                <div class="max-h-64 overflow-y-auto py-1">
+                    <template x-for="option in filteredInlineOptions" :key="option.value">
+                        <button type="button"
+                                @click="chooseInlineDropdown(option.value)"
+                                class="block w-full truncate px-3 py-1.5 text-left text-xs text-gray-900 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-700">
+                            <span x-text="option.label"></span>
+                        </button>
+                    </template>
+                    <p x-show="filteredInlineOptions.length === 0" class="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">{{ __('app.no_results') }}</p>
+                </div>
+                <div class="border-t border-gray-100 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-900/40">
+                    <div class="flex gap-1.5">
+                        <input type="text"
+                               x-model="inlineDropdown.customInput"
+                               @keydown.enter.prevent="saveInlineCustom()"
+                               @keydown.escape.stop="closeInlineDropdown()"
+                               placeholder="{{ __('app.add_new') }}"
+                               class="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900 placeholder:text-gray-500 outline-none focus:ring-1 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder:text-gray-400">
+                        <button type="button"
+                                @click="saveInlineCustom()"
+                                class="shrink-0 rounded-md bg-emerald-600 px-2 py-1.5 text-xs font-medium text-white hover:bg-emerald-700">
+                            {{ __('app.save') }}
+                        </button>
+                    </div>
+                </div>
+            </div>
             <table class="min-w-full w-full table-fixed divide-y divide-gray-200 dark:divide-gray-700 [&_th]:min-w-0 [&_td]:min-w-0 [&_th]:overflow-hidden [&_td]:overflow-hidden">
                 <thead class="bg-gray-50 dark:bg-gray-700/50">
                     <tr>
@@ -319,46 +413,21 @@
                             <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap">{{ $movement->date->format('d/m/Y') }}</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ $movement->bankAccount->bank_name ?? '—' }}</td>
                             <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[6rem] align-top">
-                                @if ($editingTypeMovementId === $movement->id)
-                                    <x-custom-select compact
-                                        wire:key="type-{{ $movement->id }}"
-                                        :options="$movementTypeOpts"
-                                        :value="$movement->type ?? ''"
-                                        allow-custom
-                                        submit-method="quickUpdateType"
-                                        :submit-arg="$movement->id"
-                                        :nav-row="$rowIdx"
-                                        :nav-col="0"
-                                        auto-open />
+                                @can('movements.edit')
+                                    <button type="button" @click="openInlineDropdown('type', {{ $movement->id }}, $event)" title="Edit type" class="inline-flex min-h-9 max-w-full items-center gap-1.5 rounded-md border border-gray-300 bg-white py-1 pl-2 pr-1.5 text-left text-sm text-gray-900 shadow-sm transition-colors hover:border-emerald-400 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:border-emerald-500 dark:hover:bg-gray-600">
+                                        <span class="truncate">{{ $movementTypeLabels[$movement->type] ?? $movement->type ?? '—' }}</span>
+                                        <svg class="h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+                                    </button>
                                 @else
-                                    @can('movements.edit')
-                                        <button type="button" wire:click="editInlineType({{ $movement->id }})" title="Edit type" class="inline-flex min-h-9 max-w-full items-center gap-1.5 rounded-md border border-gray-300 bg-white py-1 pl-2 pr-1.5 text-left text-sm text-gray-900 shadow-sm transition-colors hover:border-emerald-400 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:border-emerald-500 dark:hover:bg-gray-600">
-                                            <span class="truncate">{{ $movementTypeLabels[$movement->type] ?? $movement->type ?? '—' }}</span>
-                                            <svg class="h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
-                                        </button>
-                                    @else
-                                        <span class="inline-flex min-h-9 items-center text-sm text-gray-700 dark:text-gray-300">{{ $movementTypeLabels[$movement->type] ?? $movement->type ?? '—' }}</span>
-                                    @endcan
-                                @endif
+                                    <span class="inline-flex min-h-9 items-center text-sm text-gray-700 dark:text-gray-300">{{ $movementTypeLabels[$movement->type] ?? $movement->type ?? '—' }}</span>
+                                @endcan
                             </td>
                             <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[7rem] align-top">
                                 @if (in_array((string) $movement->type, ['bill', 'factura'], true))
                                     <span class="inline-flex min-h-9 items-center text-sm text-gray-400 dark:text-gray-500">—</span>
-                                @elseif ($editingCategoryMovementId === $movement->id)
-                                    <x-custom-select compact
-                                        wire:key="cat-{{ $movement->id }}-{{ $movement->type }}"
-                                        :options="$categoryOpts"
-                                        :value="$movement->category ?? ''"
-                                        placeholder="—"
-                                        allow-custom
-                                        submit-method="quickUpdateCategory"
-                                        :submit-arg="$movement->id"
-                                        :nav-row="$rowIdx"
-                                        :nav-col="1"
-                                        auto-open />
                                 @else
                                     @can('movements.edit')
-                                        <button type="button" wire:click="editInlineCategory({{ $movement->id }})" title="Edit category" class="inline-flex min-h-9 max-w-full items-center gap-1.5 rounded-md border border-gray-300 bg-white py-1 pl-2 pr-1.5 text-left text-sm text-gray-900 shadow-sm transition-colors hover:border-emerald-400 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:border-emerald-500 dark:hover:bg-gray-600">
+                                        <button type="button" @click="openInlineDropdown('category', {{ $movement->id }}, $event)" title="Edit category" class="inline-flex min-h-9 max-w-full items-center gap-1.5 rounded-md border border-gray-300 bg-white py-1 pl-2 pr-1.5 text-left text-sm text-gray-900 shadow-sm transition-colors hover:border-emerald-400 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:border-emerald-500 dark:hover:bg-gray-600">
                                             <span class="truncate">{{ $movement->category ?? '—' }}</span>
                                             <svg class="h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
                                         </button>

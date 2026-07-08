@@ -72,6 +72,8 @@ class MovementPagePerformanceTest extends TestCase
         $this->assertLessThan(120, substr_count($html, 'data-option-value='));
         $this->assertStringContainsString('Edit type', $html);
         $this->assertStringContainsString('Edit category', $html);
+        $this->assertStringContainsString("openInlineDropdown('type'", $html);
+        $this->assertStringContainsString("openInlineDropdown('category'", $html);
     }
 
     public function test_per_page_is_capped_at_100(): void
@@ -84,7 +86,7 @@ class MovementPagePerformanceTest extends TestCase
             ->assertSet('perPage', 100);
     }
 
-    public function test_inline_dropdown_auto_opens_after_first_click(): void
+    public function test_inline_dropdown_does_not_require_livewire_to_open(): void
     {
         $user = $this->createUserWithMovementAccess();
         $account = BankAccount::create([
@@ -104,9 +106,11 @@ class MovementPagePerformanceTest extends TestCase
             'import_source' => 'manual',
         ]);
 
-        Livewire::actingAs($user)
+        $html = Livewire::actingAs($user)
             ->test(MovementPage::class)
-            ->call('editInlineType', $movement->id)
-            ->assertSee('autoOpen: true', false);
+            ->html();
+
+        $this->assertStringContainsString("openInlineDropdown('type', {$movement->id}", $html);
+        $this->assertStringContainsString("openInlineDropdown('category', {$movement->id}", $html);
     }
 }
