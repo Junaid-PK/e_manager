@@ -212,7 +212,6 @@
                      await this.chooseInlineDropdown(value);
                  },
              }"
-             @click.outside="closeInlineDropdown()"
              @keydown.escape.window="closeInlineDropdown()"
              @keydown.window="
                  const activeTag = document.activeElement ? document.activeElement.tagName : '';
@@ -223,6 +222,7 @@
                  }
              ">
             <div x-show="inlineDropdown.open"
+                 @click.outside="closeInlineDropdown()"
                  x-transition:enter="transition ease-out duration-100"
                  x-transition:enter-start="opacity-0 scale-95"
                  x-transition:enter-end="opacity-100 scale-100"
