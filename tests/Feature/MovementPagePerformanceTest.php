@@ -83,4 +83,30 @@ class MovementPagePerformanceTest extends TestCase
             ->set('perPage', 1000)
             ->assertSet('perPage', 100);
     }
+
+    public function test_inline_dropdown_auto_opens_after_first_click(): void
+    {
+        $user = $this->createUserWithMovementAccess();
+        $account = BankAccount::create([
+            'bank_name' => 'Performance Bank',
+            'account_number' => 'PK00PERF0000000002',
+            'currency' => 'EUR',
+            'initial_balance' => 0,
+            'current_balance' => 0,
+        ]);
+        $movement = BankMovement::create([
+            'bank_account_id' => $account->id,
+            'date' => now()->toDateString(),
+            'type' => 'transfer',
+            'concept' => 'Movement',
+            'deposit' => 10,
+            'category' => 'Office',
+            'import_source' => 'manual',
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(MovementPage::class)
+            ->call('editInlineType', $movement->id)
+            ->assertSee('autoOpen: true', false);
+    }
 }

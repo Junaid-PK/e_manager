@@ -328,7 +328,8 @@
                                         submit-method="quickUpdateType"
                                         :submit-arg="$movement->id"
                                         :nav-row="$rowIdx"
-                                        :nav-col="0" />
+                                        :nav-col="0"
+                                        auto-open />
                                 @else
                                     @can('movements.edit')
                                         <button type="button" wire:click="editInlineType({{ $movement->id }})" title="Edit type" class="inline-flex min-h-9 max-w-full items-center gap-1.5 rounded-md border border-gray-300 bg-white py-1 pl-2 pr-1.5 text-left text-sm text-gray-900 shadow-sm transition-colors hover:border-emerald-400 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:border-emerald-500 dark:hover:bg-gray-600">
@@ -353,7 +354,8 @@
                                         submit-method="quickUpdateCategory"
                                         :submit-arg="$movement->id"
                                         :nav-row="$rowIdx"
-                                        :nav-col="1" />
+                                        :nav-col="1"
+                                        auto-open />
                                 @else
                                     @can('movements.edit')
                                         <button type="button" wire:click="editInlineCategory({{ $movement->id }})" title="Edit category" class="inline-flex min-h-9 max-w-full items-center gap-1.5 rounded-md border border-gray-300 bg-white py-1 pl-2 pr-1.5 text-left text-sm text-gray-900 shadow-sm transition-colors hover:border-emerald-400 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:border-emerald-500 dark:hover:bg-gray-600">
