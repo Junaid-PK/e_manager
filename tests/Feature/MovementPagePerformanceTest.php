@@ -70,8 +70,6 @@ class MovementPagePerformanceTest extends TestCase
             ->html();
 
         $this->assertLessThan(120, substr_count($html, 'data-option-value='));
-        $this->assertStringContainsString('Edit type', $html);
-        $this->assertStringContainsString('Edit category', $html);
     }
 
     public function test_per_page_is_capped_at_100(): void

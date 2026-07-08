@@ -331,9 +331,8 @@
                                         :nav-col="0" />
                                 @else
                                     @can('movements.edit')
-                                        <button type="button" wire:click="editInlineType({{ $movement->id }})" title="Edit type" class="inline-flex min-h-9 max-w-full items-center gap-1.5 rounded-md border border-gray-300 bg-white py-1 pl-2 pr-1.5 text-left text-sm text-gray-900 shadow-sm transition-colors hover:border-emerald-400 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:border-emerald-500 dark:hover:bg-gray-600">
+                                        <button type="button" wire:click="editInlineType({{ $movement->id }})" class="inline-flex min-h-9 max-w-full items-center rounded-md border border-transparent px-2 text-left text-sm text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 dark:text-gray-300 dark:hover:border-gray-600 dark:hover:bg-gray-700">
                                             <span class="truncate">{{ $movementTypeLabels[$movement->type] ?? $movement->type ?? '—' }}</span>
-                                            <svg class="h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
                                         </button>
                                     @else
                                         <span class="inline-flex min-h-9 items-center text-sm text-gray-700 dark:text-gray-300">{{ $movementTypeLabels[$movement->type] ?? $movement->type ?? '—' }}</span>
@@ -356,9 +355,8 @@
                                         :nav-col="1" />
                                 @else
                                     @can('movements.edit')
-                                        <button type="button" wire:click="editInlineCategory({{ $movement->id }})" title="Edit category" class="inline-flex min-h-9 max-w-full items-center gap-1.5 rounded-md border border-gray-300 bg-white py-1 pl-2 pr-1.5 text-left text-sm text-gray-900 shadow-sm transition-colors hover:border-emerald-400 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:border-emerald-500 dark:hover:bg-gray-600">
+                                        <button type="button" wire:click="editInlineCategory({{ $movement->id }})" class="inline-flex min-h-9 max-w-full items-center rounded-md border border-transparent px-2 text-left text-sm text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 dark:text-gray-300 dark:hover:border-gray-600 dark:hover:bg-gray-700">
                                             <span class="truncate">{{ $movement->category ?? '—' }}</span>
-                                            <svg class="h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
                                         </button>
                                     @else
                                         <span class="inline-flex min-h-9 items-center text-sm text-gray-700 dark:text-gray-300">{{ $movement->category ?? '—' }}</span>
