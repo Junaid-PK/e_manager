@@ -95,7 +95,7 @@ class PaymentSummaryPageTest extends TestCase
             ->assertSee('1 movement');
     }
 
-    public function test_hides_fully_collected_movements_by_default(): void
+    public function test_shows_fully_collected_movements_by_default(): void
     {
         $user = $this->createUserWithPermission();
         $this->actingAs($user);
@@ -109,8 +109,8 @@ class PaymentSummaryPageTest extends TestCase
         Livewire::actingAs($user)
             ->test(\App\Livewire\Invoices\PaymentSummaryPage::class)
             ->assertSee((string) $partialInvoice->invoice_number)
-            ->assertDontSee((string) $fullyPaidInvoice->invoice_number)
-            ->assertSee('1 movement');
+            ->assertSee((string) $fullyPaidInvoice->invoice_number)
+            ->assertSee('2 movements');
     }
 
     public function test_shows_correct_totals_based_on_movement_deposits(): void
@@ -288,7 +288,7 @@ class PaymentSummaryPageTest extends TestCase
             ->assertSee('No payment movements found');
     }
 
-    public function test_hides_fully_paid_movement_even_when_search_matches(): void
+    public function test_shows_fully_paid_movement_when_search_matches(): void
     {
         $user = $this->createUserWithPermission();
         $this->actingAs($user);
@@ -302,7 +302,7 @@ class PaymentSummaryPageTest extends TestCase
         Livewire::actingAs($user)
             ->test(\App\Livewire\Invoices\PaymentSummaryPage::class)
             ->set('search', 'INV-FULLY-PAID')
-            ->assertDontSee('INV-FULLY-PAID')
-            ->assertSee('No payment movements found');
+            ->assertSee('INV-FULLY-PAID')
+            ->assertSee('0.00');
     }
 }

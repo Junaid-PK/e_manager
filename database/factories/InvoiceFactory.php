@@ -36,6 +36,7 @@ class InvoiceFactory extends Factory
             'amount_remaining' => $total,
             'status' => 'pending',
             'paid_date' => null,
+            'retention_paid_date' => null,
             'bank_date' => null,
             'notes' => fake()->optional()->sentence(),
         ];

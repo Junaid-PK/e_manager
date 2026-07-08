@@ -9,6 +9,7 @@ use App\Livewire\Expenses\ExpenseListadoConfigPage;
 use App\Livewire\Expenses\ExpensePage;
 use App\Livewire\Invoices\InvoicePage;
 use App\Livewire\Invoices\PaymentSummaryPage;
+use App\Livewire\Invoices\RetentionPage;
 use App\Livewire\MonthlyPeriods\MonthlyPeriodPage;
 use App\Livewire\MovementConfig\MovementConfigPage;
 use App\Livewire\Movements\MovementPage;
@@ -39,6 +40,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardPage::class)->middleware('permission:dashboard.view')->name('dashboard');
     Route::get('invoices', InvoicePage::class)->middleware('permission:invoices.view')->name('invoices');
     Route::get('invoices/payment-summary', PaymentSummaryPage::class)->middleware('permission:invoices.payment_summary')->name('invoices.payment-summary');
+    Route::get('invoices/retention', RetentionPage::class)->middleware('permission:invoices.retention')->name('invoices.retention');
     Route::get('bank-accounts', BankAccountPage::class)->middleware('permission:bank_accounts.view')->name('bank-accounts');
     Route::get('movements', MovementPage::class)->middleware('permission:movements.view')->name('movements');
     Route::get('movement-config', MovementConfigPage::class)->middleware('permission:movements.view')->name('movement-config');

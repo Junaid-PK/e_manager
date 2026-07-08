@@ -78,6 +78,7 @@
                                 ['route' => 'dashboard',        'label' => __('app.dashboard'),          'icon' => 'home',                     'permission' => 'dashboard.view'],
                                 ['route' => 'invoices',         'label' => __('app.invoices'),           'icon' => 'document-text',           'permission' => 'invoices.view'],
                                 ['route' => 'invoices.payment-summary', 'label' => __('app.payment_summary'),    'icon' => 'banknotes',                 'permission' => 'invoices.payment_summary'],
+                                ['route' => 'invoices.retention', 'label' => __('app.retention_page'),    'icon' => 'calendar',                 'permission' => 'invoices.retention'],
                                 ['route' => 'bank-accounts',    'label' => __('app.bank_accounts'),      'icon' => 'building-library',          'permission' => 'bank_accounts.view'],
                                 ['route' => 'movements',        'label' => __('app.movements'),          'icon' => 'arrows-right-left',         'permission' => 'movements.view'],
                                 ['route' => 'movement-config',  'label' => __('app.movement_config'),    'icon' => 'adjustments',               'permission' => 'movements.view'],

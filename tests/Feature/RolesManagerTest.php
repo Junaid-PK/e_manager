@@ -242,5 +242,6 @@ class RolesManagerTest extends TestCase
         $this->assertContains('delete', $matrix['invoices']);
         $this->assertContains('export', $matrix['invoices']);
         $this->assertContains('payment_summary', $matrix['invoices']);
+        $this->assertContains('retention', $matrix['invoices']);
     }
 }

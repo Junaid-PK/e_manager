@@ -89,10 +89,6 @@ class PaymentSummaryPage extends Component
             $movement->remaining_amount = max(0, round($movement->linked_invoices_total - (float) $movement->deposit, 2));
         });
 
-        $movements = $movements
-            ->filter(fn (BankMovement $movement) => $movement->remaining_amount > 0.005)
-            ->values();
-
         if ($this->search) {
             $search = strtolower($this->search);
             $movements = $movements->filter(function (BankMovement $movement) use ($search) {

@@ -69,6 +69,8 @@ class InvoicePage extends Component
 
     public string $filterClientId = '';
 
+    public string $filterProjectId = '';
+
     public string $filterUserId = '';
 
     public string $filterMonth = '';
@@ -123,7 +125,7 @@ class InvoicePage extends Component
     {
         $uniqueInvoiceRule = 'unique:invoices,invoice_number';
         if ($this->editingId) {
-            $uniqueInvoiceRule .= ',' . $this->editingId;
+            $uniqueInvoiceRule .= ','.$this->editingId;
         }
 
         return [
@@ -131,7 +133,7 @@ class InvoicePage extends Component
             'formClientId' => 'required|exists:clients,id',
             'formProjectName' => 'nullable|string|max:500',
             'formProjectLocation' => 'nullable|string|max:500',
-            'formInvoiceNumber' => 'required|string|max:100|' . $uniqueInvoiceRule,
+            'formInvoiceNumber' => 'required|string|max:100|'.$uniqueInvoiceRule,
             'formMonth' => 'nullable|string|max:20',
             'formDateIssued' => 'required|date',
             'formDateDue' => 'required|date|after_or_equal:formDateIssued',
@@ -172,6 +174,11 @@ class InvoicePage extends Component
     }
 
     public function updatedFilterClientId(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterProjectId(): void
     {
         $this->resetPage();
     }
@@ -660,6 +667,7 @@ class InvoicePage extends Component
         $this->filterStatus = '';
         $this->filterCompanyId = '';
         $this->filterClientId = '';
+        $this->filterProjectId = '';
         $this->filterUserId = $this->canAccessAllInvoices() ? '' : (string) auth()->id();
         $this->filterMonth = '';
         $this->filterPaymentType = '';
@@ -709,6 +717,10 @@ class InvoicePage extends Component
 
         if ($this->filterClientId) {
             $query->where('client_id', $this->filterClientId);
+        }
+
+        if ($this->filterProjectId) {
+            $query->where('project_id', $this->filterProjectId);
         }
 
         if ($this->filterUserId !== '') {
@@ -833,6 +845,65 @@ class InvoicePage extends Component
             ->all();
     }
 
+    protected function invoiceOptionBaseQuery()
+    {
+        $query = Invoice::query();
+
+        if (! $this->canAccessAllInvoices()) {
+            $query->where('user_id', auth()->id());
+        }
+
+        return $query;
+    }
+
+    protected function getCompanyFilterOptions(): array
+    {
+        return Company::withoutGlobalScopes()
+            ->select(['id', 'name'])
+            ->whereIn('id', $this->invoiceOptionBaseQuery()
+                ->clone()
+                ->select('company_id')
+                ->whereNotNull('company_id')
+                ->distinct())
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Company $company) => ['value' => (string) $company->id, 'label' => $company->name])
+            ->all();
+    }
+
+    protected function getClientFilterOptions(): array
+    {
+        return Client::withoutGlobalScopes()
+            ->select(['id', 'name'])
+            ->whereIn('id', $this->invoiceOptionBaseQuery()
+                ->clone()
+                ->select('client_id')
+                ->whereNotNull('client_id')
+                ->distinct())
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Client $client) => ['value' => (string) $client->id, 'label' => $client->name])
+            ->all();
+    }
+
+    protected function getProjectFilterOptions(): array
+    {
+        return Project::withoutGlobalScopes()
+            ->select(['id', 'name', 'location'])
+            ->whereIn('id', $this->invoiceOptionBaseQuery()
+                ->clone()
+                ->select('project_id')
+                ->whereNotNull('project_id')
+                ->distinct())
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Project $project) => [
+                'value' => (string) $project->id,
+                'label' => $project->location ? "{$project->name} - {$project->location}" : $project->name,
+            ])
+            ->all();
+    }
+
     /**
      * Apply sorting with natural order support for invoice_number.
      * Sorts numeric values (1-9) first, then alphanumeric like 26/F-1, 26/F-5.
@@ -917,6 +988,9 @@ class InvoicePage extends Component
             'invoiceStats' => $this->getInvoiceStats(),
             'allCompanies' => Company::query()->orderBy('name')->get(['id', 'name']),
             'clients' => Client::orderBy('name')->get(['id', 'name']),
+            'companyFilterOptions' => $this->getCompanyFilterOptions(),
+            'clientFilterOptions' => $this->getClientFilterOptions(),
+            'projectFilterOptions' => $this->getProjectFilterOptions(),
             'bankAccounts' => BankAccount::orderBy('bank_name')->get(['id', 'bank_name']),
             'invoiceUsers' => $invoiceUsers,
             'duplicateInvoiceNumbers' => $this->getDuplicateInvoiceNumbers(),

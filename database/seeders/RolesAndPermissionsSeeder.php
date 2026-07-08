@@ -14,7 +14,7 @@ class RolesAndPermissionsSeeder extends Seeder
      */
     private array $matrix = [
         'dashboard' => ['view', 'access_all'],
-        'invoices' => ['view', 'create', 'edit', 'delete', 'export', 'access_all', 'payment_summary'],
+        'invoices' => ['view', 'create', 'edit', 'delete', 'export', 'access_all', 'payment_summary', 'retention'],
         'movements' => ['view', 'create', 'edit', 'delete', 'export', 'access_all'],
         'bank_accounts' => ['view', 'create', 'edit', 'delete', 'access_all'],
         'expenses' => ['view', 'create', 'edit', 'delete', 'export', 'access_all'],
