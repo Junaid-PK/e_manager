@@ -5,6 +5,7 @@
 @php
     $categoryOpts = $movementCategories->map(fn ($mc) => ['value' => $mc->name, 'label' => $mc->name])->values()->all();
     $movementTypeOpts = $movementTypes->map(fn ($mt) => ['value' => $mt->slug, 'label' => $mt->name])->values()->all();
+    $movementTypeLabels = $movementTypes->pluck('name', 'slug');
 @endphp
 <div>
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
@@ -91,7 +92,6 @@
                     <option value="25">25 {{ __('app.per_page') }}</option>
                     <option value="50">50 {{ __('app.per_page') }}</option>
                     <option value="100">100 {{ __('app.per_page') }}</option>
-                    <option value="1000">1000 {{ __('app.per_page') }}</option>
                 </select>
             </div>
 
@@ -319,20 +319,30 @@
                             <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap">{{ $movement->date->format('d/m/Y') }}</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ $movement->bankAccount->bank_name ?? '—' }}</td>
                             <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[6rem] align-top">
-                                <x-custom-select compact
-                                    wire:key="type-{{ $movement->id }}"
-                                    :options="$movementTypeOpts"
-                                    :value="$movement->type ?? ''"
-                                    allow-custom
-                                    submit-method="quickUpdateType"
-                                    :submit-arg="$movement->id"
-                                    :nav-row="$rowIdx"
-                                    :nav-col="0" />
+                                @if ($editingTypeMovementId === $movement->id)
+                                    <x-custom-select compact
+                                        wire:key="type-{{ $movement->id }}"
+                                        :options="$movementTypeOpts"
+                                        :value="$movement->type ?? ''"
+                                        allow-custom
+                                        submit-method="quickUpdateType"
+                                        :submit-arg="$movement->id"
+                                        :nav-row="$rowIdx"
+                                        :nav-col="0" />
+                                @else
+                                    @can('movements.edit')
+                                        <button type="button" wire:click="editInlineType({{ $movement->id }})" class="inline-flex min-h-9 max-w-full items-center rounded-md border border-transparent px-2 text-left text-sm text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 dark:text-gray-300 dark:hover:border-gray-600 dark:hover:bg-gray-700">
+                                            <span class="truncate">{{ $movementTypeLabels[$movement->type] ?? $movement->type ?? '—' }}</span>
+                                        </button>
+                                    @else
+                                        <span class="inline-flex min-h-9 items-center text-sm text-gray-700 dark:text-gray-300">{{ $movementTypeLabels[$movement->type] ?? $movement->type ?? '—' }}</span>
+                                    @endcan
+                                @endif
                             </td>
                             <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[7rem] align-top">
                                 @if (in_array((string) $movement->type, ['bill', 'factura'], true))
                                     <span class="inline-flex min-h-9 items-center text-sm text-gray-400 dark:text-gray-500">—</span>
-                                @else
+                                @elseif ($editingCategoryMovementId === $movement->id)
                                     <x-custom-select compact
                                         wire:key="cat-{{ $movement->id }}-{{ $movement->type }}"
                                         :options="$categoryOpts"
@@ -343,6 +353,14 @@
                                         :submit-arg="$movement->id"
                                         :nav-row="$rowIdx"
                                         :nav-col="1" />
+                                @else
+                                    @can('movements.edit')
+                                        <button type="button" wire:click="editInlineCategory({{ $movement->id }})" class="inline-flex min-h-9 max-w-full items-center rounded-md border border-transparent px-2 text-left text-sm text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 dark:text-gray-300 dark:hover:border-gray-600 dark:hover:bg-gray-700">
+                                            <span class="truncate">{{ $movement->category ?? '—' }}</span>
+                                        </button>
+                                    @else
+                                        <span class="inline-flex min-h-9 items-center text-sm text-gray-700 dark:text-gray-300">{{ $movement->category ?? '—' }}</span>
+                                    @endcan
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 min-w-[15rem] align-top">

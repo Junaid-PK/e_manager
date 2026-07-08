@@ -40,6 +40,10 @@ class MovementPage extends Component
 
     public ?int $inlineBillMovementId = null;
 
+    public ?int $editingTypeMovementId = null;
+
+    public ?int $editingCategoryMovementId = null;
+
     public string $inlineBillType = '';
 
     public string $bulkCategory = '';
@@ -276,6 +280,19 @@ class MovementPage extends Component
         $this->resetPage();
     }
 
+    public function updatedPerPage(): void
+    {
+        $this->perPage = $this->normalizedPerPage();
+        $this->resetPage();
+    }
+
+    private function normalizedPerPage(): int
+    {
+        $perPage = (int) $this->perPage;
+
+        return in_array($perPage, [10, 25, 50, 100], true) ? $perPage : 100;
+    }
+
     public function setDirection(string $direction): void
     {
         $this->filterDirection = $direction;
@@ -478,6 +495,7 @@ class MovementPage extends Component
         $slug = $this->resolveOrCreateMovementType(trim($type));
         $movement = BankMovement::findOrFail($id);
         $previousType = (string) $movement->type;
+        $this->editingTypeMovementId = null;
 
         if ($previousType === $slug) {
             $this->skipRender();
@@ -588,6 +606,7 @@ class MovementPage extends Component
         }
         $movement = BankMovement::findOrFail($id);
         $input = trim((string) $category);
+        $this->editingCategoryMovementId = null;
 
         $resolved = $this->resolveOrCreateCategory($input);
         if ((string) ($movement->category ?? '') === (string) ($resolved ?? '')) {
@@ -598,6 +617,18 @@ class MovementPage extends Component
         $movement->update(['category' => $resolved]);
         $this->skipRender();
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
+    }
+
+    public function editInlineType(int $id): void
+    {
+        $this->editingTypeMovementId = $id;
+        $this->editingCategoryMovementId = null;
+    }
+
+    public function editInlineCategory(int $id): void
+    {
+        $this->editingCategoryMovementId = $id;
+        $this->editingTypeMovementId = null;
     }
 
     public function openCategoryModal(): void
@@ -710,6 +741,8 @@ class MovementPage extends Component
 
     protected function getMovements()
     {
+        $this->perPage = $this->normalizedPerPage();
+
         return $this->buildQuery()->simplePaginate($this->perPage);
     }
 
