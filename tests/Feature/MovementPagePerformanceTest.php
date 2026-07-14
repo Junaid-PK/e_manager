@@ -74,6 +74,8 @@ class MovementPagePerformanceTest extends TestCase
         $this->assertStringContainsString('Edit category', $html);
         $this->assertStringContainsString("openInlineDropdown('type'", $html);
         $this->assertStringContainsString("openInlineDropdown('category'", $html);
+        $this->assertStringContainsString('data-inline-label', $html);
+        $this->assertStringContainsString('replaceChildren(document.createTextNode', $html);
     }
 
     public function test_per_page_is_capped_at_100(): void
