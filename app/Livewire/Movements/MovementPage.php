@@ -46,6 +46,8 @@ class MovementPage extends Component
 
     public string $inlineBillType = '';
 
+    public string $invoiceSelectionMode = 'bill';
+
     public string $bulkCategory = '';
 
     public string $bulkType = '';
@@ -133,13 +135,15 @@ class MovementPage extends Component
     {
         $this->formCategory = '';
         $this->selectedInvoiceIds = [];
-        if ($this->isBillType($this->formType) && $this->showFormModal) {
+        if ($this->isInvoiceSelectionType($this->formType) && $this->showFormModal) {
+            $this->invoiceSelectionMode = $this->invoiceSelectionModeForType($this->formType);
             $this->showBillInvoiceModal = true;
         }
     }
 
     public function openBillInvoiceModal(): void
     {
+        $this->invoiceSelectionMode = $this->invoiceSelectionModeForType($this->formType);
         $this->showBillInvoiceModal = true;
     }
 
@@ -150,10 +154,14 @@ class MovementPage extends Component
 
     public function applyInlineBillPayment(): void
     {
+        if ($this->invoiceSelectionMode === 'retention') {
+            $this->applyInlineRetentionPayment();
+
+            return;
+        }
+
         if ($this->inlineBillMovementId === null || count($this->selectedInvoiceIds) === 0) {
-            $this->showBillInvoiceModal = false;
-            $this->inlineBillMovementId = null;
-            $this->selectedInvoiceIds = [];
+            $this->resetInlineInvoiceSelection();
 
             return;
         }
@@ -194,10 +202,49 @@ class MovementPage extends Component
         ]);
         $this->refreshBalancesForAccounts([$originalBankAccountId, (int) $movement->bank_account_id]);
 
-        $this->showBillInvoiceModal = false;
-        $this->inlineBillMovementId = null;
-        $this->inlineBillType = '';
-        $this->selectedInvoiceIds = [];
+        $this->resetInlineInvoiceSelection();
+        $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
+    }
+
+    private function applyInlineRetentionPayment(): void
+    {
+        if ($this->inlineBillMovementId === null || count($this->selectedInvoiceIds) === 0) {
+            $this->resetInlineInvoiceSelection();
+
+            return;
+        }
+
+        $movement = BankMovement::findOrFail($this->inlineBillMovementId);
+        $originalBankAccountId = (int) $movement->bank_account_id;
+        $existingExtra = $this->normalizeMovementExtra($movement->listado_extra);
+
+        if (! empty($existingExtra['bill_payment_allocations'])) {
+            $this->reverseInvoicesForBillPayment($existingExtra['bill_payment_allocations']);
+        }
+
+        $linkedInvoices = Invoice::with('client')
+            ->whereIn('id', $this->selectedInvoiceIds)
+            ->where('retention_amount', '>', 0)
+            ->get();
+
+        if ($linkedInvoices->isEmpty()) {
+            $this->resetInlineInvoiceSelection();
+
+            return;
+        }
+
+        Invoice::query()
+            ->whereIn('id', $linkedInvoices->pluck('id'))
+            ->update(['retention_paid_date' => now()->toDateString()]);
+
+        $movement->update([
+            'type' => $this->inlineBillType ?: 'retencion',
+            'category' => null,
+            'listado_extra' => $this->buildMovementInvoiceExtra($existingExtra, $linkedInvoices),
+        ]);
+
+        $this->refreshBalancesForAccounts([$originalBankAccountId, (int) $movement->bank_account_id]);
+        $this->resetInlineInvoiceSelection();
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
 
@@ -235,14 +282,7 @@ class MovementPage extends Component
      */
     private function getPendingInvoiceIds(): array
     {
-        return Invoice::query()
-            ->where(function ($q) {
-                $q->whereIn('status', ['pending', 'partial'])
-                    ->orWhere(function ($q2) {
-                        $q2->whereNotNull('amount_remaining')->where('amount_remaining', '>', 0);
-                    })
-                    ->orWhereIn('id', $this->selectedInvoiceIds);
-            })
+        return $this->invoiceSelectionBaseQuery()
             ->when($this->billInvoiceSearch !== '', function ($q) {
                 $q->where(function ($sq) {
                     $sq->where('invoice_number', 'like', "%{$this->billInvoiceSearch}%")
@@ -366,7 +406,8 @@ class MovementPage extends Component
         $this->validate();
 
         $isBill = $this->isBillType($this->formType);
-        $hasInvoices = $isBill && count($this->selectedInvoiceIds) > 0;
+        $isRetention = $this->isRetentionType($this->formType);
+        $hasInvoices = ($isBill || $isRetention) && count($this->selectedInvoiceIds) > 0;
 
         $resolvedCategory = $this->resolveCategoryForType(trim($this->formCategory ?? ''), $this->formType);
 
@@ -390,13 +431,15 @@ class MovementPage extends Component
 
         if ($hasInvoices) {
             $linkedInvoices = Invoice::with('client')->whereIn('id', $this->selectedInvoiceIds)->get();
-            $suggestedDeposit = round($linkedInvoices->sum(fn (Invoice $invoice) => $this->invoiceRemainingDue($invoice)), 2);
-            $existingDeposit = (float) ($data['deposit'] ?? 0);
-            $paymentPool = $suggestedDeposit <= 0
-                ? 0.0
-                : ($existingDeposit > 0 ? min($suggestedDeposit, $existingDeposit) : $suggestedDeposit);
-            $data['deposit'] = $existingDeposit > 0 ? $existingDeposit : ($paymentPool > 0 ? $paymentPool : null);
-            $data['withdrawal'] = null;
+            if ($isBill) {
+                $suggestedDeposit = round($linkedInvoices->sum(fn (Invoice $invoice) => $this->invoiceRemainingDue($invoice)), 2);
+                $existingDeposit = (float) ($data['deposit'] ?? 0);
+                $paymentPool = $suggestedDeposit <= 0
+                    ? 0.0
+                    : ($existingDeposit > 0 ? min($suggestedDeposit, $existingDeposit) : $suggestedDeposit);
+                $data['deposit'] = $existingDeposit > 0 ? $existingDeposit : ($paymentPool > 0 ? $paymentPool : null);
+                $data['withdrawal'] = null;
+            }
             $data['category'] = null;
             $movementExtra = $this->buildMovementInvoiceExtra(null, $linkedInvoices);
         }
@@ -410,7 +453,7 @@ class MovementPage extends Component
                 $this->reverseInvoicesForBillPayment($existingExtra['bill_payment_allocations']);
             }
 
-            if (! $isBill) {
+            if (! $isBill && ! $isRetention) {
                 $movementExtra = $this->buildMovementInvoiceExtra($existingExtra, collect());
             } else {
                 $movementExtra = $this->buildMovementInvoiceExtra($existingExtra, $linkedInvoices ?? collect());
@@ -418,7 +461,7 @@ class MovementPage extends Component
 
             $data['listado_extra'] = $movementExtra;
             $movement->update($data);
-            if ($linkedInvoices !== null && $linkedInvoices->count() > 0) {
+            if ($linkedInvoices !== null && $linkedInvoices->count() > 0 && $isBill) {
                 $allocations = $this->syncInvoicesForBillPayment($linkedInvoices, $paymentPool);
                 $this->logBillPayment('save.update_movement_with_invoices', [
                     'movement_id' => $movement->id,
@@ -428,16 +471,20 @@ class MovementPage extends Component
                 $movement->update([
                     'listado_extra' => $this->buildMovementInvoiceExtra($movementExtra, $linkedInvoices, $allocations),
                 ]);
+            } elseif ($linkedInvoices !== null && $linkedInvoices->count() > 0 && $isRetention) {
+                Invoice::query()
+                    ->whereIn('id', $linkedInvoices->pluck('id'))
+                    ->update(['retention_paid_date' => now()->toDateString()]);
             }
             $this->refreshBalancesForAccounts([$originalBankAccountId, (int) $movement->bank_account_id]);
             $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
         } else {
             $data['import_source'] = 'manual';
-            $data['listado_extra'] = $isBill
+            $data['listado_extra'] = ($isBill || $isRetention)
                 ? $this->buildMovementInvoiceExtra(null, $linkedInvoices ?? collect())
                 : null;
             $created = BankMovement::create($data);
-            if ($linkedInvoices !== null && $linkedInvoices->count() > 0) {
+            if ($linkedInvoices !== null && $linkedInvoices->count() > 0 && $isBill) {
                 $allocations = $this->syncInvoicesForBillPayment($linkedInvoices, $paymentPool);
                 $this->logBillPayment('save.created_movement_with_invoices', [
                     'movement_id' => $created->id,
@@ -447,6 +494,10 @@ class MovementPage extends Component
                 $created->update([
                     'listado_extra' => $this->buildMovementInvoiceExtra($created->listado_extra, $linkedInvoices, $allocations),
                 ]);
+            } elseif ($linkedInvoices !== null && $linkedInvoices->count() > 0 && $isRetention) {
+                Invoice::query()
+                    ->whereIn('id', $linkedInvoices->pluck('id'))
+                    ->update(['retention_paid_date' => now()->toDateString()]);
             }
             $this->refreshBalancesForAccounts([(int) $created->bank_account_id]);
             $this->dispatch('notify', type: 'success', message: __('app.created_successfully'));
@@ -506,6 +557,17 @@ class MovementPage extends Component
         if ($this->isBillType($slug)) {
             $this->inlineBillMovementId = $id;
             $this->inlineBillType = $slug;
+            $this->invoiceSelectionMode = 'bill';
+            $this->selectedInvoiceIds = [];
+            $this->showBillInvoiceModal = true;
+
+            return;
+        }
+
+        if ($this->isRetentionType($slug)) {
+            $this->inlineBillMovementId = $id;
+            $this->inlineBillType = $slug;
+            $this->invoiceSelectionMode = 'retention';
             $this->selectedInvoiceIds = [];
             $this->showBillInvoiceModal = true;
 
@@ -581,6 +643,21 @@ class MovementPage extends Component
     private function isBillType(string $type): bool
     {
         return in_array($type, ['bill', 'factura'], true);
+    }
+
+    private function isRetentionType(string $type): bool
+    {
+        return in_array($type, ['retencion', 'retention'], true);
+    }
+
+    private function isInvoiceSelectionType(string $type): bool
+    {
+        return $this->isBillType($type) || $this->isRetentionType($type);
+    }
+
+    private function invoiceSelectionModeForType(string $type): string
+    {
+        return $this->isRetentionType($type) ? 'retention' : 'bill';
     }
 
     /**
@@ -993,7 +1070,18 @@ class MovementPage extends Component
         $this->billInvoiceSearch = '';
         $this->inlineBillMovementId = null;
         $this->inlineBillType = '';
+        $this->invoiceSelectionMode = 'bill';
         $this->resetValidation();
+    }
+
+    private function resetInlineInvoiceSelection(): void
+    {
+        $this->showBillInvoiceModal = false;
+        $this->inlineBillMovementId = null;
+        $this->inlineBillType = '';
+        $this->invoiceSelectionMode = 'bill';
+        $this->selectedInvoiceIds = [];
+        $this->billInvoiceSearch = '';
     }
 
     private function normalizeMovementExtra(?array $extra): array
@@ -1123,6 +1211,27 @@ class MovementPage extends Component
             ->all();
     }
 
+    private function invoiceSelectionBaseQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return Invoice::query()
+            ->where(function ($q) {
+                if ($this->invoiceSelectionMode === 'retention') {
+                    $q->where(function ($retentionQuery) {
+                        $retentionQuery->where('retention_amount', '>', 0)
+                            ->whereNull('retention_paid_date');
+                    })->orWhereIn('id', $this->selectedInvoiceIds);
+
+                    return;
+                }
+
+                $q->whereIn('status', ['pending', 'partial'])
+                    ->orWhere(function ($q2) {
+                        $q2->whereNotNull('amount_remaining')->where('amount_remaining', '>', 0);
+                    })
+                    ->orWhereIn('id', $this->selectedInvoiceIds);
+            });
+    }
+
     /**
      * Book balance per account: initial_balance + sum(deposit − withdrawal), same basis as the table’s running_balance column.
      */
@@ -1184,15 +1293,8 @@ class MovementPage extends Component
 
         $pendingInvoices = [];
         if ($this->showBillInvoiceModal) {
-            $pendingInvoices = Invoice::query()
+            $pendingInvoices = $this->invoiceSelectionBaseQuery()
                 ->with('client')
-                ->where(function ($q) {
-                    $q->whereIn('status', ['pending', 'partial'])
-                        ->orWhere(function ($q2) {
-                            $q2->whereNotNull('amount_remaining')->where('amount_remaining', '>', 0);
-                        })
-                        ->orWhereIn('id', $this->selectedInvoiceIds);
-                })
                 ->when($this->billInvoiceSearch !== '', function ($q) {
                     $q->where(function ($sq) {
                         $sq->where('invoice_number', 'like', "%{$this->billInvoiceSearch}%")
@@ -1204,8 +1306,17 @@ class MovementPage extends Component
                 ->orderByDesc('date_due')
                 ->orderByDesc('id')
                 ->limit(120)
-                ->get(['id', 'invoice_number', 'total', 'amount_paid', 'amount_remaining', 'client_id'])
+                ->get(['id', 'invoice_number', 'total', 'amount_paid', 'amount_remaining', 'retention_amount', 'client_id'])
                 ->map(function (Invoice $invoice) {
+                    if ($this->invoiceSelectionMode === 'retention') {
+                        return (object) [
+                            'id' => $invoice->id,
+                            'invoice_number' => $invoice->invoice_number,
+                            'client_name' => $invoice->client?->name,
+                            'remaining' => round(max(0, (float) $invoice->retention_amount), 2),
+                        ];
+                    }
+
                     $remaining = round(max(0, (float) $invoice->total - (float) $invoice->amount_paid), 2);
                     $stored = round(max(0, (float) ($invoice->amount_remaining ?? 0)), 2);
 
@@ -1225,10 +1336,19 @@ class MovementPage extends Component
             : Invoice::query()
                 ->with('client')
                 ->whereIn('id', $this->selectedInvoiceIds)
-                ->get(['id', 'invoice_number', 'client_id', 'amount_remaining', 'amount_paid', 'total'])
+                ->get(['id', 'invoice_number', 'client_id', 'amount_remaining', 'amount_paid', 'total', 'retention_amount'])
                 ->sortBy(fn (Invoice $invoice) => array_search((int) $invoice->id, $this->selectedInvoiceIds, true))
                 ->values()
                 ->map(function (Invoice $invoice) {
+                    if ($this->invoiceSelectionMode === 'retention') {
+                        return (object) [
+                            'id' => (int) $invoice->id,
+                            'invoice_number' => (string) $invoice->invoice_number,
+                            'client_name' => $invoice->client?->name,
+                            'remaining' => round(max(0, (float) $invoice->retention_amount), 2),
+                        ];
+                    }
+
                     $remaining = round(max(0, (float) $invoice->total - (float) $invoice->amount_paid), 2);
                     $stored = round(max(0, (float) ($invoice->amount_remaining ?? 0)), 2);
 

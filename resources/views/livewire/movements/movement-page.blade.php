@@ -6,6 +6,7 @@
     $categoryOpts = $movementCategories->map(fn ($mc) => ['value' => $mc->name, 'label' => $mc->name])->values()->all();
     $movementTypeOpts = $movementTypes->map(fn ($mt) => ['value' => $mt->slug, 'label' => $mt->name])->values()->all();
     $movementTypeLabels = $movementTypes->pluck('name', 'slug');
+    $invoiceSelectionAmountLabel = $invoiceSelectionMode === 'retention' ? __('app.retention_amount') : __('app.amount_remaining');
 @endphp
 <div>
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
@@ -206,7 +207,10 @@
                          const option = this.inlineOptions.find(item => String(item.value) === String(value));
                          const label = option ? option.label : value;
                          this.inlineDropdown.trigger?.querySelector('[data-inline-label]')?.replaceChildren(document.createTextNode(label || '—'));
-                         this.closeInlineDropdown();
+                         this.inlineDropdown.open = false;
+                         this.inlineDropdown.trigger = null;
+                         this.inlineDropdown.search = '';
+                         this.inlineDropdown.customInput = '';
                      } finally {
                          this.inlineDropdown.submitting = false;
                      }
@@ -632,7 +636,7 @@
                                 </div>
                             </div>
                             <div>
-                                @if (in_array($formType, ['bill', 'factura'], true))
+                                @if (in_array($formType, ['bill', 'factura', 'retencion', 'retention'], true))
                                     <div class="flex items-center justify-between mb-2">
                                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('app.invoices') }}</label>
                                         <div class="flex items-center gap-3">
@@ -654,7 +658,7 @@
                                                         <div class="min-w-0">
                                                             <p class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ $invoice->invoice_number }}</p>
                                                             <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $invoice->client_name ?? '—' }}</p>
-                                                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ __('app.amount_remaining') }}: {{ fmt_number($invoice->remaining) }} &euro;</p>
+                                                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ $invoiceSelectionAmountLabel }}: {{ fmt_number($invoice->remaining) }} &euro;</p>
                                                         </div>
                                                         <div class="flex shrink-0 items-center gap-2">
                                                             <a href="{{ route('invoices', ['edit' => $invoice->id]) }}" target="_blank" rel="noopener" class="inline-flex items-center rounded-lg border border-gray-300 px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
@@ -744,7 +748,7 @@
                  x-transition:leave-end="translate-x-full">
                 <div class="w-full bg-white dark:bg-gray-800 shadow-sm flex flex-col">
                     <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ __('app.pending_invoices') }}</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ $invoiceSelectionMode === 'retention' ? __('app.retention_page') : __('app.pending_invoices') }}</h3>
                         <button wire:click="closeBillInvoiceModal" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
                         </button>
@@ -773,7 +777,7 @@
                                 <div class="flex-1 min-w-0">
                                     <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $invoice->invoice_number }}</p>
                                     <p class="text-xs text-gray-500 dark:text-gray-400">{{ $invoice->client_name ?? '—' }}</p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ __('app.amount_remaining') }}: {{ fmt_number($invoice->remaining) }} &euro;</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ $invoiceSelectionAmountLabel }}: {{ fmt_number($invoice->remaining) }} &euro;</p>
                                 </div>
                             </label>
                         @empty
