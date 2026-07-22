@@ -163,10 +163,10 @@ class InvoiceImportService
                     ->first();
 
                 $companyId = $this->mapped($columnMap, 'company')
-                    ? $this->resolveOrCreateCompany(trim($mapped['company'] ?? ''))
+                    ? $this->resolveOrCreateCompany(trim($mapped['company'] ?? ''), $ownerId)
                     : $invoice?->company_id;
                 $clientId = $this->mapped($columnMap, 'client')
-                    ? $this->resolveOrCreateClient(trim($mapped['client'] ?? ''))
+                    ? $this->resolveOrCreateClient(trim($mapped['client'] ?? ''), $ownerId)
                     : $invoice?->client_id;
 
                 if (! $companyId || ! $clientId) {
@@ -182,6 +182,7 @@ class InvoiceImportService
                     (int) $clientId,
                     $invoice,
                     $canonicalBankNames,
+                    $ownerId,
                 );
 
                 if ($invoice) {
@@ -241,6 +242,7 @@ class InvoiceImportService
         int $clientId,
         ?Invoice $invoice,
         Collection $canonicalBankNames,
+        int $ownerId,
     ): array {
         $attributes = [];
 
@@ -251,7 +253,7 @@ class InvoiceImportService
             $attributes['client_id'] = $clientId;
         }
         if ($this->mapped($columnMap, 'project_id')) {
-            $attributes['project_id'] = $this->resolveProjectId($mapped['project_id'] ?? null, $companyId, $clientId);
+            $attributes['project_id'] = $this->resolveProjectId($mapped['project_id'] ?? null, $companyId, $clientId, $ownerId);
         }
         if ($this->mapped($columnMap, 'month')) {
             $attributes['month'] = $this->parseMonth($mapped['month'] ?? null);
@@ -337,47 +339,50 @@ class InvoiceImportService
         return $mapped;
     }
 
-    private function resolveOrCreateCompany(?string $name): ?int
+    private function resolveOrCreateCompany(?string $name, ?int $ownerId = null): ?int
     {
         if (! $name) {
             return null;
         }
 
-        $company = Company::where('name', $name)->first()
-            ?? Company::where('name', 'like', "%{$name}%")->first()
-            ?? Company::whereRaw('? LIKE CONCAT(\'%\', name, \'%\')', [$name])->first();
+        $base = fn () => Company::query()->when($ownerId, fn ($query) => $query->where('user_id', $ownerId));
+        $company = $base()->where('name', $name)->first()
+            ?? $base()->where('name', 'like', "%{$name}%")->first()
+            ?? $base()->whereRaw('? LIKE CONCAT(\'%\', name, \'%\')', [$name])->first();
 
         if (! $company) {
-            $company = Company::create(['name' => $name]);
+            $company = Company::create(['user_id' => $ownerId, 'name' => $name]);
         }
 
         return $company->id;
     }
 
-    private function resolveOrCreateClient(?string $name): ?int
+    private function resolveOrCreateClient(?string $name, ?int $ownerId = null): ?int
     {
         if (! $name) {
             return null;
         }
 
-        $client = Client::where('name', $name)->first()
-            ?? Client::where('name', 'like', "%{$name}%")->first()
-            ?? Client::whereRaw('? LIKE CONCAT(\'%\', name, \'%\')', [$name])->first();
+        $base = fn () => Client::query()->when($ownerId, fn ($query) => $query->where('user_id', $ownerId));
+        $client = $base()->where('name', $name)->first()
+            ?? $base()->where('name', 'like', "%{$name}%")->first()
+            ?? $base()->whereRaw('? LIKE CONCAT(\'%\', name, \'%\')', [$name])->first();
 
         if (! $client) {
-            $client = Client::create(['name' => $name]);
+            $client = Client::create(['user_id' => $ownerId, 'name' => $name]);
         }
 
         return $client->id;
     }
 
-    private function resolveProjectId(?string $value, int $companyId, ?int $clientId = null): ?int
+    private function resolveProjectId(?string $value, int $companyId, ?int $clientId = null, ?int $ownerId = null): ?int
     {
         if ($value === null || trim($value) === '') {
             return null;
         }
         $value = trim($value);
-        $base = fn () => Project::where('company_id', $companyId);
+        $base = fn () => Project::where('company_id', $companyId)
+            ->when($ownerId, fn ($query) => $query->where('user_id', $ownerId));
         if (ctype_digit($value)) {
             $byId = $base()->where('id', (int) $value)->first();
             if ($byId) {
@@ -391,6 +396,7 @@ class InvoiceImportService
 
         if (! $project) {
             $project = Project::create([
+                'user_id' => $ownerId,
                 'company_id' => $companyId,
                 'client_id' => $clientId,
                 'name' => $value,
