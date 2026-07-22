@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Livewire\Dashboard\DashboardPage;
+use App\Models\BankAccount;
+use App\Models\BankMovement;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -54,5 +56,33 @@ class DashboardTableCustomizationTest extends TestCase
             ->set('statsDateFrom', '2024-03-01')
             ->assertSet('statsMonth', '')
             ->assertSet('statsYear', '');
+    }
+
+    public function test_expanding_a_yearly_type_row_renders_associative_year_totals(): void
+    {
+        $user = User::factory()->create();
+        $adminRole = Role::create(['name' => 'admin']);
+        $user->roles()->attach($adminRole);
+        $bankAccount = BankAccount::create([
+            'user_id' => $user->id,
+            'bank_name' => 'Test bank',
+            'account_number' => 'TEST-001',
+        ]);
+
+        BankMovement::create([
+            'user_id' => $user->id,
+            'bank_account_id' => $bankAccount->id,
+            'date' => now()->startOfYear()->addMonth(),
+            'type' => 'Compra',
+            'category' => 'Office',
+            'concept' => 'Office purchase',
+            'withdrawal' => 125,
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(DashboardPage::class)
+            ->call('toggleTypeYearRow', 'Compra')
+            ->assertHasNoErrors()
+            ->assertSee('Office');
     }
 }

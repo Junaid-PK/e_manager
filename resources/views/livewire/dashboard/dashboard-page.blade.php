@@ -218,7 +218,7 @@
                                                         <tr class="text-xs text-slate-700 dark:text-slate-300">
                                                             <td class="px-4 py-2">{{ $detailRow['label'] }}</td>
                                                             <td x-show="columnVisible('total')" class="px-4 py-2 text-right font-semibold">{{ fmt_number($detailRow['total']) }} &euro;</td>
-                                                            @foreach ($detailRow['monthly'] as $monthIndex => $monthValue)
+                                                            @foreach (array_values($detailRow['monthly']) as $monthIndex => $monthValue)
                                                                 <td x-show="columnVisible(@js('month:' . $expandedRows[$expandedKey]['months'][$monthIndex]['key']))" class="px-4 py-2 text-right tabular-nums {{ $monthValue != 0 ? '' : 'text-slate-300 dark:text-slate-600' }}">
                                                                     {{ $monthValue != 0 ? fmt_number($monthValue) . ' €' : '—' }}
                                                                 </td>
@@ -383,7 +383,7 @@
                                                         <tr class="text-xs text-slate-700 dark:text-slate-300">
                                                             <td class="px-4 py-2">{{ $detailRow['label'] }}</td>
                                                             <td x-show="columnVisible('total')" class="px-4 py-2 text-right font-semibold">{{ fmt_number($detailRow['total']) }} &euro;</td>
-                                                            @foreach ($detailRow['monthly'] as $monthIndex => $monthValue)
+                                                            @foreach (array_values($detailRow['monthly']) as $monthIndex => $monthValue)
                                                                 <td x-show="columnVisible(@js('month:' . $expandedRows[$expandedKey]['months'][$monthIndex]['key']))" class="px-4 py-2 text-right tabular-nums {{ $monthValue != 0 ? '' : 'text-slate-300 dark:text-slate-600' }}">
                                                                     {{ $monthValue != 0 ? fmt_number($monthValue) . ' €' : '—' }}
                                                                 </td>
@@ -472,7 +472,7 @@
                                                         <tr class="text-xs text-slate-700 dark:text-slate-300">
                                                             <td class="px-4 py-2">{{ $detailRow['label'] }}</td>
                                                             <td x-show="columnVisible('total')" class="px-4 py-2 text-right font-semibold">{{ fmt_number($detailRow['total']) }} &euro;</td>
-                                                            @foreach ($detailRow['monthly'] as $yearIndex => $monthValue)
+                                                            @foreach (array_values($detailRow['monthly']) as $yearIndex => $monthValue)
                                                                 <td x-show="columnVisible(@js('year:' . $expandedRows[$expandedKey]['months'][$yearIndex]['key']))" class="px-4 py-2 text-right tabular-nums {{ $monthValue != 0 ? '' : 'text-slate-300 dark:text-slate-600' }}">
                                                                     {{ $monthValue != 0 ? fmt_number($monthValue) . ' €' : '—' }}
                                                                 </td>
