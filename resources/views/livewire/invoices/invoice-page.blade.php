@@ -69,6 +69,14 @@
                             {{ __('app.import') }}
                         </button>
                     @endcan
+                    @can('invoices.edit')
+                        <button wire:click="$dispatch('openInvoiceImportWizard', { mode: 'sync' })" class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992V4.356m-1.291 14.423a9 9 0 0 1-14.217-3.665M4.277 5.221A9 9 0 0 1 18.494 8.886M7.977 14.652H2.985v4.992" />
+                            </svg>
+                            {{ __('app.sync_excel') }}
+                        </button>
+                    @endcan
                     @can('invoices.export')
                         <button wire:click="exportToExcel" class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1.5">

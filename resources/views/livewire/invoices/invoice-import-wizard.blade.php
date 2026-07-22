@@ -4,7 +4,7 @@
         <div class="absolute inset-0 bg-black/50" wire:click="close"></div>
         <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 w-full max-w-2xl mx-4 max-h-[90vh] flex flex-col">
             <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ __('app.import_invoices') }}</h3>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ $mode === 'sync' ? __('app.sync_invoices') : __('app.import_invoices') }}</h3>
                 <div class="flex items-center space-x-4">
                     <div class="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
                         @for ($i = 1; $i <= 3; $i++)
@@ -23,7 +23,7 @@
             <div class="flex-1 overflow-y-auto p-6">
                 @if ($step === 1)
                     <div class="space-y-4">
-                        <p class="text-sm text-gray-600 dark:text-gray-400">{{ __('app.upload_excel_file') }}</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">{{ $mode === 'sync' ? __('app.upload_excel_file_sync') : __('app.upload_excel_file') }}</p>
                         <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center">
                             <input type="file" wire:model="file" accept=".csv,.xlsx,.xls,.txt,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-emerald-50 file:text-emerald-700 dark:file:bg-emerald-900/30 dark:file:text-emerald-400 hover:file:bg-emerald-100 dark:hover:file:bg-emerald-900/50">
                             @error('file') <p class="mt-2 text-xs text-red-500">{{ $message }}</p> @enderror
@@ -40,6 +40,7 @@
                         <p class="text-sm text-gray-600 dark:text-gray-400">{{ __('app.map_columns') }}</p>
                         <div class="grid grid-cols-2 gap-3">
                             @foreach ($columnMap as $field => $value)
+                                @continue($mode === 'sync' && $field === 'status')
                                 <div>
                                     <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.' . $field) }}</label>
                                     <select wire:model="columnMap.{{ $field }}" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1.5 pl-2 pr-8 focus:ring-emerald-500 focus:border-emerald-500">
@@ -51,6 +52,12 @@
                                 </div>
                             @endforeach
                         </div>
+
+                        @if ($mode === 'sync')
+                            <div class="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800 dark:border-sky-800 dark:bg-sky-900/20 dark:text-sky-300">
+                                {{ __('app.invoice_sync_status_note') }}
+                            </div>
+                        @endif
 
                         @if (count($previewRows) > 0)
                             <div class="mt-4">
@@ -83,18 +90,27 @@
                                 {{ __('app.back') }}
                             </button>
                             <button wire:click="import" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">
-                                <span wire:loading.remove wire:target="import">{{ __('app.import') }}</span>
+                                <span wire:loading.remove wire:target="import">{{ $mode === 'sync' ? __('app.sync') : __('app.import') }}</span>
                                 <span wire:loading wire:target="import">{{ __('app.loading') }}...</span>
                             </button>
                         </div>
                     </div>
                 @elseif ($step === 3)
                     <div class="space-y-4 text-center">
-                        @if ($importedCount > 0)
+                        @if ($mode === 'sync' ? ($createdCount + $updatedCount + $unchangedCount > 0) : $importedCount > 0)
                             <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-900/30">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-emerald-600 dark:text-emerald-400"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
                             </div>
-                            <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ $importedCount }} {{ __('app.invoices_imported') }}</p>
+                            @if ($mode === 'sync')
+                                <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ __('app.invoices_synced') }}</p>
+                                <div class="mt-3 flex flex-wrap justify-center gap-2 text-sm">
+                                    <span class="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">{{ $createdCount }} {{ __('app.created') }}</span>
+                                    <span class="rounded-full bg-sky-50 px-3 py-1 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">{{ $updatedCount }} {{ __('app.updated') }}</span>
+                                    <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ $unchangedCount }} {{ __('app.unchanged') }}</span>
+                                </div>
+                            @else
+                                <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ $importedCount }} {{ __('app.invoices_imported') }}</p>
+                            @endif
                         @else
                             <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-amber-100 dark:bg-amber-900/30">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-amber-600 dark:text-amber-400"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>

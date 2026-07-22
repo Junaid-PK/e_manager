@@ -3,6 +3,7 @@
 namespace App\Livewire\Invoices;
 
 use App\Services\InvoiceImportService;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -12,6 +13,8 @@ class InvoiceImportWizard extends Component
     use WithFileUploads;
 
     public bool $show = false;
+
+    public string $mode = 'import';
 
     public int $step = 1;
 
@@ -43,11 +46,19 @@ class InvoiceImportWizard extends Component
 
     public int $importedCount = 0;
 
+    public int $createdCount = 0;
+
+    public int $updatedCount = 0;
+
+    public int $unchangedCount = 0;
+
     public array $importErrors = [];
 
     #[On('openInvoiceImportWizard')]
-    public function open(): void
+    public function open(string $mode = 'import'): void
     {
+        $this->mode = $mode === 'sync' ? 'sync' : 'import';
+        Gate::authorize($this->mode === 'sync' ? 'invoices.edit' : 'invoices.create');
         $this->show = true;
         $this->resetState();
     }
@@ -66,12 +77,16 @@ class InvoiceImportWizard extends Component
         $this->previewRows = [];
         $this->columnMap = array_fill_keys(array_keys($this->columnMap), '');
         $this->importedCount = 0;
+        $this->createdCount = 0;
+        $this->updatedCount = 0;
+        $this->unchangedCount = 0;
         $this->importErrors = [];
         $this->resetValidation();
     }
 
     public function processUpload(): void
     {
+        Gate::authorize($this->mode === 'sync' ? 'invoices.edit' : 'invoices.create');
         $this->validate(['file' => 'required|file|mimetypes:text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream']);
 
         $path = $this->file->getRealPath();
@@ -86,6 +101,13 @@ class InvoiceImportWizard extends Component
 
     private function autoMapColumns(): void
     {
+        foreach ($this->headers as $index => $header) {
+            if (mb_strtolower(trim((string) $header)) === 'id') {
+                $this->columnMap['project_id'] = (string) $index;
+                break;
+            }
+        }
+
         $keywords = [
             'company' => ['empresa', 'company', 'compañia'],
             'client' => ['cliente', 'client'],
@@ -109,6 +131,9 @@ class InvoiceImportWizard extends Component
         foreach ($this->headers as $index => $header) {
             $headerLower = strtolower($header);
             foreach ($keywords as $field => $terms) {
+                if ($this->mode === 'sync' && $field === 'status') {
+                    continue;
+                }
                 if ($this->columnMap[$field] !== '') {
                     continue;
                 }
@@ -124,6 +149,7 @@ class InvoiceImportWizard extends Component
 
     public function import(): void
     {
+        Gate::authorize($this->mode === 'sync' ? 'invoices.edit' : 'invoices.create');
         $path = $this->file->getRealPath();
         $service = new InvoiceImportService;
 
@@ -132,8 +158,13 @@ class InvoiceImportWizard extends Component
             $indexMap[$field] = ($headerIndex !== '' && $headerIndex !== null) ? (int) $headerIndex : null;
         }
 
-        $result = $service->importMappedData($path, $indexMap);
+        $result = $this->mode === 'sync'
+            ? $service->syncMappedData($path, $indexMap)
+            : $service->importMappedData($path, $indexMap);
         $this->importedCount = $result['imported'];
+        $this->createdCount = $result['created'] ?? $result['imported'];
+        $this->updatedCount = $result['updated'] ?? 0;
+        $this->unchangedCount = $result['unchanged'] ?? 0;
         $this->importErrors = $result['errors'];
         $this->step = 3;
     }

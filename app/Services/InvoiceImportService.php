@@ -127,6 +127,204 @@ class InvoiceImportService
         return ['imported' => $imported, 'errors' => $errors];
     }
 
+    public function syncMappedData(string $filePath, array $columnMap): array
+    {
+        $data = Excel::toArray(null, $filePath);
+
+        if (empty($data) || empty($data[0])) {
+            return ['imported' => 0, 'created' => 0, 'updated' => 0, 'unchanged' => 0, 'errors' => []];
+        }
+
+        $rows = array_slice($data[0], 1);
+        $created = 0;
+        $updated = 0;
+        $unchanged = 0;
+        $errors = [];
+        $ownerId = (int) auth()->id();
+        $canonicalBankNames = BankAccount::query()
+            ->whereNotNull('bank_name')
+            ->where('bank_name', '!=', '')
+            ->distinct()
+            ->orderBy('bank_name')
+            ->pluck('bank_name');
+
+        foreach ($rows as $index => $row) {
+            try {
+                $mapped = $this->mapRow($row, $columnMap);
+                $invoiceNumber = trim($mapped['invoice_number'] ?? '');
+
+                if ($invoiceNumber === '') {
+                    continue;
+                }
+
+                $invoice = Invoice::query()
+                    ->where('user_id', $ownerId)
+                    ->whereRaw('LOWER(TRIM(invoice_number)) = ?', [mb_strtolower($invoiceNumber)])
+                    ->first();
+
+                $companyId = $this->mapped($columnMap, 'company')
+                    ? $this->resolveOrCreateCompany(trim($mapped['company'] ?? ''))
+                    : $invoice?->company_id;
+                $clientId = $this->mapped($columnMap, 'client')
+                    ? $this->resolveOrCreateClient(trim($mapped['client'] ?? ''))
+                    : $invoice?->client_id;
+
+                if (! $companyId || ! $clientId) {
+                    $errors[] = __('app.row').' '.($index + 2).': '.__('app.company').'/'.__('app.client').' '.__('app.required');
+
+                    continue;
+                }
+
+                $attributes = $this->syncAttributes(
+                    $mapped,
+                    $columnMap,
+                    (int) $companyId,
+                    (int) $clientId,
+                    $invoice,
+                    $canonicalBankNames,
+                );
+
+                if ($invoice) {
+                    $invoice->fill($attributes);
+
+                    if ($invoice->isDirty()) {
+                        $invoice->save();
+                        $updated++;
+                    } else {
+                        $unchanged++;
+                    }
+
+                    continue;
+                }
+
+                Invoice::create(array_merge([
+                    'user_id' => $ownerId,
+                    'company_id' => $companyId,
+                    'client_id' => $clientId,
+                    'project_id' => null,
+                    'invoice_number' => $invoiceNumber,
+                    'month' => null,
+                    'date_issued' => $this->parseDate($mapped['month'] ?? null) ?? now()->format('Y-m-d'),
+                    'date_due' => null,
+                    'bank_date' => null,
+                    'bank_name' => null,
+                    'amount' => 0,
+                    'iva_amount' => 0,
+                    'iva_rate' => 21,
+                    'retention_amount' => 0,
+                    'retention_rate' => 0,
+                    'total' => 0,
+                    'amount_paid' => 0,
+                    'amount_remaining' => 0,
+                    'status' => 'pending',
+                    'payment_type' => null,
+                ], $attributes));
+                $created++;
+            } catch (\Throwable $e) {
+                $errors[] = __('app.row').' '.($index + 2).': '.$e->getMessage();
+            }
+        }
+
+        return [
+            'imported' => $created + $updated,
+            'created' => $created,
+            'updated' => $updated,
+            'unchanged' => $unchanged,
+            'errors' => $errors,
+        ];
+    }
+
+    private function syncAttributes(
+        array $mapped,
+        array $columnMap,
+        int $companyId,
+        int $clientId,
+        ?Invoice $invoice,
+        Collection $canonicalBankNames,
+    ): array {
+        $attributes = [];
+
+        if ($this->mapped($columnMap, 'company')) {
+            $attributes['company_id'] = $companyId;
+        }
+        if ($this->mapped($columnMap, 'client')) {
+            $attributes['client_id'] = $clientId;
+        }
+        if ($this->mapped($columnMap, 'project_id')) {
+            $attributes['project_id'] = $this->resolveProjectId($mapped['project_id'] ?? null, $companyId, $clientId);
+        }
+        if ($this->mapped($columnMap, 'month')) {
+            $attributes['month'] = $this->parseMonth($mapped['month'] ?? null);
+        }
+        if ($this->mapped($columnMap, 'date_issued')) {
+            $attributes['date_issued'] = $this->parseDate($mapped['date_issued'] ?? null)
+                ?? $this->parseDate($mapped['month'] ?? null)
+                ?? $invoice?->date_issued?->format('Y-m-d')
+                ?? now()->format('Y-m-d');
+        }
+        if ($this->mapped($columnMap, 'date_due')) {
+            $attributes['date_due'] = $this->parseDate($mapped['date_due'] ?? null);
+        }
+        if ($this->mapped($columnMap, 'bank_date')) {
+            $attributes['bank_date'] = $this->parseDate($mapped['bank_date'] ?? null);
+        }
+        if ($this->mapped($columnMap, 'bank_name')) {
+            $attributes['bank_name'] = $this->resolveImportedBankName($mapped['bank_name'] ?? null, $canonicalBankNames);
+        }
+        if ($this->mapped($columnMap, 'payment_type')) {
+            $attributes['payment_type'] = $this->resolveImportedPaymentType($mapped['payment_type'] ?? null);
+        }
+
+        $amount = $this->mapped($columnMap, 'amount')
+            ? ($this->parseAmount($mapped['amount'] ?? null) ?? 0)
+            : (float) ($invoice?->amount ?? 0);
+        $ivaAmount = $this->mapped($columnMap, 'iva_amount')
+            ? ($this->parseAmount($mapped['iva_amount'] ?? null) ?? 0)
+            : (float) ($invoice?->iva_amount ?? 0);
+        $retentionAmount = $this->mapped($columnMap, 'retention_amount')
+            ? ($this->parseAmount($mapped['retention_amount'] ?? null) ?? 0)
+            : (float) ($invoice?->retention_amount ?? 0);
+
+        if ($this->mapped($columnMap, 'amount')) {
+            $attributes['amount'] = $amount;
+        }
+        if ($this->mapped($columnMap, 'iva_amount')) {
+            $attributes['iva_amount'] = $ivaAmount;
+        }
+        if ($this->mapped($columnMap, 'retention_amount')) {
+            $attributes['retention_amount'] = $retentionAmount;
+        }
+        if ($this->mapped($columnMap, 'amount') || $this->mapped($columnMap, 'iva_amount')) {
+            $attributes['iva_rate'] = $amount != 0.0 && $ivaAmount != 0.0
+                ? round(abs($ivaAmount / $amount) * 100, 2)
+                : 21;
+        }
+        if ($this->mapped($columnMap, 'amount') || $this->mapped($columnMap, 'retention_amount')) {
+            $attributes['retention_rate'] = $amount != 0.0 && $retentionAmount != 0.0
+                ? round(abs($retentionAmount / $amount) * 100, 2)
+                : 0;
+        }
+        if ($this->mapped($columnMap, 'total')) {
+            $totalRaw = $mapped['total'] ?? null;
+            $attributes['total'] = $this->isFormula($totalRaw)
+                ? round($amount + $ivaAmount - $retentionAmount, 2)
+                : ($this->parseAmount($totalRaw) ?? round($amount + $ivaAmount - $retentionAmount, 2));
+        }
+        if ($this->mapped($columnMap, 'amount_paid')) {
+            $attributes['amount_paid'] = $this->parseAmount($mapped['amount_paid'] ?? null) ?? 0;
+        }
+        if ($this->mapped($columnMap, 'amount_remaining')) {
+            $attributes['amount_remaining'] = $this->parseAmount($mapped['amount_remaining'] ?? null) ?? 0;
+        }
+
+        return $attributes;
+    }
+
+    private function mapped(array $columnMap, string $field): bool
+    {
+        return isset($columnMap[$field]) && $columnMap[$field] !== '';
+    }
+
     private function mapRow(array $row, array $columnMap): array
     {
         $mapped = [];
@@ -173,7 +371,7 @@ class InvoiceImportService
         return $client->id;
     }
 
-    private function resolveProjectId(?string $value, int $companyId): ?int
+    private function resolveProjectId(?string $value, int $companyId, ?int $clientId = null): ?int
     {
         if ($value === null || trim($value) === '') {
             return null;
@@ -194,6 +392,7 @@ class InvoiceImportService
         if (! $project) {
             $project = Project::create([
                 'company_id' => $companyId,
+                'client_id' => $clientId,
                 'name' => $value,
                 'code' => null,
                 'status' => 'active',
