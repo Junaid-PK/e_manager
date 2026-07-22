@@ -127,7 +127,7 @@
                                                 <td class="px-3 py-2 text-center">
                                                     @if (in_array($action, $actions))
                                                         <input type="checkbox"
-                                                               wire:model="rolePermissions"
+                                                               wire:model.live="rolePermissions"
                                                                value="{{ $module }}.{{ $action }}"
                                                                @if($isAdmin) disabled checked @endif
                                                                class="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 dark:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -137,6 +137,25 @@
                                                 </td>
                                             @endforeach
                                         </tr>
+                                        @if (!$isAdmin && in_array($module . '.access_all', $rolePermissions, true))
+                                            <tr wire:key="role-data-scope-{{ $editingRoleId ?? 'new' }}-{{ $module }}" class="bg-emerald-50/70 dark:bg-emerald-950/20">
+                                                <td colspan="{{ count($allActions) + 1 }}" class="px-4 py-3">
+                                                    <div class="grid gap-3 sm:grid-cols-[minmax(12rem,0.8fr)_minmax(18rem,1.5fr)] sm:items-center">
+                                                        <div>
+                                                            <label class="block text-sm font-medium text-gray-800 dark:text-gray-200">{{ __('app.accessible_user_data', ['module' => __('app.' . $module)]) }}</label>
+                                                            <p class="mt-1 text-xs text-gray-600 dark:text-gray-400">{{ __('app.accessible_user_data_help') }}</p>
+                                                        </div>
+                                                        <x-custom-select
+                                                            multiple
+                                                            :options="$dataScopeUserOptions"
+                                                            :value="$roleAccessibleUserSelections[$module] ?? '[]'"
+                                                            wire-model="roleAccessibleUserSelections.{{ $module }}"
+                                                            :placeholder="__('app.select_users')"
+                                                        />
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        @endif
                                     @endforeach
                                 </tbody>
                             </table>

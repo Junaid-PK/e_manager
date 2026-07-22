@@ -7,6 +7,7 @@ use App\Models\BankMovement;
 use App\Services\BankMovementBalanceService;
 use App\Services\CsvImportService;
 use App\Services\PdfParserService;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -55,6 +56,7 @@ class MovementImportWizard extends Component
     #[On('openImportWizard')]
     public function open(): void
     {
+        Gate::authorize('movements.create');
         $this->show = true;
         $this->resetState();
     }
@@ -82,6 +84,7 @@ class MovementImportWizard extends Component
 
     public function uploadCsv(): void
     {
+        Gate::authorize('movements.create');
         $this->validate(['csvFile' => 'required|file|mimes:csv,xlsx,xls,txt', 'bankAccountId' => 'required|exists:bank_accounts,id']);
 
         $path = $this->csvFile->getRealPath();
@@ -145,6 +148,7 @@ class MovementImportWizard extends Component
 
     public function importCsv(): void
     {
+        Gate::authorize('movements.create');
         $this->validate(['bankAccountId' => 'required|exists:bank_accounts,id']);
 
         $path = $this->csvFile->getRealPath();
@@ -169,6 +173,7 @@ class MovementImportWizard extends Component
 
     public function uploadPdf(): void
     {
+        Gate::authorize('movements.create');
         $this->validate(['pdfFile' => 'required|file|mimes:pdf', 'bankAccountId' => 'required|exists:bank_accounts,id']);
 
         $path = $this->pdfFile->getRealPath();
@@ -180,6 +185,7 @@ class MovementImportWizard extends Component
 
     public function importPdf(): void
     {
+        Gate::authorize('movements.create');
         $imported = 0;
         foreach ($this->pdfSelected as $index) {
             if (! isset($this->pdfMovements[$index])) {

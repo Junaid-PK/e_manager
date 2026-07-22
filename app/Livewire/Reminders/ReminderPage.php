@@ -7,6 +7,7 @@ use App\Livewire\Traits\WithSorting;
 use App\Models\Expense;
 use App\Models\Invoice;
 use App\Models\PaymentReminder;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -162,22 +163,7 @@ class ReminderPage extends Component
 
     public function markPaid(int $id): void
     {
-        $reminder = PaymentReminder::query();
-
-        if ($this->canAccessAllReminders()) {
-            $reminder->with([
-                'remindable' => function ($morphTo) {
-                    $morphTo->constrain([
-                        Invoice::class => fn ($q) => $q->withoutGlobalScope('ownedByUser'),
-                        Expense::class => fn ($q) => $q->withoutGlobalScope('ownedByUser'),
-                    ]);
-                },
-            ]);
-        } else {
-            $reminder->with('remindable');
-        }
-
-        $reminder = $reminder->findOrFail($id);
+        $reminder = $this->reminderQuery()->findOrFail($id);
 
         if ($reminder->remindable_type === 'App\Models\Invoice') {
             $reminder->remindable->update(['status' => 'paid']);
@@ -198,20 +184,7 @@ class ReminderPage extends Component
 
     protected function buildQuery()
     {
-        $query = PaymentReminder::query();
-
-        if ($this->canAccessAllReminders()) {
-            $query->with([
-                'remindable' => function ($morphTo) {
-                    $morphTo->constrain([
-                        Invoice::class => fn ($q) => $q->withoutGlobalScope('ownedByUser'),
-                        Expense::class => fn ($q) => $q->withoutGlobalScope('ownedByUser'),
-                    ]);
-                },
-            ]);
-        } else {
-            $query->with('remindable');
-        }
+        $query = $this->reminderQuery();
 
         if ($this->search) {
             $search = $this->search;
@@ -245,9 +218,7 @@ class ReminderPage extends Component
     protected function getRemindableItems(): \Illuminate\Support\Collection
     {
         if ($this->formRemindableType === 'invoice') {
-            $query = $this->canAccessAllReminders()
-                ? Invoice::withoutGlobalScope('ownedByUser')
-                : Invoice::query();
+            $query = $this->applyReminderDataScope(Invoice::query());
 
             return $query->orderBy('invoice_number')->get()->map(fn ($i) => [
                 'id' => $i->id,
@@ -255,14 +226,45 @@ class ReminderPage extends Component
             ]);
         }
 
-        $query = $this->canAccessAllReminders()
-            ? Expense::withoutGlobalScope('ownedByUser')
-            : Expense::query();
+        $query = $this->applyReminderDataScope(Expense::query());
 
         return $query->orderBy('description')->get()->map(fn ($e) => [
             'id' => $e->id,
             'label' => $e->description.' — '.fmt_number($e->amount).' €',
         ]);
+    }
+
+    private function reminderQuery(): Builder
+    {
+        $query = PaymentReminder::query();
+        $ownerIds = auth()->user()->accessibleOwnerIds('reminders');
+
+        if ($ownerIds !== null) {
+            $query->whereHasMorph(
+                'remindable',
+                [Invoice::class, Expense::class],
+                fn (Builder $remindableQuery) => $remindableQuery
+                    ->withoutGlobalScope('ownedByUser')
+                    ->whereIn($remindableQuery->getModel()->getTable().'.user_id', $ownerIds)
+            );
+        }
+
+        return $query->with([
+            'remindable' => function ($morphTo) {
+                $morphTo->constrain([
+                    Invoice::class => fn ($query) => $this->applyReminderDataScope($query),
+                    Expense::class => fn ($query) => $this->applyReminderDataScope($query),
+                ]);
+            },
+        ]);
+    }
+
+    private function applyReminderDataScope($query)
+    {
+        $query->withoutGlobalScope('ownedByUser');
+        auth()->user()->applyDataScope($query, 'reminders');
+
+        return $query;
     }
 
     private function resetForm(): void

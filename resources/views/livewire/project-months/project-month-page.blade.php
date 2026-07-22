@@ -297,32 +297,48 @@
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.period') }} *</label>
-                            <select wire:model="formPeriodId" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
-                                <option value="">{{ __('app.select_period') }}</option>
-                                @foreach ($periods as $period)
-                                    <option value="{{ $period->id }}">{{ $period->period_code }} — {{ $period->label }}</option>
-                                @endforeach
-                            </select>
+                            <x-custom-select
+                                wire-model="formPeriodId"
+                                :options="$periods->map(fn ($period) => [
+                                    'value' => (string) $period->id,
+                                    'label' => $period->period_code . ' — ' . $period->label,
+                                ])->all()"
+                                :value="$formPeriodId"
+                                :placeholder="__('app.select_period')"
+                            />
                             @error('formPeriodId') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.client') }} *</label>
-                            <select wire:model="formClientId" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
-                                <option value="">{{ __('app.select_client') }}</option>
-                                @foreach ($clients as $client)
-                                    <option value="{{ $client->id }}">{{ $client->name }}</option>
-                                @endforeach
-                            </select>
+                            <x-custom-select
+                                wire-model="formClientId"
+                                :options="$clients->map(fn ($client) => [
+                                    'value' => (string) $client->id,
+                                    'label' => $client->name,
+                                ])->all()"
+                                :value="$formClientId"
+                                :placeholder="__('app.select_client')"
+                            />
                             @error('formClientId') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.project') }} *</label>
-                            <select wire:model="formProjectId" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500">
-                                <option value="">{{ __('app.select_project') }}</option>
-                                @foreach ($projects as $project)
-                                    <option value="{{ $project->id }}">{{ $project->name }}</option>
-                                @endforeach
-                            </select>
+                            @if ($formClientId)
+                                <x-custom-select
+                                    wire:key="project-month-project-select-{{ $formClientId }}"
+                                    wire-model="formProjectId"
+                                    :options="$formProjects->map(fn ($project) => [
+                                        'value' => (string) $project->id,
+                                        'label' => $project->name,
+                                    ])->all()"
+                                    :value="$formProjectId"
+                                    :placeholder="$formProjects->isEmpty() ? __('app.no_projects_for_client') : __('app.select_project')"
+                                />
+                            @else
+                                <button type="button" disabled class="w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-left text-sm text-gray-400 dark:text-gray-500 cursor-not-allowed">
+                                    {{ __('app.select_client_first') }}
+                                </button>
+                            @endif
                             @error('formProjectId') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                         </div>
                     </div>

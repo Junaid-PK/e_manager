@@ -17,7 +17,7 @@ trait OwnedByAuthenticatedUser
                 return;
             }
             $user = Auth::user();
-            if ($user === null || $user->isAdmin()) {
+            if ($user === null || $user->hasRole('admin')) {
                 return;
             }
             $table = $builder->getModel()->getTable();
@@ -30,10 +30,13 @@ trait OwnedByAuthenticatedUser
                 'companies', 'clients', 'projects' => 'companies_clients',
                 default => null,
             };
-            if ($module !== null && $user->hasPermission("{$module}.access_all")) {
-                return;
+            $ownerIds = $module === null
+                ? [$user->id]
+                : $user->accessibleOwnerIds($module);
+
+            if ($ownerIds !== null) {
+                $builder->whereIn($table.'.user_id', $ownerIds);
             }
-            $builder->where($table.'.user_id', $user->id);
         });
 
         static::creating(function (Model $model) {

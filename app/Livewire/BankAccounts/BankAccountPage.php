@@ -17,6 +17,8 @@ class BankAccountPage extends Component
 
     public string $search = '';
 
+    public string $filterUserId = '';
+
     public string $formBankName = '';
 
     public string $formAccountNumber = '';
@@ -36,6 +38,16 @@ class BankAccountPage extends Component
             'formCurrency' => 'required|string|max:10',
             'formInitialBalance' => 'required|numeric',
         ];
+    }
+
+    public function mount(): void
+    {
+        $this->filterUserId = $this->canAccessAllBankAccounts() ? '' : (string) auth()->id();
+    }
+
+    private function canAccessAllBankAccounts(): bool
+    {
+        return (bool) auth()->user()?->isAdmin() || Gate::allows('bank_accounts.access_all');
     }
 
     public function create(): void
@@ -113,6 +125,10 @@ class BankAccountPage extends Component
             ->withSum('movements as total_withdrawals', 'withdrawal')
             ->withMax('movements as last_movement_date', 'date');
 
+        if ($this->filterUserId !== '') {
+            $query->where('user_id', (int) $this->filterUserId);
+        }
+
         if ($this->search) {
             $query->where(function ($q) {
                 $q->where('bank_name', 'like', "%{$this->search}%")
@@ -143,8 +159,14 @@ class BankAccountPage extends Component
 
     public function render()
     {
+        $canFilterByUser = $this->canAccessAllBankAccounts();
+
         return view('livewire.bank-accounts.bank-account-page', [
             'accounts' => $this->getAccounts(),
+            'accountUsers' => $canFilterByUser
+                ? auth()->user()->accessibleUserQuery('bank_accounts')->orderBy('name')->get(['id', 'name'])
+                : collect(),
+            'canFilterByUser' => $canFilterByUser,
         ])->layout('layouts.app');
     }
 }

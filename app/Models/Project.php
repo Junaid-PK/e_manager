@@ -14,6 +14,7 @@ class Project extends Model
     protected $fillable = [
         'user_id',
         'company_id',
+        'client_id',
         'name',
         'code',
         'description',
@@ -24,6 +25,11 @@ class Project extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(Client::class);
     }
 
     public function invoices(): HasMany

@@ -68,4 +68,23 @@ new #[Layout('layouts.guest')] class extends Component
             </x-primary-button>
         </div>
     </form>
+
+    @if (app()->environment('local'))
+        <div class="mt-6 rounded-lg border border-dashed border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+            <div class="flex items-center justify-between gap-3">
+                <div>
+                    <p class="font-medium">Local development</p>
+                    <p class="mt-1 text-amber-800">Sign in instantly as an admin developer user.</p>
+                </div>
+
+                <form method="POST" action="{{ route('developer-login') }}" class="shrink-0">
+                    @csrf
+                    <button type="submit"
+                            class="inline-flex cursor-pointer items-center rounded-md bg-gray-800 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                        Developer login
+                    </button>
+                </form>
+            </div>
+        </div>
+    @endif
 </div>

@@ -54,6 +54,15 @@
             </div>
 
             <div class="flex flex-wrap items-center gap-2">
+                @if ($canFilterByUser)
+                    <select wire:model.live="filterUserId" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 pl-3 pr-8 focus:ring-emerald-500 focus:border-emerald-500">
+                        <option value="">{{ __('app.all') }} {{ __('app.users') }}</option>
+                        @foreach ($movementUsers as $movementUser)
+                            <option value="{{ $movementUser->id }}">{{ $movementUser->name }}</option>
+                        @endforeach
+                    </select>
+                @endif
+
                 <select wire:model.live="filterBankAccountId" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 pl-3 pr-8 focus:ring-emerald-500 focus:border-emerald-500">
                     <option value="">{{ __('app.all') }} {{ __('app.bank_accounts') }}</option>
                     @foreach ($bankAccounts as $ba)
@@ -80,6 +89,11 @@
                 <div class="w-44">
                     <x-custom-select compact :options="$categoryOpts" :value="$filterCategory ?? ''" allow-custom wire-model="filterCategory" :placeholder="__('app.category')" />
                 </div>
+
+                <label class="inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-colors {{ $filterUnassigned ? 'border-amber-400 bg-amber-50 text-amber-800 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-300' : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600' }}">
+                    <input wire:model.live="filterUnassigned" type="checkbox" class="rounded border-gray-300 text-amber-600 focus:ring-amber-500 dark:border-gray-600 dark:bg-gray-700">
+                    {{ __('app.unassigned_type_or_category') }}
+                </label>
 
                 <button wire:click="clearFilters" class="inline-flex items-center px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5 mr-1">
@@ -281,7 +295,9 @@
                 <thead class="bg-gray-50 dark:bg-gray-700/50">
                     <tr>
                         <th class="w-12 px-4 py-3">
-                            <input type="checkbox" wire:model.live="selectPage" class="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 dark:bg-gray-700">
+                            @canany(['movements.edit', 'movements.delete'])
+                                <input type="checkbox" wire:model.live="selectPage" class="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 dark:bg-gray-700">
+                            @endcanany
                         </th>
                         <th wire:click="sortBy('date')" class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none group {{ $sortField === 'date' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400' }}">
                             <span class="flex items-center space-x-1">
@@ -417,7 +433,9 @@
                         @endphp
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors {{ $movement->deposit && (float) $movement->deposit > 0 ? 'border-l-4 border-l-green-500' : '' }} {{ $movement->withdrawal && (float) $movement->withdrawal > 0 ? 'border-l-4 border-l-red-500' : '' }}" wire:key="movement-{{ $movement->id }}">
                             <td class="px-4 py-3">
-                                <input type="checkbox" wire:model.live="selected" value="{{ $movement->id }}" class="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 dark:bg-gray-700">
+                                @canany(['movements.edit', 'movements.delete'])
+                                    <input type="checkbox" wire:model.live="selected" value="{{ $movement->id }}" class="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 dark:bg-gray-700">
+                                @endcanany
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap">{{ $movement->date->format('d/m/Y') }}</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ $movement->bankAccount->bank_name ?? '—' }}</td>
@@ -456,9 +474,11 @@
                                                         <p class="truncate text-xs text-emerald-700/80 dark:text-emerald-300/80">{{ $invoice['client_name'] !== '' ? $invoice['client_name'] : '—' }}</p>
                                                     </div>
                                                     @if (! empty($invoice['id']))
+                                                        @can('invoices.edit')
                                                         <a href="{{ route('invoices', ['edit' => $invoice['id']]) }}" target="_blank" rel="noopener" class="inline-flex shrink-0 items-center rounded-lg border border-emerald-300/80 px-2 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-100 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/40">
                                                             {{ __('app.edit') }}
                                                         </a>
+                                                        @endcan
                                                     @endif
                                                 </div>
                                             </div>
@@ -491,6 +511,7 @@
                             </td>
                             <td class="px-4 py-3 text-sm text-right whitespace-nowrap font-medium text-gray-900 dark:text-gray-100">{{ fmt_number($movement->running_balance ?? $movement->balance ?? 0) }} &euro;</td>
                             <td class="px-4 py-3 text-right">
+                                @canany(['movements.edit', 'movements.delete'])
                                 <div class="relative" x-data="{ open: false }" @click.outside="open = false">
                                     <button @click="open = !open" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
@@ -514,6 +535,7 @@
                                         @endcan
                                     </div>
                                 </div>
+                                @endcanany
                             </td>
                         </tr>
                     @empty

@@ -18,38 +18,73 @@
     </div>
 </x-slot>
 
-<div class="space-y-6 [--report-blue:#3f6bb3] [--report-blue-deep:#17386d] [--report-orange:#ef7f2d] [--report-cream:#f6f1e7] [--report-ink:#203047]">
-    <section class="relative overflow-hidden rounded-[28px] border border-slate-200 bg-[linear-gradient(140deg,rgba(23,56,109,0.98),rgba(63,107,179,0.94)_52%,rgba(239,127,45,0.92))] px-6 py-6 text-white shadow-[0_30px_80px_-35px_rgba(23,56,109,0.65)]">
-        <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.2),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.16),transparent_28%)]"></div>
-        <div class="relative grid gap-6 xl:grid-cols-[1.3fr_0.9fr]">
+@php
+    $monthPreferenceColumns = array_merge(
+        [['key' => 'total', 'label' => __('app.total')]],
+        array_map(fn (array $month) => ['key' => 'month:' . $month['key'], 'label' => $month['label']], $reportMonths)
+    );
+    $yearPreferenceColumns = array_merge(
+        [['key' => 'total', 'label' => __('app.total')]],
+        array_map(fn (array $year) => ['key' => 'year:' . $year['key'], 'label' => $year['label']], $reportYears)
+    );
+    $executivePreferenceRows = array_map(
+        fn (array $row) => ['key' => 'row:' . $row['key'], 'label' => $row['label']],
+        $executiveReport
+    );
+    $typePreferenceRows = array_map(
+        fn (array $row) => ['key' => 'row:' . md5($row['label']), 'label' => $row['label']],
+        $typeBreakdown
+    );
+    $typeYearPreferenceRows = array_map(
+        fn (array $row) => ['key' => 'row:' . md5($row['label']), 'label' => $row['label']],
+        $typeBreakdownByYear
+    );
+@endphp
+
+<div class="space-y-6 [--report-navy:#1e3a5f] [--report-ink:#1e293b]">
+    <section class="overflow-hidden rounded-2xl border border-slate-200 border-t-4 border-t-[color:var(--report-navy)] bg-white shadow-sm dark:border-slate-700 dark:border-t-slate-400 dark:bg-slate-900">
+        <div class="grid gap-8 px-6 py-6 xl:grid-cols-[1.3fr_0.9fr] xl:px-8 xl:py-8">
             <div>
-                <p class="text-[11px] font-semibold uppercase tracking-[0.35em] text-white/75">Executive Snapshot</p>
-                <h2 class="mt-3 max-w-3xl text-3xl font-black leading-tight tracking-tight sm:text-4xl">Monthly billing, cost and cash performance in one readable board.</h2>
-                <p class="mt-3 max-w-2xl text-sm text-white/80">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Executive Snapshot</p>
+                <h2 class="mt-3 max-w-3xl text-3xl font-black leading-tight tracking-tight text-slate-950 dark:text-white sm:text-4xl">Monthly billing, cost and cash performance in one readable board.</h2>
+                <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
                     The table below is designed for the same decision flow as your spreadsheet: revenue first, cost structure second, then margin and cash movement.
                 </p>
                 <div class="mt-5 flex flex-wrap items-center gap-3">
-                    <button wire:click="exportStatsToExcel" class="inline-flex items-center rounded-xl bg-white px-4 py-2 text-sm font-semibold text-sky-800 transition-colors hover:bg-sky-50">
+                    <button wire:click="exportStatsToExcel" class="inline-flex items-center rounded-lg bg-[color:var(--report-navy)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white">
                         {{ __('app.export') }} Excel
                     </button>
                 </div>
             </div>
-            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                <label class="rounded-2xl border border-white/20 bg-white/10 p-3 backdrop-blur">
-                    <span class="text-[11px] font-semibold uppercase tracking-[0.25em] text-white/70">{{ __('app.from') }}</span>
-                    <input type="date" wire:model.live="statsDateFrom" class="mt-2 w-full rounded-xl border-white/15 bg-white/10 text-sm text-white placeholder:text-white/40 focus:border-white/30 focus:ring-white/30">
+            <div class="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/60 sm:grid-cols-2">
+                <label>
+                    <span class="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">{{ __('app.from') }}</span>
+                    <input type="date" wire:model.live="statsDateFrom" class="mt-2 w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-slate-500 focus:ring-slate-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100">
                 </label>
-                <label class="rounded-2xl border border-white/20 bg-white/10 p-3 backdrop-blur">
-                    <span class="text-[11px] font-semibold uppercase tracking-[0.25em] text-white/70">{{ __('app.to') }}</span>
-                    <input type="date" wire:model.live="statsDateTo" class="mt-2 w-full rounded-xl border-white/15 bg-white/10 text-sm text-white placeholder:text-white/40 focus:border-white/30 focus:ring-white/30">
+                <label>
+                    <span class="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">{{ __('app.to') }}</span>
+                    <input type="date" wire:model.live="statsDateTo" class="mt-2 w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-slate-500 focus:ring-slate-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100">
+                </label>
+                <label>
+                    <span class="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">{{ __('app.specific_month') }}</span>
+                    <input type="month" wire:model.live="statsMonth" class="mt-2 w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-slate-500 focus:ring-slate-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100">
+                </label>
+                <label>
+                    <span class="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">{{ __('app.specific_year') }}</span>
+                    <select wire:model.live="statsYear" class="mt-2 w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-slate-500 focus:ring-slate-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100">
+                        <option value="">{{ __('app.select_year') }}</option>
+                        @foreach (range(now()->year, now()->year - 10) as $year)
+                            <option value="{{ $year }}">{{ $year }}</option>
+                        @endforeach
+                    </select>
                 </label>
                 @if ($users->isNotEmpty())
-                    <label class="rounded-2xl border border-white/20 bg-white/10 p-3 backdrop-blur">
-                        <span class="text-[11px] font-semibold uppercase tracking-[0.25em] text-white/70">{{ __('app.users') }}</span>
-                        <select wire:model.live="filterUserId" class="mt-2 w-full rounded-xl border-white/15 bg-white/10 text-sm text-white focus:border-white/30 focus:ring-white/30">
-                            <option value="" class="text-slate-900">{{ __('app.all') }} {{ __('app.users') }}</option>
+                    <label class="sm:col-span-2">
+                        <span class="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">{{ __('app.users') }}</span>
+                        <select wire:model.live="filterUserId" class="mt-2 w-full rounded-lg border-slate-300 bg-white text-sm text-slate-800 focus:border-slate-500 focus:ring-slate-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100">
+                            <option value="">{{ __('app.all') }} {{ __('app.users') }}</option>
                             @foreach ($users as $user)
-                                <option value="{{ $user->id }}" class="text-slate-900">{{ $user->name }}</option>
+                                <option value="{{ $user->id }}">{{ $user->name }}</option>
                             @endforeach
                         </select>
                     </label>
@@ -61,43 +96,46 @@
     <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         @foreach ($dashboardHighlights as $item)
             @php
-                $toneClasses = match ($item['tone']) {
-                    'billing' => 'border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-800/60 dark:bg-sky-950/30 dark:text-sky-100',
-                    'cost' => 'border-orange-200 bg-orange-50 text-orange-900 dark:border-orange-800/60 dark:bg-orange-950/30 dark:text-orange-100',
-                    'collected' => 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-800/60 dark:bg-emerald-950/30 dark:text-emerald-100',
-                    'outstanding' => 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-100',
-                    'positive' => 'border-emerald-200 bg-white text-slate-900 dark:border-emerald-800/60 dark:bg-slate-900 dark:text-slate-100',
-                    'negative' => 'border-rose-200 bg-white text-slate-900 dark:border-rose-800/60 dark:bg-slate-900 dark:text-slate-100',
-                    default => 'border-slate-200 bg-white text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100',
+                $valueClasses = match ($item['tone']) {
+                    'positive', 'collected' => 'text-emerald-700 dark:text-emerald-400',
+                    'negative' => 'text-rose-700 dark:text-rose-400',
+                    default => 'text-slate-950 dark:text-slate-50',
                 };
             @endphp
-            <article class="rounded-[24px] border p-5 shadow-sm {{ $toneClasses }}">
-                <p class="text-[11px] font-semibold uppercase tracking-[0.28em] opacity-70">{{ $item['label'] }}</p>
-                <p class="mt-3 text-3xl font-black tracking-tight">{{ fmt_number($item['value']) }} <span class="text-lg font-semibold opacity-60">&euro;</span></p>
-                <p class="mt-2 text-sm opacity-70">{{ $item['meta'] }}</p>
+            <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">{{ $item['label'] }}</p>
+                <p class="mt-3 text-3xl font-black tracking-tight {{ $valueClasses }}">{{ fmt_number($item['value']) }} <span class="text-lg font-semibold text-slate-400">&euro;</span></p>
+                <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">{{ $item['meta'] }}</p>
             </article>
         @endforeach
     </section>
 
     <section class="grid gap-6 xl:grid-cols-[1.7fr_0.8fr]">
-        <div class="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-            <div class="border-b border-slate-200 bg-[linear-gradient(90deg,var(--report-blue-deep),var(--report-blue))] px-5 py-4 text-white dark:border-slate-700">
-                <div class="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+        <div
+            class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
+            x-data="dashboardTablePreferences('monthly-matrix', @js(auth()->id()), @js($monthPreferenceColumns), @js($executivePreferenceRows))"
+            wire:key="dashboard-monthly-matrix-{{ md5(json_encode([$monthPreferenceColumns, $executivePreferenceRows])) }}"
+        >
+            <div class="border-b border-slate-200 border-l-4 border-l-[color:var(--report-navy)] bg-white px-5 py-4 text-slate-950 dark:border-slate-700 dark:bg-slate-900 dark:text-white">
+                <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                     <div>
-                        <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/70">Monthly Matrix</p>
+                        <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400">Monthly Matrix</p>
                         <h3 class="mt-1 text-xl font-black tracking-tight">Revenue, cost and cash by month</h3>
                     </div>
-                    <p class="text-sm text-white/75">Totals are calculated from invoices, expenses, purchase movements and bank activity inside the selected period.</p>
+                    <div class="flex flex-col items-start gap-3 lg:items-end">
+                        <p class="max-w-2xl text-sm text-slate-500 dark:text-slate-400">Totals are calculated from invoices, expenses, purchase movements and bank activity inside the selected period.</p>
+                        <x-dashboard.table-customizer button-class="border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700" />
+                    </div>
                 </div>
             </div>
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto" x-cloak>
                 <table class="min-w-full border-collapse">
                     <thead>
                         <tr class="bg-slate-100 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                             <th class="sticky left-0 z-10 border-b border-slate-200 bg-slate-100 px-4 py-3 text-left dark:border-slate-700 dark:bg-slate-800">Metric</th>
-                            <th class="border-b border-slate-200 px-4 py-3 text-right dark:border-slate-700">Total</th>
+                            <th x-show="columnVisible('total')" class="border-b border-slate-200 px-4 py-3 text-right dark:border-slate-700">Total</th>
                             @foreach ($reportMonths as $month)
-                                <th class="border-b border-slate-200 px-4 py-3 text-right dark:border-slate-700">{{ $month['label'] }}</th>
+                                <th x-show="columnVisible(@js('month:' . $month['key']))" class="border-b border-slate-200 px-4 py-3 text-right dark:border-slate-700">{{ $month['label'] }}</th>
                             @endforeach
                         </tr>
                     </thead>
@@ -108,17 +146,9 @@
                         @foreach ($executiveReport as $row)
                             @php
                                 $isEmphasis = (bool) ($row['emphasis'] ?? false);
-                                $accentRow = match ($row['accent']) {
-                                    'billing' => 'bg-sky-50/80 text-sky-950 dark:bg-sky-950/20 dark:text-sky-50',
-                                    'collected' => 'bg-emerald-50/70 text-emerald-950 dark:bg-emerald-950/20 dark:text-emerald-50',
-                                    'cost' => 'bg-orange-50/55 text-slate-800 dark:bg-orange-950/10 dark:text-slate-100',
-                                    'total-cost' => 'bg-[color:var(--report-orange)]/12 text-slate-950 dark:bg-orange-900/30 dark:text-orange-50',
-                                    'margin' => 'bg-slate-100 text-slate-950 dark:bg-slate-800 dark:text-slate-50',
-                                    'cash-in' => 'bg-cyan-50/70 text-cyan-950 dark:bg-cyan-950/15 dark:text-cyan-50',
-                                    'cash-out' => 'bg-rose-50/70 text-rose-950 dark:bg-rose-950/15 dark:text-rose-50',
-                                    'delta' => 'bg-violet-50/70 text-violet-950 dark:bg-violet-950/15 dark:text-violet-50',
-                                    default => 'bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100',
-                                };
+                                $accentRow = $isEmphasis
+                                    ? 'bg-slate-100 text-slate-950 dark:bg-slate-800 dark:text-slate-50'
+                                    : 'bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100';
                                 $expandedKey = 'executive_' . $row['key'];
                                 $isExpanded = isset($expandedRows[$expandedKey]);
 
@@ -151,7 +181,7 @@
                                 $displayedMonthlyByKey[$row['key']] = $displayMonthly;
                                 $displayTotal = round(array_sum($displayMonthly), 2);
                             @endphp
-                            <tr class="border-b border-slate-200 text-sm dark:border-slate-700 {{ $accentRow }} cursor-pointer hover:opacity-80 transition-opacity"
+                            <tr x-show="rowVisible(@js('row:' . $row['key']))" class="border-b border-slate-200 text-sm dark:border-slate-700 {{ $accentRow }} cursor-pointer hover:opacity-80 transition-opacity"
                                 wire:click="toggleExecutiveRow('{{ $row['key'] }}')">
                                 <th class="sticky left-0 z-10 border-r border-slate-200 px-4 py-3 text-left font-semibold dark:border-slate-700 {{ $accentRow }}">
                                     <div class="flex items-center gap-2">
@@ -162,24 +192,24 @@
                                         {{ $row['label'] }}
                                     </div>
                                 </th>
-                                <td class="px-4 py-3 text-right font-bold {{ $isEmphasis ? 'text-base' : '' }}">{{ fmt_number($displayTotal) }} &euro;</td>
-                                @foreach ($displayMonthly as $value)
-                                    <td class="px-4 py-3 text-right tabular-nums {{ $isEmphasis ? 'font-semibold' : '' }}">
+                                <td x-show="columnVisible('total')" class="px-4 py-3 text-right font-bold {{ $isEmphasis ? 'text-base' : '' }}">{{ fmt_number($displayTotal) }} &euro;</td>
+                                @foreach ($displayMonthly as $monthIndex => $value)
+                                    <td x-show="columnVisible(@js('month:' . $reportMonths[$monthIndex]['key']))" class="px-4 py-3 text-right tabular-nums {{ $isEmphasis ? 'font-semibold' : '' }}">
                                         {{ fmt_number($value) }} &euro;
                                     </td>
                                 @endforeach
                             </tr>
                             @if ($isExpanded)
-                                <tr class="border-b border-slate-200 dark:border-slate-700">
-                                    <td colspan="{{ count($reportMonths) + 2 }}" class="px-0 py-0">
+                                <tr x-show="rowVisible(@js('row:' . $row['key']))" class="border-b border-slate-200 dark:border-slate-700">
+                                    <td :colspan="visibleColumnCount() + 1" class="px-0 py-0">
                                         <div class="bg-slate-50/80 dark:bg-slate-800/50 overflow-x-auto">
                                             <table class="min-w-full">
                                                 <thead>
                                                     <tr class="bg-slate-100/50 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800/50 dark:text-slate-400">
                                                         <th class="px-4 py-2 text-left">{{ __('app.description') }}</th>
-                                                        <th class="px-4 py-2 text-right">{{ __('app.total') }}</th>
+                                                        <th x-show="columnVisible('total')" class="px-4 py-2 text-right">{{ __('app.total') }}</th>
                                                         @foreach ($expandedRows[$expandedKey]['months'] as $m)
-                                                            <th class="px-4 py-2 text-right">{{ $m['label'] }}</th>
+                                                            <th x-show="columnVisible(@js('month:' . $m['key']))" class="px-4 py-2 text-right">{{ $m['label'] }}</th>
                                                         @endforeach
                                                     </tr>
                                                 </thead>
@@ -187,9 +217,9 @@
                                                     @foreach ($expandedRows[$expandedKey]['rows'] as $detailRow)
                                                         <tr class="text-xs text-slate-700 dark:text-slate-300">
                                                             <td class="px-4 py-2">{{ $detailRow['label'] }}</td>
-                                                            <td class="px-4 py-2 text-right font-semibold">{{ fmt_number($detailRow['total']) }} &euro;</td>
-                                                            @foreach ($detailRow['monthly'] as $monthValue)
-                                                                <td class="px-4 py-2 text-right tabular-nums {{ $monthValue != 0 ? '' : 'text-slate-300 dark:text-slate-600' }}">
+                                                            <td x-show="columnVisible('total')" class="px-4 py-2 text-right font-semibold">{{ fmt_number($detailRow['total']) }} &euro;</td>
+                                                            @foreach ($detailRow['monthly'] as $monthIndex => $monthValue)
+                                                                <td x-show="columnVisible(@js('month:' . $expandedRows[$expandedKey]['months'][$monthIndex]['key']))" class="px-4 py-2 text-right tabular-nums {{ $monthValue != 0 ? '' : 'text-slate-300 dark:text-slate-600' }}">
                                                                     {{ $monthValue != 0 ? fmt_number($monthValue) . ' €' : '—' }}
                                                                 </td>
                                                             @endforeach
@@ -208,13 +238,13 @@
         </div>
 
         <div class="space-y-6">
-            <div class="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400">Liquidity</p>
                         <h3 class="mt-1 text-xl font-black tracking-tight text-slate-900 dark:text-slate-50">{{ __('app.total_bank_balance') }}</h3>
                     </div>
-                    <a href="{{ route('bank-accounts') }}" class="text-sm font-medium text-sky-700 hover:text-sky-800 dark:text-sky-400">Open</a>
+                    <a href="{{ route('bank-accounts') }}" class="text-sm font-medium text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white">Open</a>
                 </div>
                 <p class="mt-4 text-3xl font-black tracking-tight text-slate-900 dark:text-slate-50">{{ fmt_number($totalBankBalance) }} <span class="text-lg font-semibold text-slate-400">&euro;</span></p>
                 <div class="mt-5 space-y-3">
@@ -228,25 +258,25 @@
                                 <span class="tabular-nums text-slate-500 dark:text-slate-400">{{ fmt_number($account->current_balance) }} &euro;</span>
                             </div>
                             <div class="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                                <div class="h-full rounded-full {{ $account->current_balance >= 0 ? 'bg-emerald-500' : 'bg-rose-500' }}" style="width: {{ $pct }}%"></div>
+                                <div class="h-full rounded-full {{ $account->current_balance >= 0 ? 'bg-slate-700 dark:bg-slate-300' : 'bg-rose-500' }}" style="width: {{ $pct }}%"></div>
                             </div>
                         </div>
                     @endforeach
                 </div>
             </div>
 
-            <div class="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400">Action Rail</p>
                         <h3 class="mt-1 text-xl font-black tracking-tight text-slate-900 dark:text-slate-50">{{ __('app.overdue_invoices') }}</h3>
                     </div>
-                    <a href="{{ route('invoices') }}" class="text-sm font-medium text-sky-700 hover:text-sky-800 dark:text-sky-400">Open</a>
+                    <a href="{{ route('invoices') }}" class="text-sm font-medium text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white">Open</a>
                 </div>
                 @if ($overdueInvoices->count())
                     <div class="mt-4 space-y-3">
                         @foreach ($overdueInvoices as $inv)
-                            <div class="rounded-2xl border border-rose-200 bg-rose-50/80 p-3 dark:border-rose-900/40 dark:bg-rose-950/20">
+                            <div class="rounded-xl border border-slate-200 border-l-2 border-l-rose-500 bg-slate-50 p-3 dark:border-slate-700 dark:border-l-rose-500 dark:bg-slate-800/60">
                                 <div class="flex items-start justify-between gap-3">
                                     <div class="min-w-0">
                                         <p class="truncate text-sm font-semibold text-slate-900 dark:text-slate-50">{{ $inv->client?->name ?? '—' }}</p>
@@ -254,7 +284,7 @@
                                     </div>
                                     <span class="shrink-0 text-sm font-bold text-rose-600 dark:text-rose-400">{{ fmt_number($inv->amount_remaining) }} &euro;</span>
                                 </div>
-                                <button wire:click="quickMarkPaid({{ $inv->id }})" class="mt-3 inline-flex items-center rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-700">
+                                <button wire:click="quickMarkPaid({{ $inv->id }})" class="mt-3 inline-flex items-center rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-slate-700 dark:bg-slate-200 dark:text-slate-900 dark:hover:bg-white">
                                     {{ __('app.mark_as_paid') }}
                                 </button>
                             </div>
@@ -287,19 +317,28 @@
 
     <section class="grid gap-6 xl:grid-cols-1">
 
-        <div class="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-            <div class="border-b border-slate-200 bg-purple-400 px-5 py-4 text-slate-950 dark:border-slate-700">
-                <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-900/70">Cost Structure</p>
-                <h3 class="mt-1 text-xl font-black tracking-tight">Types lines by month</h3>
+        <div
+            class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
+            x-data="dashboardTablePreferences('types-by-month', @js(auth()->id()), @js($monthPreferenceColumns), @js($typePreferenceRows))"
+            wire:key="dashboard-types-by-month-{{ md5(json_encode([$monthPreferenceColumns, $typePreferenceRows])) }}"
+        >
+            <div class="border-b border-slate-200 border-l-4 border-l-[color:var(--report-navy)] bg-white px-5 py-4 text-slate-950 dark:border-slate-700 dark:bg-slate-900 dark:text-white">
+                <div class="flex items-end justify-between gap-4">
+                    <div>
+                        <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400">Cost Structure</p>
+                        <h3 class="mt-1 text-xl font-black tracking-tight">Types lines by month</h3>
+                    </div>
+                    <x-dashboard.table-customizer button-class="border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700" />
+                </div>
             </div>
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto" x-cloak>
                 <table class="min-w-full border-collapse">
                     <thead>
                         <tr class="bg-slate-100 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                             <th class="sticky left-0 z-10 border-b border-slate-200 bg-slate-100 px-4 py-3 text-left dark:border-slate-700 dark:bg-slate-800">{{ __('app.type') }}</th>
-                            <th class="border-b border-slate-200 px-4 py-3 text-right dark:border-slate-700">Total</th>
+                            <th x-show="columnVisible('total')" class="border-b border-slate-200 px-4 py-3 text-right dark:border-slate-700">Total</th>
                             @foreach ($reportMonths as $month)
-                                <th class="border-b border-slate-200 px-4 py-3 text-right dark:border-slate-700">{{ $month['label'] }}</th>
+                                <th x-show="columnVisible(@js('month:' . $month['key']))" class="border-b border-slate-200 px-4 py-3 text-right dark:border-slate-700">{{ $month['label'] }}</th>
                             @endforeach
                         </tr>
                     </thead>
@@ -309,7 +348,7 @@
                                 $expandedKey = 'type_' . md5($row['label']);
                                 $isExpanded = isset($expandedRows[$expandedKey]);
                             @endphp
-                            <tr class="border-b border-slate-200 text-sm text-slate-800 dark:border-slate-700 dark:text-slate-100 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                            <tr x-show="rowVisible(@js('row:' . md5($row['label'])))" class="border-b border-slate-200 text-sm text-slate-800 dark:border-slate-700 dark:text-slate-100 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                                 wire:click="toggleTypeRow('{{ addslashes($row['label']) }}')">
                                 <th class="sticky left-0 z-10 border-r border-slate-200 bg-white px-4 py-3 text-left font-medium dark:border-slate-700 dark:bg-slate-900">
                                     <div class="flex items-center gap-2">
@@ -320,22 +359,22 @@
                                         {{ $row['label'] }}
                                     </div>
                                 </th>
-                                <td class="px-4 py-3 text-right font-semibold">{{ fmt_number($row['total']) }} &euro;</td>
-                                @foreach ($row['monthly'] as $value)
-                                    <td class="px-4 py-3 text-right tabular-nums {{ $value != 0 ? '' : 'text-slate-300 dark:text-slate-600' }}">{{ $value != 0 ? fmt_number($value) . ' €' : '—' }}</td>
+                                <td x-show="columnVisible('total')" class="px-4 py-3 text-right font-semibold">{{ fmt_number($row['total']) }} &euro;</td>
+                                @foreach ($row['monthly'] as $monthIndex => $value)
+                                    <td x-show="columnVisible(@js('month:' . $reportMonths[$monthIndex]['key']))" class="px-4 py-3 text-right tabular-nums {{ $value != 0 ? '' : 'text-slate-300 dark:text-slate-600' }}">{{ $value != 0 ? fmt_number($value) . ' €' : '—' }}</td>
                                 @endforeach
                             </tr>
                             @if ($isExpanded)
-                                <tr class="border-b border-slate-200 dark:border-slate-700">
-                                    <td colspan="{{ count($reportMonths) + 2 }}" class="px-0 py-0">
-                                        <div class="bg-amber-50/30 dark:bg-amber-950/10 overflow-x-auto">
+                                <tr x-show="rowVisible(@js('row:' . md5($row['label'])))" class="border-b border-slate-200 dark:border-slate-700">
+                                    <td :colspan="visibleColumnCount() + 1" class="px-0 py-0">
+                                        <div class="overflow-x-auto bg-slate-50/80 dark:bg-slate-800/50">
                                             <table class="min-w-full">
                                                 <thead>
-                                                    <tr class="bg-amber-100/30 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-amber-900/20 dark:text-slate-400">
+                                                    <tr class="bg-slate-100/70 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                                                         <th class="px-4 py-2 text-left">{{ __('app.description') }}</th>
-                                                        <th class="px-4 py-2 text-right">{{ __('app.total') }}</th>
+                                                        <th x-show="columnVisible('total')" class="px-4 py-2 text-right">{{ __('app.total') }}</th>
                                                         @foreach ($expandedRows[$expandedKey]['months'] as $m)
-                                                            <th class="px-4 py-2 text-right">{{ $m['label'] }}</th>
+                                                            <th x-show="columnVisible(@js('month:' . $m['key']))" class="px-4 py-2 text-right">{{ $m['label'] }}</th>
                                                         @endforeach
                                                     </tr>
                                                 </thead>
@@ -343,9 +382,9 @@
                                                     @foreach ($expandedRows[$expandedKey]['rows'] as $detailRow)
                                                         <tr class="text-xs text-slate-700 dark:text-slate-300">
                                                             <td class="px-4 py-2">{{ $detailRow['label'] }}</td>
-                                                            <td class="px-4 py-2 text-right font-semibold">{{ fmt_number($detailRow['total']) }} &euro;</td>
-                                                            @foreach ($detailRow['monthly'] as $monthValue)
-                                                                <td class="px-4 py-2 text-right tabular-nums {{ $monthValue != 0 ? '' : 'text-slate-300 dark:text-slate-600' }}">
+                                                            <td x-show="columnVisible('total')" class="px-4 py-2 text-right font-semibold">{{ fmt_number($detailRow['total']) }} &euro;</td>
+                                                            @foreach ($detailRow['monthly'] as $monthIndex => $monthValue)
+                                                                <td x-show="columnVisible(@js('month:' . $expandedRows[$expandedKey]['months'][$monthIndex]['key']))" class="px-4 py-2 text-right tabular-nums {{ $monthValue != 0 ? '' : 'text-slate-300 dark:text-slate-600' }}">
                                                                     {{ $monthValue != 0 ? fmt_number($monthValue) . ' €' : '—' }}
                                                                 </td>
                                                             @endforeach
@@ -359,7 +398,7 @@
                             @endif
                         @empty
                             <tr>
-                                <td colspan="{{ count($reportMonths) + 2 }}" class="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400">{{ __('app.no_results') }}</td>
+                                <td :colspan="visibleColumnCount() + 1" class="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400">{{ __('app.no_results') }}</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -367,19 +406,28 @@
             </div>
         </div>
 
-        <div class="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-            <div class="border-b border-slate-200 bg-purple-400 px-5 py-4 text-slate-950 dark:border-slate-700">
-                <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-900/70">Cost Structure</p>
-                <h3 class="mt-1 text-xl font-black tracking-tight">Types lines by year</h3>
+        <div
+            class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
+            x-data="dashboardTablePreferences('types-by-year', @js(auth()->id()), @js($yearPreferenceColumns), @js($typeYearPreferenceRows))"
+            wire:key="dashboard-types-by-year-{{ md5(json_encode([$yearPreferenceColumns, $typeYearPreferenceRows])) }}"
+        >
+            <div class="border-b border-slate-200 border-l-4 border-l-[color:var(--report-navy)] bg-white px-5 py-4 text-slate-950 dark:border-slate-700 dark:bg-slate-900 dark:text-white">
+                <div class="flex items-end justify-between gap-4">
+                    <div>
+                        <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400">Cost Structure</p>
+                        <h3 class="mt-1 text-xl font-black tracking-tight">Types lines by year</h3>
+                    </div>
+                    <x-dashboard.table-customizer button-class="border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700" />
+                </div>
             </div>
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto" x-cloak>
                 <table class="min-w-full border-collapse">
                     <thead>
                         <tr class="bg-slate-100 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                             <th class="sticky left-0 z-10 border-b border-slate-200 bg-slate-100 px-4 py-3 text-left dark:border-slate-700 dark:bg-slate-800">{{ __('app.type') }}</th>
-                            <th class="border-b border-slate-200 px-4 py-3 text-right dark:border-slate-700">Total</th>
+                            <th x-show="columnVisible('total')" class="border-b border-slate-200 px-4 py-3 text-right dark:border-slate-700">Total</th>
                             @foreach ($reportYears as $year)
-                                <th class="border-b border-slate-200 px-4 py-3 text-right dark:border-slate-700">{{ $year['label'] }}</th>
+                                <th x-show="columnVisible(@js('year:' . $year['key']))" class="border-b border-slate-200 px-4 py-3 text-right dark:border-slate-700">{{ $year['label'] }}</th>
                             @endforeach
                         </tr>
                     </thead>
@@ -389,7 +437,7 @@
                                 $expandedKey = 'type_year_' . md5($row['label']);
                                 $isExpanded = isset($expandedRows[$expandedKey]);
                             @endphp
-                            <tr class="border-b border-slate-200 text-sm text-slate-800 dark:border-slate-700 dark:text-slate-100 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                            <tr x-show="rowVisible(@js('row:' . md5($row['label'])))" class="border-b border-slate-200 text-sm text-slate-800 dark:border-slate-700 dark:text-slate-100 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                                 wire:click="toggleTypeYearRow('{{ addslashes($row['label']) }}')">
                                 <th class="sticky left-0 z-10 border-r border-slate-200 bg-white px-4 py-3 text-left font-medium dark:border-slate-700 dark:bg-slate-900">
                                     <div class="flex items-center gap-2">
@@ -400,22 +448,22 @@
                                         {{ $row['label'] }}
                                     </div>
                                 </th>
-                                <td class="px-4 py-3 text-right font-semibold">{{ fmt_number($row['total']) }} &euro;</td>
-                                @foreach ($row['monthly'] as $value)
-                                    <td class="px-4 py-3 text-right tabular-nums {{ $value != 0 ? '' : 'text-slate-300 dark:text-slate-600' }}">{{ $value != 0 ? fmt_number($value) . ' €' : '—' }}</td>
+                                <td x-show="columnVisible('total')" class="px-4 py-3 text-right font-semibold">{{ fmt_number($row['total']) }} &euro;</td>
+                                @foreach ($row['monthly'] as $yearIndex => $value)
+                                    <td x-show="columnVisible(@js('year:' . $reportYears[$yearIndex]['key']))" class="px-4 py-3 text-right tabular-nums {{ $value != 0 ? '' : 'text-slate-300 dark:text-slate-600' }}">{{ $value != 0 ? fmt_number($value) . ' €' : '—' }}</td>
                                 @endforeach
                             </tr>
                             @if ($isExpanded)
-                                <tr class="border-b border-slate-200 dark:border-slate-700">
-                                    <td colspan="{{ count($reportYears) + 2 }}" class="px-0 py-0">
-                                        <div class="bg-amber-50/30 dark:bg-amber-950/10 overflow-x-auto">
+                                <tr x-show="rowVisible(@js('row:' . md5($row['label'])))" class="border-b border-slate-200 dark:border-slate-700">
+                                    <td :colspan="visibleColumnCount() + 1" class="px-0 py-0">
+                                        <div class="overflow-x-auto bg-slate-50/80 dark:bg-slate-800/50">
                                             <table class="min-w-full">
                                                 <thead>
-                                                    <tr class="bg-amber-100/30 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-amber-900/20 dark:text-slate-400">
+                                                    <tr class="bg-slate-100/70 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                                                         <th class="px-4 py-2 text-left">{{ __('app.description') }}</th>
-                                                        <th class="px-4 py-2 text-right">{{ __('app.total') }}</th>
+                                                        <th x-show="columnVisible('total')" class="px-4 py-2 text-right">{{ __('app.total') }}</th>
                                                         @foreach ($expandedRows[$expandedKey]['months'] as $m)
-                                                            <th class="px-4 py-2 text-right">{{ $m['label'] }}</th>
+                                                            <th x-show="columnVisible(@js('year:' . $m['key']))" class="px-4 py-2 text-right">{{ $m['label'] }}</th>
                                                         @endforeach
                                                     </tr>
                                                 </thead>
@@ -423,9 +471,9 @@
                                                     @foreach ($expandedRows[$expandedKey]['rows'] as $detailRow)
                                                         <tr class="text-xs text-slate-700 dark:text-slate-300">
                                                             <td class="px-4 py-2">{{ $detailRow['label'] }}</td>
-                                                            <td class="px-4 py-2 text-right font-semibold">{{ fmt_number($detailRow['total']) }} &euro;</td>
-                                                            @foreach ($detailRow['monthly'] as $monthValue)
-                                                                <td class="px-4 py-2 text-right tabular-nums {{ $monthValue != 0 ? '' : 'text-slate-300 dark:text-slate-600' }}">
+                                                            <td x-show="columnVisible('total')" class="px-4 py-2 text-right font-semibold">{{ fmt_number($detailRow['total']) }} &euro;</td>
+                                                            @foreach ($detailRow['monthly'] as $yearIndex => $monthValue)
+                                                                <td x-show="columnVisible(@js('year:' . $expandedRows[$expandedKey]['months'][$yearIndex]['key']))" class="px-4 py-2 text-right tabular-nums {{ $monthValue != 0 ? '' : 'text-slate-300 dark:text-slate-600' }}">
                                                                     {{ $monthValue != 0 ? fmt_number($monthValue) . ' €' : '—' }}
                                                                 </td>
                                                             @endforeach
@@ -439,7 +487,7 @@
                             @endif
                         @empty
                             <tr>
-                                <td colspan="{{ count($reportYears) + 2 }}" class="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400">{{ __('app.no_results') }}</td>
+                                <td :colspan="visibleColumnCount() + 1" class="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400">{{ __('app.no_results') }}</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -449,3 +497,86 @@
     </section>
 
 </div>
+
+@once
+    <script>
+        if (!window.dashboardTablePreferences) {
+            window.dashboardTablePreferences = (tableKey, userId, columns, rows) => ({
+                tableKey,
+                userId,
+                columns,
+                rows,
+                open: false,
+                hiddenColumns: [],
+                hiddenRows: [],
+
+                init() {
+                    try {
+                        const stored = JSON.parse(localStorage.getItem(this.storageKey()) || '{}');
+                        this.hiddenColumns = Array.isArray(stored.hiddenColumns)
+                            ? stored.hiddenColumns.filter(key => typeof key === 'string')
+                            : [];
+                        this.hiddenRows = Array.isArray(stored.hiddenRows)
+                            ? stored.hiddenRows.filter(key => typeof key === 'string')
+                            : [];
+                    } catch (error) {
+                        this.hiddenColumns = [];
+                        this.hiddenRows = [];
+                    }
+                },
+
+                storageKey() {
+                    return `dashboardTablePreferences:v1:${this.userId}:${this.tableKey}`;
+                },
+
+                columnVisible(key) {
+                    return !this.hiddenColumns.includes(key);
+                },
+
+                rowVisible(key) {
+                    return !this.hiddenRows.includes(key);
+                },
+
+                visibleColumnCount() {
+                    return this.columns.filter(column => this.columnVisible(column.key)).length;
+                },
+
+                toggleColumn(key) {
+                    this.hiddenColumns = this.columnVisible(key)
+                        ? [...this.hiddenColumns, key]
+                        : this.hiddenColumns.filter(hiddenKey => hiddenKey !== key);
+                    this.persist();
+                },
+
+                toggleRow(key) {
+                    this.hiddenRows = this.rowVisible(key)
+                        ? [...this.hiddenRows, key]
+                        : this.hiddenRows.filter(hiddenKey => hiddenKey !== key);
+                    this.persist();
+                },
+
+                reset() {
+                    this.hiddenColumns = [];
+                    this.hiddenRows = [];
+                    this.persist();
+                },
+
+                saveAndClose() {
+                    this.persist();
+                    this.open = false;
+                },
+
+                persist() {
+                    try {
+                        localStorage.setItem(this.storageKey(), JSON.stringify({
+                            hiddenColumns: this.hiddenColumns,
+                            hiddenRows: this.hiddenRows,
+                        }));
+                    } catch (error) {
+                        // Browser privacy settings can disable local storage; the table still works for this visit.
+                    }
+                },
+            });
+        }
+    </script>
+@endonce

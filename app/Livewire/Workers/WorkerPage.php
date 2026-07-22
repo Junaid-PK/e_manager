@@ -6,6 +6,7 @@ use App\Exports\WorkerExport;
 use App\Livewire\Traits\WithBulkActions;
 use App\Livewire\Traits\WithFiltering;
 use App\Livewire\Traits\WithSorting;
+use App\Models\AppSetting;
 use App\Models\Worker;
 use App\Services\WorkerImportService;
 use Illuminate\Support\Facades\Gate;
@@ -32,11 +33,17 @@ class WorkerPage extends Component
 
     public string $formFullName = '';
 
+    public string $formRole = 'peon';
+
     public string $formNie = '';
 
     public string $formBankAccount = '';
 
     public string $formRate = '0';
+
+    public string $peonSocialSecurityRate = '25';
+
+    public string $expertSocialSecurityRate = '25';
 
     public $importFile = null;
 
@@ -54,6 +61,7 @@ class WorkerPage extends Component
     {
         $rules = [
             'formFullName' => 'required|string|max:255',
+            'formRole' => 'required|in:peon,expert',
             'formNie' => 'nullable|string|max:50',
             'formBankAccount' => 'nullable|string|max:255',
             'formRate' => 'nullable|numeric|min:0',
@@ -91,6 +99,7 @@ class WorkerPage extends Component
 
         Worker::create([
             'full_name' => $this->formFullName,
+            'role' => $this->formRole,
             'nie' => $this->formNie ?: null,
             'bank_account' => $this->formBankAccount ?: null,
             'rate' => (float) ($this->formRate ?: 0),
@@ -106,6 +115,7 @@ class WorkerPage extends Component
         $worker = Worker::findOrFail($id);
         $this->editingId = $id;
         $this->formFullName = $worker->full_name;
+        $this->formRole = $worker->role;
         $this->formNie = $worker->nie ?? '';
         $this->formBankAccount = $worker->bank_account ?? '';
         $this->formRate = (string) $worker->rate;
@@ -132,6 +142,7 @@ class WorkerPage extends Component
 
         $data = [
             'full_name' => $this->formFullName,
+            'role' => $this->formRole,
             'nie' => $this->formNie ?: null,
             'bank_account' => $this->formBankAccount ?: null,
             'rate' => (float) ($this->formRate ?: 0),
@@ -207,6 +218,17 @@ class WorkerPage extends Component
         $worker->save();
     }
 
+    public function quickUpdateRole(int $id, string $role): void
+    {
+        Gate::authorize('workers.edit');
+
+        if (! in_array($role, ['peon', 'expert'], true)) {
+            return;
+        }
+
+        Worker::findOrFail($id)->update(['role' => $role]);
+    }
+
     public function confirmDelete(int $id): void
     {
         $this->editingId = $id;
@@ -272,6 +294,8 @@ class WorkerPage extends Component
             $lower = mb_strtolower(trim($header));
             if (str_contains($lower, 'name') || str_contains($lower, 'nombre') || str_contains($lower, 'full')) {
                 $map['full_name'] = $idx;
+            } elseif (str_contains($lower, 'role') || str_contains($lower, 'rol') || str_contains($lower, 'worker type') || str_contains($lower, 'tipo trabajador')) {
+                $map['role'] = $idx;
             } elseif (str_contains($lower, 'nie') || str_contains($lower, 'dni') || str_contains($lower, 'nif')) {
                 $map['nie'] = $idx;
             } elseif (str_contains($lower, 'bank') || str_contains($lower, 'cuenta') || str_contains($lower, 'iban')) {
@@ -325,10 +349,33 @@ class WorkerPage extends Component
     {
         $this->editingId = null;
         $this->formFullName = '';
+        $this->formRole = 'peon';
         $this->formNie = '';
         $this->formBankAccount = '';
         $this->formRate = '0';
         $this->resetValidation();
+    }
+
+    public function mount(): void
+    {
+        $this->peonSocialSecurityRate = (string) AppSetting::socialSecurityRate('peon');
+        $this->expertSocialSecurityRate = (string) AppSetting::socialSecurityRate('expert');
+    }
+
+    public function saveSocialSecurityRate(): void
+    {
+        Gate::authorize('workers.edit');
+
+        $this->validate([
+            'peonSocialSecurityRate' => 'required|numeric|min:0|max:100',
+            'expertSocialSecurityRate' => 'required|numeric|min:0|max:100',
+        ]);
+
+        AppSetting::setSocialSecurityRates(
+            (float) $this->peonSocialSecurityRate,
+            (float) $this->expertSocialSecurityRate
+        );
+        $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
 
     public function render()
@@ -347,6 +394,7 @@ class WorkerPage extends Component
             $search = $this->search;
             $query->where(function ($q) use ($search) {
                 $q->where('full_name', 'like', "%{$search}%")
+                    ->orWhere('role', 'like', "%{$search}%")
                     ->orWhere('nie', 'like', "%{$search}%")
                     ->orWhere('bank_account', 'like', "%{$search}%");
             });

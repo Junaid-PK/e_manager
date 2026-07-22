@@ -215,6 +215,7 @@ class InvoicePage extends Component
 
     public function create(): void
     {
+        Gate::authorize('invoices.create');
         $this->resetForm();
         $this->editingId = null;
         $this->editingPaidInvoice = false;
@@ -223,6 +224,7 @@ class InvoicePage extends Component
 
     public function edit(int $id): void
     {
+        Gate::authorize('invoices.edit');
         $invoice = Invoice::findOrFail($id);
         $this->editingId = $id;
         $this->editingPaidInvoice = $invoice->status === 'paid';
@@ -317,6 +319,7 @@ class InvoicePage extends Component
 
     public function confirmDelete(int $id): void
     {
+        Gate::authorize('invoices.delete');
         $this->editingId = $id;
         $this->showDeleteModal = true;
     }
@@ -342,6 +345,7 @@ class InvoicePage extends Component
 
     public function duplicate(int $id): void
     {
+        Gate::authorize('invoices.create');
         $invoice = Invoice::findOrFail($id);
         $this->resetForm();
         $this->editingId = null;
@@ -367,6 +371,7 @@ class InvoicePage extends Component
 
     public function quickUpdateBankDate(int $id, string $date): void
     {
+        Gate::authorize('invoices.edit');
         $invoice = Invoice::findOrFail($id);
         $resolved = trim($date) ?: null;
 
@@ -383,6 +388,7 @@ class InvoicePage extends Component
 
     public function quickUpdatePaidDate(int $id, string $date): void
     {
+        Gate::authorize('invoices.edit');
         $invoice = Invoice::findOrFail($id);
         $resolved = trim($date) ?: null;
 
@@ -399,6 +405,7 @@ class InvoicePage extends Component
 
     public function quickUpdatePaymentType(int $id, string $type): void
     {
+        Gate::authorize('invoices.edit');
         $invoice = Invoice::findOrFail($id);
 
         if ($invoice->status === 'paid') {
@@ -440,6 +447,7 @@ class InvoicePage extends Component
 
     public function quickUpdateBankName(int $id, string $name): void
     {
+        Gate::authorize('invoices.edit');
         $invoice = Invoice::findOrFail($id);
 
         if ($invoice->status === 'paid') {
@@ -464,6 +472,7 @@ class InvoicePage extends Component
 
     public function quickUpdateAmountPaid(int $id, string $value): void
     {
+        Gate::authorize('invoices.edit');
         $invoice = Invoice::findOrFail($id);
 
         if ($invoice->status === 'paid') {
@@ -481,6 +490,7 @@ class InvoicePage extends Component
 
     public function quickUpdateProjectText(int $id, string $text): void
     {
+        Gate::authorize('invoices.edit');
         $invoice = Invoice::findOrFail($id);
 
         if ($invoice->status === 'paid') {
@@ -542,6 +552,7 @@ class InvoicePage extends Component
 
     public function quickStatusUpdate(int $id, string $status): void
     {
+        Gate::authorize('invoices.edit');
         $invoice = Invoice::findOrFail($id);
 
         if ($invoice->status === 'paid') {
@@ -564,6 +575,7 @@ class InvoicePage extends Component
 
     public function bulkStatusUpdate(): void
     {
+        Gate::authorize('invoices.edit');
         if ($this->bulkStatus && count($this->selected) > 0) {
             Invoice::whereIn('id', $this->selected)->update(['status' => $this->bulkStatus]);
             $this->showStatusModal = false;
@@ -575,6 +587,7 @@ class InvoicePage extends Component
 
     public function openQuickClientForm(): void
     {
+        $this->authorizeInvoiceFormAccess();
         $this->quickClientName = '';
         $this->quickClientEmail = '';
         $this->quickClientPhone = '';
@@ -584,6 +597,7 @@ class InvoicePage extends Component
 
     public function saveQuickClient(): void
     {
+        $this->authorizeInvoiceFormAccess();
         $this->validate([
             'quickClientName' => 'required|string|max:255',
             'quickClientEmail' => 'nullable|email|max:255',
@@ -605,6 +619,7 @@ class InvoicePage extends Component
 
     public function openQuickCompanyForm(): void
     {
+        $this->authorizeInvoiceFormAccess();
         $this->quickCompanyName = '';
         $this->quickCompanyTaxId = '';
         $this->quickCompanyEmail = '';
@@ -613,6 +628,7 @@ class InvoicePage extends Component
 
     public function saveQuickCompany(): void
     {
+        $this->authorizeInvoiceFormAccess();
         $this->validate([
             'quickCompanyName' => 'required|string|max:255',
             'quickCompanyTaxId' => 'nullable|string|max:50',
@@ -632,6 +648,7 @@ class InvoicePage extends Component
 
     public function openReminderModal(int $invoiceId): void
     {
+        Gate::authorize('reminders.create');
         $this->reminderInvoiceId = $invoiceId;
         $this->reminderDate = now()->addDays(3)->format('Y-m-d');
         $this->reminderMessage = '';
@@ -640,6 +657,7 @@ class InvoicePage extends Component
 
     public function saveReminder(): void
     {
+        Gate::authorize('reminders.create');
         $this->validate([
             'reminderDate' => 'required|date|after_or_equal:today',
             'reminderMessage' => 'nullable|string|max:1000',
@@ -659,6 +677,11 @@ class InvoicePage extends Component
         $this->showReminderModal = false;
         $this->reminderInvoiceId = null;
         $this->dispatch('notify', type: 'success', message: __('app.created_successfully'));
+    }
+
+    private function authorizeInvoiceFormAccess(): void
+    {
+        Gate::authorize($this->editingId ? 'invoices.edit' : 'invoices.create');
     }
 
     public function clearFilters(): void
@@ -980,7 +1003,7 @@ class InvoicePage extends Component
     public function render()
     {
         $invoiceUsers = $this->canAccessAllInvoices()
-            ? User::query()->orderBy('name')->get(['id', 'name'])
+            ? auth()->user()->accessibleUserQuery('invoices')->orderBy('name')->get(['id', 'name'])
             : User::query()->whereKey(auth()->id())->get(['id', 'name']);
 
         return view('livewire.invoices.invoice-page', [

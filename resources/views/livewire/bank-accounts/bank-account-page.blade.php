@@ -4,16 +4,27 @@
 
 <div>
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <div class="relative flex-1 max-w-sm">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-gray-400">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-                </svg>
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2 flex-1">
+            <div class="relative flex-1 max-w-sm">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-gray-400">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                    </svg>
+                </div>
+                <input wire:model.live.debounce.300ms="search"
+                       type="text"
+                       placeholder="{{ __('app.search') }}"
+                       class="block w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-emerald-500 focus:border-emerald-500">
             </div>
-            <input wire:model.live.debounce.300ms="search"
-                   type="text"
-                   placeholder="{{ __('app.search') }}"
-                   class="block w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-emerald-500 focus:border-emerald-500">
+
+            @if ($canFilterByUser)
+                <select wire:model.live="filterUserId" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-2 pl-3 pr-8 focus:ring-emerald-500 focus:border-emerald-500">
+                    <option value="">{{ __('app.all') }} {{ __('app.users') }}</option>
+                    @foreach ($accountUsers as $accountUser)
+                        <option value="{{ $accountUser->id }}">{{ $accountUser->name }}</option>
+                    @endforeach
+                </select>
+            @endif
         </div>
         @can('bank_accounts.create')
             <button wire:click="create" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors">

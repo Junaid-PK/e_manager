@@ -5,6 +5,7 @@ namespace App\Livewire\CompaniesClients;
 use App\Livewire\Traits\WithBulkActions;
 use App\Livewire\Traits\WithFiltering;
 use App\Livewire\Traits\WithSorting;
+use App\Models\Client;
 use App\Models\Company;
 use App\Models\Project;
 use Illuminate\Support\Facades\Gate;
@@ -23,6 +24,8 @@ class ProjectTable extends Component
 
     public string $formCompanyId = '';
 
+    public string $formClientId = '';
+
     public string $formName = '';
 
     public string $formCode = '';
@@ -37,6 +40,7 @@ class ProjectTable extends Component
     {
         return [
             'formCompanyId' => 'required|exists:companies,id',
+            'formClientId' => 'nullable|exists:clients,id',
             'formName' => 'required|string|max:255',
             'formCode' => 'nullable|string|max:100',
             'formDescription' => 'nullable|string|max:1000',
@@ -57,6 +61,7 @@ class ProjectTable extends Component
         $project = Project::findOrFail($id);
         $this->editingId = $id;
         $this->formCompanyId = (string) $project->company_id;
+        $this->formClientId = (string) ($project->client_id ?? '');
         $this->formName = $project->name;
         $this->formCode = $project->code ?? '';
         $this->formDescription = $project->description ?? '';
@@ -77,6 +82,7 @@ class ProjectTable extends Component
 
         $data = [
             'company_id' => $this->formCompanyId,
+            'client_id' => $this->formClientId ?: null,
             'name' => $this->formName,
             'code' => $this->formCode ?: null,
             'description' => $this->formDescription ?: null,
@@ -133,7 +139,7 @@ class ProjectTable extends Component
 
     protected function buildQuery()
     {
-        $query = Project::query()->with('company:id,name');
+        $query = Project::query()->with(['company:id,name', 'client:id,name']);
 
         if ($this->search) {
             $query->where(function ($q) {
@@ -141,6 +147,9 @@ class ProjectTable extends Component
                     ->orWhere('code', 'like', "%{$this->search}%")
                     ->orWhere('location', 'like', "%{$this->search}%")
                     ->orWhereHas('company', function ($cq) {
+                        $cq->where('name', 'like', "%{$this->search}%");
+                    })
+                    ->orWhereHas('client', function ($cq) {
                         $cq->where('name', 'like', "%{$this->search}%");
                     });
             });
@@ -157,6 +166,7 @@ class ProjectTable extends Component
     private function resetForm(): void
     {
         $this->formCompanyId = '';
+        $this->formClientId = '';
         $this->formName = '';
         $this->formCode = '';
         $this->formDescription = '';
@@ -170,6 +180,7 @@ class ProjectTable extends Component
         return view('livewire.companies-clients.project-table', [
             'projects' => $this->getProjects(),
             'companies' => Company::orderBy('name')->get(['id', 'name']),
+            'clients' => Client::orderBy('name')->get(['id', 'name']),
         ]);
     }
 }

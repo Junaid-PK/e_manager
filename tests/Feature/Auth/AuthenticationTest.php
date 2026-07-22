@@ -54,6 +54,37 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_developer_login_option_is_hidden_outside_local_environment(): void
+    {
+        $this->get('/login')
+            ->assertOk()
+            ->assertDontSee('Developer login');
+    }
+
+    public function test_developer_login_creates_admin_user_in_local_environment(): void
+    {
+        $this->app->detectEnvironment(fn () => 'local');
+
+        $this->withSession(['_token' => 'test-token'])
+            ->post(route('developer-login'), ['_token' => 'test-token'])
+            ->assertRedirect(route('dashboard', absolute: false));
+
+        $user = User::where('email', 'developer@example.com')->first();
+
+        $this->assertAuthenticatedAs($user);
+        $this->assertTrue($user->isAdmin());
+    }
+
+    public function test_developer_login_action_is_blocked_outside_local_environment(): void
+    {
+        $this->withSession(['_token' => 'test-token'])
+            ->post(route('developer-login'), ['_token' => 'test-token'])
+            ->assertNotFound();
+
+        $this->assertGuest();
+        $this->assertDatabaseMissing('users', ['email' => 'developer@example.com']);
+    }
+
     public function test_navigation_menu_can_be_rendered(): void
     {
         $user = User::factory()->create();

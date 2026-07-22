@@ -4,6 +4,7 @@ namespace App\Livewire\Roles;
 
 use App\Models\Permission;
 use App\Models\Role;
+use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
@@ -15,6 +16,8 @@ class RolesPage extends Component
     public string $roleName = '';
 
     public array $rolePermissions = [];
+
+    public array $roleAccessibleUserSelections = [];
 
     public ?int $confirmingDeleteId = null;
 
@@ -60,10 +63,17 @@ class RolesPage extends Component
 
     public function editRole(int $id): void
     {
-        $role = Role::with('permissions')->findOrFail($id);
+        $role = Role::with(['permissions', 'moduleAccessibleUsers:id'])->findOrFail($id);
         $this->editingRoleId = $id;
         $this->roleName = $role->name;
         $this->rolePermissions = $role->permissions->pluck('name')->toArray();
+        $this->roleAccessibleUserSelections = $role->moduleAccessibleUsers
+            ->groupBy(fn (User $user) => $user->pivot->module)
+            ->map(fn ($users) => $users->pluck('id')
+                ->map(fn ($id) => (string) $id)
+                ->values()
+                ->toJson())
+            ->all();
         $this->showFormModal = true;
     }
 
@@ -73,7 +83,12 @@ class RolesPage extends Component
             'roleName' => 'required|string|max:255|unique:roles,name',
         ]);
 
-        Role::create(['name' => $this->roleName]);
+        DB::transaction(function () {
+            $role = Role::create(['name' => $this->roleName]);
+            $this->syncRoleConfiguration($role);
+        });
+
+        Cache::forget('permissions');
 
         $this->resetForm();
         $this->showFormModal = false;
@@ -100,18 +115,7 @@ class RolesPage extends Component
             $role->name = $this->roleName;
             $role->save();
 
-            // Older databases may miss newly added permission rows; create selected ones on demand.
-            $selectedPermissions = collect($this->rolePermissions)
-                ->filter(fn ($name) => is_string($name) && $name !== '')
-                ->unique()
-                ->values();
-
-            foreach ($selectedPermissions as $permissionName) {
-                Permission::firstOrCreate(['name' => $permissionName]);
-            }
-
-            $permissionIds = Permission::whereIn('name', $selectedPermissions)->pluck('id');
-            $role->permissions()->sync($permissionIds);
+            $this->syncRoleConfiguration($role);
         });
 
         Cache::forget('permissions');
@@ -160,7 +164,52 @@ class RolesPage extends Component
         $this->editingRoleId = null;
         $this->roleName = '';
         $this->rolePermissions = [];
+        $this->roleAccessibleUserSelections = [];
         $this->resetValidation();
+    }
+
+    private function syncRoleConfiguration(Role $role): void
+    {
+        // Older databases may miss newly added permission rows; create selected ones on demand.
+        $selectedPermissions = collect($this->rolePermissions)
+            ->filter(fn ($name) => is_string($name) && $name !== '')
+            ->unique()
+            ->values();
+
+        foreach ($selectedPermissions as $permissionName) {
+            Permission::firstOrCreate(['name' => $permissionName]);
+        }
+
+        $permissionIds = Permission::whereIn('name', $selectedPermissions)->pluck('id');
+        $role->permissions()->sync($permissionIds);
+
+        DB::table('role_module_accessible_user')->where('role_id', $role->id)->delete();
+
+        $selectedPermissions
+            ->filter(fn (string $permission) => str_ends_with($permission, '.access_all'))
+            ->map(fn (string $permission) => str($permission)->beforeLast('.')->toString())
+            ->each(fn (string $module) => $role->syncAccessibleUsersForModule(
+                $module,
+                $this->selectedAccessibleUserIds($module)
+            ));
+    }
+
+    /** @return list<int> */
+    private function selectedAccessibleUserIds(string $module): array
+    {
+        $decoded = json_decode($this->roleAccessibleUserSelections[$module] ?? '[]', true);
+
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        $ids = collect($decoded)
+            ->filter(fn ($id) => is_int($id) || (is_string($id) && ctype_digit($id)))
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        return User::query()->whereKey($ids)->pluck('id')->map(fn ($id) => (int) $id)->all();
     }
 
     public function render()
@@ -169,6 +218,14 @@ class RolesPage extends Component
             'roles' => Role::withCount('users')->orderBy('name')->get(),
             'permissionMatrix' => $this->getPermissionMatrix(),
             'allActions' => ['view', 'create', 'edit', 'delete', 'export', 'access_all', 'payment_summary', 'retention'],
+            'dataScopeUserOptions' => User::query()
+                ->orderBy('name')
+                ->get(['id', 'name', 'email'])
+                ->map(fn (User $user) => [
+                    'value' => (string) $user->id,
+                    'label' => $user->name.' — '.$user->email,
+                ])
+                ->all(),
         ])->layout('layouts.app');
     }
 }

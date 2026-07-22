@@ -206,7 +206,9 @@
                 <thead class="bg-gray-50 dark:bg-gray-700/50">
                     <tr>
                         <th class="w-12 px-4 py-3">
-                            <input type="checkbox" wire:model.live="selectPage" class="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 dark:bg-gray-700">
+                            @canany(['invoices.edit', 'invoices.delete'])
+                                <input type="checkbox" wire:model.live="selectPage" class="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 dark:bg-gray-700">
+                            @endcanany
                         </th>
                         <th wire:click="sortBy('invoice_number')" class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none group {{ $sortField === 'invoice_number' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400' }}">
                             <span class="flex items-center space-x-1">
@@ -334,7 +336,9 @@
                         @endphp
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors {{ $isDuplicate ? 'bg-red-50 dark:bg-red-900/20' : '' }}" wire:key="invoice-{{ $invoice->id }}">
                             <td class="px-4 py-3">
-                                <input type="checkbox" wire:model.live="selected" value="{{ $invoice->id }}" class="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 dark:bg-gray-700">
+                                @canany(['invoices.edit', 'invoices.delete'])
+                                    <input type="checkbox" wire:model.live="selected" value="{{ $invoice->id }}" class="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 dark:bg-gray-700">
+                                @endcanany
                             </td>
                             <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">{{ $invoice->invoice_number }}</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 max-w-[220px]">
@@ -368,7 +372,7 @@
                             @endphp
                             <td class="px-4 py-3" x-data="{ statusOpen: false }" @click.outside="statusOpen = false">
                                 <div class="relative">
-                                    @if ($isPaid)
+                                    @if ($isPaid || \Illuminate\Support\Facades\Gate::denies('invoices.edit'))
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $statusColors[$invoice->status] ?? $statusColors['pending'] }}">
                                             {{ __('app.'.$invoice->status) }}
                                         </span>
@@ -386,7 +390,7 @@
                                 </div>
                             </td>
                             <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[8rem] align-top">
-                                @if ($isPaid)
+                                @if ($isPaid || \Illuminate\Support\Facades\Gate::denies('invoices.edit'))
                                     <span class="text-gray-400 dark:text-gray-500">{{ $invoice->payment_type ? __('app.'.$invoice->payment_type) : '—' }}</span>
                                 @else
                                     <x-custom-select compact
@@ -402,7 +406,7 @@
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-sm whitespace-nowrap min-w-[9rem] align-top">
-                                @if ($isPaid)
+                                @if ($isPaid || \Illuminate\Support\Facades\Gate::denies('invoices.edit'))
                                     <span class="text-gray-400 dark:text-gray-500">{{ $invoice->bank_name ?? '—' }}</span>
                                 @else
                                     <x-custom-select compact
@@ -418,27 +422,31 @@
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
-                                <div x-data="{ editing: false, val: '{{ $invoice->paid_date?->format('Y-m-d') ?? '' }}' }" class="flex items-center justify-end gap-1">
-                                    <template x-if="!editing">
-                                        <span class="text-gray-500 dark:text-gray-400" x-text="val ? new Date(val).toLocaleDateString('es-ES', {day:'2-digit',month:'2-digit',year:'numeric'}) : '—'"></span>
-                                    </template>
-                                    <template x-if="editing">
-                                        <input type="date" x-ref="paidDateInput" x-model="val"
-                                               @keydown.enter="editing = false; $wire.call('quickUpdatePaidDate', {{ $invoice->id }}, val)"
-                                               @blur="editing = false; $wire.call('quickUpdatePaidDate', {{ $invoice->id }}, val)"
-                                               @keydown.escape="editing = false"
-                                               class="w-32 text-xs border border-emerald-400 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500">
-                                    </template>
-                                    <button @click="editing = true; $nextTick(() => { if ($refs.paidDateInput) $refs.paidDateInput.focus(); })"
-                                            class="text-gray-300 hover:text-emerald-500 dark:text-gray-600 dark:hover:text-emerald-400 transition-colors flex-shrink-0">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
-                                        </svg>
-                                    </button>
-                                </div>
+                                @can('invoices.edit')
+                                    <div x-data="{ editing: false, val: '{{ $invoice->paid_date?->format('Y-m-d') ?? '' }}' }" class="flex items-center justify-end gap-1">
+                                        <template x-if="!editing">
+                                            <span class="text-gray-500 dark:text-gray-400" x-text="val ? new Date(val).toLocaleDateString('es-ES', {day:'2-digit',month:'2-digit',year:'numeric'}) : '—'"></span>
+                                        </template>
+                                        <template x-if="editing">
+                                            <input type="date" x-ref="paidDateInput" x-model="val"
+                                                   @keydown.enter="editing = false; $wire.call('quickUpdatePaidDate', {{ $invoice->id }}, val)"
+                                                   @blur="editing = false; $wire.call('quickUpdatePaidDate', {{ $invoice->id }}, val)"
+                                                   @keydown.escape="editing = false"
+                                                   class="w-32 text-xs border border-emerald-400 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500">
+                                        </template>
+                                        <button @click="editing = true; $nextTick(() => { if ($refs.paidDateInput) $refs.paidDateInput.focus(); })"
+                                                class="text-gray-300 hover:text-emerald-500 dark:text-gray-600 dark:hover:text-emerald-400 transition-colors flex-shrink-0">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                @else
+                                    <span class="text-gray-500 dark:text-gray-400">{{ $invoice->paid_date?->format('d/m/Y') ?? '—' }}</span>
+                                @endcan
                             </td>
                             <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
-                                @if ($isPaid)
+                                @if ($isPaid || \Illuminate\Support\Facades\Gate::denies('invoices.edit'))
                                     <span class="{{ (float) $invoice->amount_paid > 0 ? 'text-green-600 dark:text-green-400 font-medium' : 'text-gray-400' }}">{{ fmt_number($invoice->amount_paid ?? 0) }} €</span>
                                 @else
                                     <div x-data="{ editing: false, val: '{{ addslashes(fmt_number($invoice->amount_paid ?? 0)) }}' }" class="flex items-center justify-end gap-1">
@@ -473,6 +481,7 @@
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->date_due?->format('d/m/Y') ?? '—' }}</td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $invoice->bank_date?->format('d/m/Y') ?? '—' }}</td>
                             <td class="px-4 py-3 text-right">
+                                @canany(['invoices.edit', 'invoices.create', 'invoices.delete', 'reminders.create'])
                                 <div class="relative" x-data="{ open: false }" @click.outside="open = false">
                                     <button @click="open = !open" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
@@ -507,6 +516,7 @@
                                         @endcan
                                     </div>
                                 </div>
+                                @endcanany
                             </td>
                         </tr>
                     @empty

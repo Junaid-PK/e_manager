@@ -6,6 +6,7 @@ use App\Exports\WorkerProjectEntryExport;
 use App\Livewire\Traits\WithBulkActions;
 use App\Livewire\Traits\WithFiltering;
 use App\Livewire\Traits\WithSorting;
+use App\Models\AppSetting;
 use App\Models\MonthlyPeriod;
 use App\Models\ProjectMonth;
 use App\Models\Worker;
@@ -73,6 +74,7 @@ class WorkerProjectEntryPage extends Component
             $worker = Worker::find($this->formWorkerId);
             if ($worker) {
                 $this->formRate = (string) $worker->rate;
+                $this->calculateFormValues();
             }
         }
     }
@@ -83,11 +85,7 @@ class WorkerProjectEntryPage extends Component
             return;
         }
 
-        $hours = (float) ($this->formHours ?: 0);
-        $rate = (float) ($this->formRate ?: 0);
-
-        $this->formDays = (string) round($hours / 8, 2);
-        $this->formSocialSecurity = (string) round($hours * $rate * 0.25, 2);
+        $this->calculateFormValues();
     }
 
     public function updatedFormRate(): void
@@ -96,10 +94,17 @@ class WorkerProjectEntryPage extends Component
             return;
         }
 
+        $this->calculateFormValues();
+    }
+
+    private function calculateFormValues(): void
+    {
         $hours = (float) ($this->formHours ?: 0);
         $rate = (float) ($this->formRate ?: 0);
+        $socialSecurityRate = $this->workerSocialSecurityRate($this->formWorkerId);
 
-        $this->formSocialSecurity = (string) round($hours * $rate * 0.25, 2);
+        $this->formDays = (string) round($hours / 9, 2);
+        $this->formSocialSecurity = (string) round($hours * $rate * ($socialSecurityRate / 100), 2);
     }
 
     public function updatedBulkRows($value, $key): void
@@ -110,18 +115,21 @@ class WorkerProjectEntryPage extends Component
 
         [$index, $field] = explode('.', $key, 2);
 
-        if (! in_array($field, ['hours', 'rate'], true) || ! isset($this->bulkRows[$index])) {
+        if (! in_array($field, ['worker_id', 'hours', 'rate'], true) || ! isset($this->bulkRows[$index])) {
             return;
+        }
+
+        if ($field === 'worker_id') {
+            $worker = Worker::find($value);
+            $this->bulkRows[$index]['rate'] = (string) ($worker?->rate ?? 0);
         }
 
         $hours = (float) ($this->bulkRows[$index]['hours'] ?? 0);
         $rate = (float) ($this->bulkRows[$index]['rate'] ?? 0);
+        $socialSecurityRate = $this->workerSocialSecurityRate($this->bulkRows[$index]['worker_id'] ?? '');
 
-        if ($field === 'hours') {
-            $this->bulkRows[$index]['days'] = (string) round($hours / 8, 2);
-        }
-
-        $this->bulkRows[$index]['social_security'] = (string) round($hours * $rate * 0.25, 2);
+        $this->bulkRows[$index]['days'] = (string) round($hours / 9, 2);
+        $this->bulkRows[$index]['social_security'] = (string) round($hours * $rate * ($socialSecurityRate / 100), 2);
     }
 
     public function selectWorker(string $workerId): void
@@ -130,6 +138,7 @@ class WorkerProjectEntryPage extends Component
         $worker = Worker::find($workerId);
         if ($worker) {
             $this->formRate = (string) $worker->rate;
+            $this->calculateFormValues();
         }
     }
 
@@ -248,7 +257,26 @@ class WorkerProjectEntryPage extends Component
         }
 
         $row->{$field} = $numericValue;
+
+        if (in_array($field, ['hours', 'rate'], true)) {
+            $socialSecurityRate = AppSetting::socialSecurityRate($row->worker?->role ?? 'peon');
+            $row->social_security = round(
+                (float) $row->hours * (float) $row->rate * ($socialSecurityRate / 100),
+                2
+            );
+            $row->days = round((float) $row->hours / 9, 2);
+        }
+
         $row->save();
+    }
+
+    private function workerSocialSecurityRate(string $workerId): float
+    {
+        $workerRole = $workerId !== ''
+            ? (Worker::find($workerId)?->role ?? 'peon')
+            : 'peon';
+
+        return AppSetting::socialSecurityRate($workerRole);
     }
 
     public function confirmDelete(int $id): void

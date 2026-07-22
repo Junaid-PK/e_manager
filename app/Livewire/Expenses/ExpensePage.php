@@ -122,43 +122,29 @@ class ExpensePage extends Component
 
     private function expenseQuery()
     {
-        $query = Expense::query();
-
-        if ($this->canAccessAllExpenses()) {
-            $query->withoutGlobalScope('ownedByUser');
-        }
-
-        return $query;
+        return $this->applyExpenseDataScope(Expense::query());
     }
 
     private function movementQuery()
     {
-        $query = BankMovement::query();
-
-        if ($this->canAccessAllExpenses()) {
-            $query->withoutGlobalScope('ownedByUser');
-        }
-
-        return $query;
+        return $this->applyExpenseDataScope(BankMovement::query());
     }
 
     private function companyQuery()
     {
-        $query = Company::query();
-
-        if ($this->canAccessAllExpenses()) {
-            $query->withoutGlobalScope('ownedByUser');
-        }
-
-        return $query;
+        return $this->applyExpenseDataScope(Company::query());
     }
 
     private function bankAccountQuery()
     {
-        $query = BankAccount::query();
+        return $this->applyExpenseDataScope(BankAccount::query());
+    }
 
+    private function applyExpenseDataScope($query)
+    {
         if ($this->canAccessAllExpenses()) {
             $query->withoutGlobalScope('ownedByUser');
+            auth()->user()->applyDataScope($query, 'expenses');
         }
 
         return $query;
@@ -1128,7 +1114,7 @@ class ExpensePage extends Component
             ? new EloquentCollection
             : $this->expenseQuery()
                 ->with([
-                    'company' => fn ($q) => $this->canAccessAllExpenses() ? $q->withoutGlobalScope('ownedByUser') : $q,
+                    'company' => fn ($q) => $this->applyExpenseDataScope($q),
                 ])
                 ->whereIn('id', $expenseIds)
                 ->get()
@@ -1138,7 +1124,7 @@ class ExpensePage extends Component
             ? new EloquentCollection
             : $this->movementQuery()
                 ->with([
-                    'bankAccount' => fn ($q) => $this->canAccessAllExpenses() ? $q->withoutGlobalScope('ownedByUser') : $q,
+                    'bankAccount' => fn ($q) => $this->applyExpenseDataScope($q),
                 ])
                 ->whereIn('id', $movementIds)
                 ->get()
@@ -1160,7 +1146,7 @@ class ExpensePage extends Component
     public function render()
     {
         $userOptions = $this->canAccessAllExpenses()
-            ? User::query()->orderBy('name')->get()
+            ? auth()->user()->accessibleUserQuery('expenses')->orderBy('name')->get()
             : User::query()->whereKey(auth()->id())->get();
 
         return view('livewire.expenses.expense-page', [

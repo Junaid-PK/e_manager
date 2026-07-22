@@ -2,6 +2,7 @@
 
 namespace App\Livewire\ProjectMonths;
 
+use App\Models\AppSetting;
 use App\Models\ProjectMonth;
 use App\Models\Worker;
 use App\Models\WorkerProjectEntry;
@@ -78,10 +79,17 @@ class ProjectMonthDetailPage extends Component
     {
         $hours = (float) ($this->formHours ?: 0);
         $rate = (float) ($this->formRate ?: 0);
+        $workerRole = $this->formWorkerId
+            ? (Worker::find($this->formWorkerId)?->role ?? 'peon')
+            : 'peon';
+        $socialSecurityRate = AppSetting::socialSecurityRate($workerRole);
 
         if ($hours > 0) {
-            $this->formDays = (string) round($hours / 8, 2);
-            $this->formSocialSecurity = (string) round($hours * $rate * 0.25, 2);
+            $this->formDays = (string) round($hours / 9, 2);
+            $this->formSocialSecurity = (string) round($hours * $rate * ($socialSecurityRate / 100), 2);
+        } else {
+            $this->formDays = '0';
+            $this->formSocialSecurity = '0';
         }
     }
 
@@ -137,6 +145,16 @@ class ProjectMonthDetailPage extends Component
         }
 
         $entry->{$field} = $numericValue;
+
+        if (in_array($field, ['hours', 'rate'], true)) {
+            $socialSecurityRate = AppSetting::socialSecurityRate($entry->worker?->role ?? 'peon');
+            $entry->social_security = round(
+                (float) $entry->hours * (float) $entry->rate * ($socialSecurityRate / 100),
+                2
+            );
+            $entry->days = round((float) $entry->hours / 9, 2);
+        }
+
         $entry->save();
     }
 

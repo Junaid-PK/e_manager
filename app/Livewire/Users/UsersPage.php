@@ -36,7 +36,7 @@ class UsersPage extends Component
 
     public function editUser(int $id): void
     {
-        $user = User::with('roles')->findOrFail($id);
+        $user = $this->userQuery()->with('roles')->findOrFail($id);
         $this->editingUserId = $id;
         $this->name = $user->name;
         $this->email = $user->email;
@@ -73,7 +73,7 @@ class UsersPage extends Component
             'email' => 'required|email|max:255|unique:users,email,'.$this->editingUserId,
         ]);
 
-        $user = User::findOrFail($this->editingUserId);
+        $user = $this->userQuery()->findOrFail($this->editingUserId);
         $user->name = $this->name;
         $user->email = $this->email;
 
@@ -98,7 +98,7 @@ class UsersPage extends Component
 
     public function deleteUser(int $id): void
     {
-        $user = User::with('roles')->findOrFail($id);
+        $user = $this->userQuery()->with('roles')->findOrFail($id);
 
         // Sole-admin guard
         if ($user->isAdmin()) {
@@ -122,7 +122,7 @@ class UsersPage extends Component
 
     public function assignRoles(int $userId, array $roleIds): void
     {
-        $user = User::findOrFail($userId);
+        $user = $this->userQuery()->findOrFail($userId);
         $user->roles()->sync($roleIds);
     }
 
@@ -139,8 +139,13 @@ class UsersPage extends Component
     public function render()
     {
         return view('livewire.users.users-page', [
-            'users' => User::with('roles')->paginate(10),
+            'users' => $this->userQuery()->with('roles')->paginate(10),
             'allRoles' => Role::orderBy('name')->get(),
         ])->layout('layouts.app');
+    }
+
+    private function userQuery()
+    {
+        return auth()->user()->accessibleUserQuery('users');
     }
 }

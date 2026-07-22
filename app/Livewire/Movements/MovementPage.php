@@ -61,6 +61,10 @@ class MovementPage extends Component
 
     public string $filterCategory = '';
 
+    public bool $filterUnassigned = false;
+
+    public string $filterUserId = '';
+
     public string $dateFrom = '';
 
     public string $dateTo = '';
@@ -96,6 +100,8 @@ class MovementPage extends Component
             $this->sortField = 'date';
             $this->sortDirection = 'desc';
         }
+
+        $this->filterUserId = $this->canAccessAllMovements() ? '' : (string) auth()->id();
     }
 
     private function canAccessAllMovements(): bool
@@ -125,6 +131,12 @@ class MovementPage extends Component
         $this->resetPage();
     }
 
+    public function updatedFilterUserId(): void
+    {
+        $this->filterBankAccountId = '';
+        $this->resetPage();
+    }
+
     public function updatedFilterType(): void
     {
         $this->filterCategory = '';
@@ -143,6 +155,7 @@ class MovementPage extends Component
 
     public function openBillInvoiceModal(): void
     {
+        $this->authorizeMovementFormAccess();
         $this->invoiceSelectionMode = $this->invoiceSelectionModeForType($this->formType);
         $this->showBillInvoiceModal = true;
     }
@@ -154,6 +167,8 @@ class MovementPage extends Component
 
     public function applyInlineBillPayment(): void
     {
+        Gate::authorize('movements.edit');
+
         if ($this->invoiceSelectionMode === 'retention') {
             $this->applyInlineRetentionPayment();
 
@@ -250,6 +265,7 @@ class MovementPage extends Component
 
     public function toggleInvoiceSelection(int $id): void
     {
+        $this->authorizeMovementFormAccess();
         $idx = array_search($id, $this->selectedInvoiceIds, true);
         if ($idx === false) {
             $this->selectedInvoiceIds[] = $id;
@@ -261,6 +277,7 @@ class MovementPage extends Component
 
     public function selectAllPendingInvoices(): void
     {
+        $this->authorizeMovementFormAccess();
         $this->selectedInvoiceIds = $this->getPendingInvoiceIds();
     }
 
@@ -271,6 +288,7 @@ class MovementPage extends Component
 
     public function removeSelectedInvoice(int $id): void
     {
+        $this->authorizeMovementFormAccess();
         $this->selectedInvoiceIds = array_values(array_filter(
             $this->selectedInvoiceIds,
             fn (int $selectedId): bool => $selectedId !== $id
@@ -310,6 +328,11 @@ class MovementPage extends Component
         $this->resetPage();
     }
 
+    public function updatedFilterUnassigned(): void
+    {
+        $this->resetPage();
+    }
+
     public function updatedDateFrom(): void
     {
         $this->resetPage();
@@ -342,10 +365,12 @@ class MovementPage extends Component
     public function clearFilters(): void
     {
         $this->search = '';
+        $this->filterUserId = $this->canAccessAllMovements() ? '' : (string) auth()->id();
         $this->filterBankAccountId = '';
         $this->filterType = '';
         $this->filterDirection = 'all';
         $this->filterCategory = '';
+        $this->filterUnassigned = false;
         $this->dateFrom = '';
         $this->dateTo = '';
         $this->resetPage();
@@ -368,6 +393,7 @@ class MovementPage extends Component
 
     public function create(): void
     {
+        Gate::authorize('movements.create');
         $this->resetForm();
         $this->editingId = null;
         if ($this->filterBankAccountId) {
@@ -378,6 +404,7 @@ class MovementPage extends Component
 
     public function edit(int $id): void
     {
+        Gate::authorize('movements.edit');
         $movement = BankMovement::findOrFail($id);
         $this->editingId = $id;
         $this->formBankAccountId = (string) $movement->bank_account_id;
@@ -509,6 +536,7 @@ class MovementPage extends Component
 
     public function confirmDelete(int $id): void
     {
+        Gate::authorize('movements.delete');
         $this->editingId = $id;
         $this->showDeleteModal = true;
     }
@@ -543,6 +571,7 @@ class MovementPage extends Component
 
     public function quickUpdateType(int $id, string $type): void
     {
+        Gate::authorize('movements.edit');
         $slug = $this->resolveOrCreateMovementType(trim($type));
         $movement = BankMovement::findOrFail($id);
         $previousType = (string) $movement->type;
@@ -678,6 +707,7 @@ class MovementPage extends Component
 
     public function quickUpdateCategory(int $id, string|array $category): void
     {
+        Gate::authorize('movements.edit');
         if (is_array($category)) {
             $category = json_encode($category);
         }
@@ -698,18 +728,21 @@ class MovementPage extends Component
 
     public function editInlineType(int $id): void
     {
+        Gate::authorize('movements.edit');
         $this->editingTypeMovementId = $id;
         $this->editingCategoryMovementId = null;
     }
 
     public function editInlineCategory(int $id): void
     {
+        Gate::authorize('movements.edit');
         $this->editingCategoryMovementId = $id;
         $this->editingTypeMovementId = null;
     }
 
     public function openCategoryModal(): void
     {
+        Gate::authorize('movements.edit');
         $this->bulkCategory = '';
         $this->bulkType = '';
         $this->showCategoryModal = true;
@@ -717,6 +750,7 @@ class MovementPage extends Component
 
     public function applyCategoryToSelected(): void
     {
+        Gate::authorize('movements.edit');
         $updates = [];
 
         if (trim($this->bulkCategory ?? '') !== '') {
@@ -738,6 +772,15 @@ class MovementPage extends Component
         $this->dispatch('notify', type: 'success', message: __('app.updated_successfully'));
     }
 
+    private function authorizeMovementFormAccess(): void
+    {
+        Gate::authorize(
+            $this->editingId !== null || $this->inlineBillMovementId !== null
+                ? 'movements.edit'
+                : 'movements.create'
+        );
+    }
+
     protected function getPageItemIds(): array
     {
         return $this->getMovements()->pluck('id')->map(fn ($id) => (string) $id)->toArray();
@@ -751,8 +794,19 @@ class MovementPage extends Component
     protected function buildQuery()
     {
         $query = BankMovement::query()
-            ->with(['bankAccount:id,bank_name'])
+            ->with(['bankAccount' => function ($query) {
+                if ($this->canAccessAllMovements()) {
+                    $query->withoutGlobalScope('ownedByUser');
+                    auth()->user()->applyDataScope($query, 'movements');
+                }
+
+                $query->select(['id', 'bank_name']);
+            }])
             ->select('bank_movements.*');
+
+        if ($this->filterUserId !== '') {
+            $query->where('bank_movements.user_id', (int) $this->filterUserId);
+        }
 
         if ($this->search) {
             $query->where(function ($q) {
@@ -780,6 +834,16 @@ class MovementPage extends Component
 
         if ($this->filterCategory) {
             $query->where('category', 'like', "%{$this->filterCategory}%");
+        }
+
+        if ($this->filterUnassigned) {
+            $query->where(function ($query) {
+                $query->whereNull('type')
+                    ->orWhere('type', '')
+                    ->orWhere('type', 'other')
+                    ->orWhereNull('category')
+                    ->orWhere('category', '');
+            });
         }
 
         if ($this->dateFrom) {
@@ -1241,7 +1305,18 @@ class MovementPage extends Component
             return $this->cachedBalanceBookRows;
         }
 
-        return $this->cachedBalanceBookRows = BankAccount::query()
+        $query = BankAccount::query();
+
+        if ($this->canAccessAllMovements()) {
+            $query->withoutGlobalScope('ownedByUser');
+            auth()->user()->applyDataScope($query, 'movements');
+        }
+
+        if ($this->filterUserId !== '') {
+            $query->where('user_id', (int) $this->filterUserId);
+        }
+
+        return $this->cachedBalanceBookRows = $query
             ->orderBy('bank_name')
             ->get(['id', 'bank_name', 'current_balance'])
             ->map(fn (BankAccount $ba) => [
@@ -1366,9 +1441,23 @@ class MovementPage extends Component
             return $movement;
         });
 
+        $canFilterByUser = $this->canAccessAllMovements();
+        $bankAccountQuery = BankAccount::query();
+        if ($canFilterByUser) {
+            $bankAccountQuery->withoutGlobalScope('ownedByUser');
+            auth()->user()->applyDataScope($bankAccountQuery, 'movements');
+        }
+        if ($this->filterUserId !== '') {
+            $bankAccountQuery->where('user_id', (int) $this->filterUserId);
+        }
+
         return view('livewire.movements.movement-page', [
             'movements' => $movements,
-            'bankAccounts' => BankAccount::query()->orderBy('bank_name')->get(['id', 'bank_name']),
+            'bankAccounts' => $bankAccountQuery->orderBy('bank_name')->get(['id', 'bank_name']),
+            'movementUsers' => $canFilterByUser
+                ? auth()->user()->accessibleUserQuery('movements')->orderBy('name')->get(['id', 'name'])
+                : collect(),
+            'canFilterByUser' => $canFilterByUser,
             'movementTypes' => MovementType::orderBy('sort_order')->orderBy('name')->get(),
             'movementCategories' => MovementCategory::orderBy('sort_order')->orderBy('name')->get(),
             'pendingInvoices' => $pendingInvoices,

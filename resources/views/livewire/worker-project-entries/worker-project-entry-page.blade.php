@@ -197,7 +197,7 @@
                                     class="w-full text-xs text-right border border-emerald-400 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 tabular-nums">
                             </td>
                             <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700">
-                                <input wire:model="formHours" type="number" step="0.01" placeholder="0.00" 
+                                <input wire:model.live="formHours" type="number" step="0.01" placeholder="0.00"
                                     class="w-full text-xs text-right border border-emerald-400 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 tabular-nums">
                             </td>
                             <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700">
@@ -524,13 +524,13 @@
                                         <input type="number" step="0.01" wire:model="bulkRows.{{ $index }}.social_security" class="w-24 text-sm text-right border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-emerald-500 focus:border-emerald-500 tabular-nums">
                                     </td>
                                     <td class="px-3 py-2">
-                                        <input type="number" step="0.01" wire:model="bulkRows.{{ $index }}.hours" class="w-20 text-sm text-right border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-emerald-500 focus:border-emerald-500 tabular-nums">
+                                        <input type="number" step="0.01" wire:model.live="bulkRows.{{ $index }}.hours" class="w-20 text-sm text-right border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-emerald-500 focus:border-emerald-500 tabular-nums">
                                     </td>
                                     <td class="px-3 py-2">
                                         <input type="number" step="0.01" wire:model="bulkRows.{{ $index }}.days" class="w-16 text-sm text-right border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-emerald-500 focus:border-emerald-500 tabular-nums">
                                     </td>
                                     <td class="px-3 py-2">
-                                        <input type="number" step="0.01" wire:model="bulkRows.{{ $index }}.rate" class="w-20 text-sm text-right border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-emerald-500 focus:border-emerald-500 tabular-nums">
+                                        <input type="number" step="0.01" wire:model.live="bulkRows.{{ $index }}.rate" class="w-20 text-sm text-right border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-emerald-500 focus:border-emerald-500 tabular-nums">
                                     </td>
                                     <td class="px-3 py-2 text-center">
                                         <button wire:click="removeBulkRow({{ $index }})" class="text-gray-400 hover:text-red-500 transition-colors">

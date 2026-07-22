@@ -2,15 +2,13 @@
 
 namespace Database\Seeders;
 
-use App\Models\Worker;
-use App\Models\ProjectMonth;
-use App\Models\ProjectInvoice;
 use App\Models\ProjectExpense;
-use App\Models\WorkerMonthlySummary;
+use App\Models\ProjectInvoice;
+use App\Models\ProjectMonth;
+use App\Models\Worker;
 use App\Models\WorkerPayment;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class RealisticDataSeeder extends Seeder
 {
@@ -72,7 +70,7 @@ class RealisticDataSeeder extends Seeder
                 'monthly_period_id' => $periodIds[array_rand($periodIds)],
                 'client_id' => $clientIds[array_rand($clientIds)],
                 'project_id' => $projectIds[array_rand($projectIds)],
-                'sheet_code' => $sheetPrefixes[array_rand($sheetPrefixes)] . str_pad(rand(100, 999), 4, '0', STR_PAD_LEFT),
+                'sheet_code' => $sheetPrefixes[array_rand($sheetPrefixes)].str_pad(rand(100, 999), 4, '0', STR_PAD_LEFT),
                 'total_nominal' => 0,
                 'total_social_security' => 0,
                 'total_expenses' => $totalExpenses,
@@ -90,14 +88,14 @@ class RealisticDataSeeder extends Seeder
         $projectMonthIds = DB::table('project_months')->pluck('id')->toArray();
         $notes = [
             null, 'Baja por enfermedad', 'Vacaciones', 'Festivo', 'Horas extras',
-            'Día completo', 'Medio día', 'Incapacidad temporal', null, null
+            'Día completo', 'Medio día', 'Incapacidad temporal', null, null,
         ];
 
         foreach ($projectMonthIds as $pmId) {
             $numWorkers = rand(3, 12);
             for ($i = 0; $i < $numWorkers; $i++) {
                 $hours = round(rand(80, 200) + rand(0, 99) / 100, 2);
-                $days = round($hours / 8, 2);
+                $days = round($hours / 9, 2);
                 $rate = round(rand(12, 25) + rand(0, 99) / 100, 2);
                 $ss = round($hours * $rate * 0.15 + rand(0, 50), 2);
                 $total = $ss + ($hours * $rate);
@@ -131,7 +129,7 @@ class RealisticDataSeeder extends Seeder
 
             ProjectInvoice::create([
                 'project_month_id' => $projectMonthId,
-                'invoice_no' => 'INV-' . date('Y') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT),
+                'invoice_no' => 'INV-'.date('Y').'-'.str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT),
                 'invoice_date' => now()->subDays(rand(0, 365))->format('Y-m-d'),
                 'estimated_amount' => $estimatedAmount,
                 'actual_amount' => $actualAmount,
@@ -146,7 +144,7 @@ class RealisticDataSeeder extends Seeder
         $projectMonthIds = DB::table('project_months')->pluck('id')->toArray();
         $categories = [
             'Material', 'Transporte', 'Herramienta', 'Seguridad', 'Alquiler',
-            'Comida', 'Gasolina', 'Teléfono', 'Luz', 'Agua', 'Otros'
+            'Comida', 'Gasolina', 'Teléfono', 'Luz', 'Agua', 'Otros',
         ];
 
         $descriptions = [
@@ -189,7 +187,7 @@ class RealisticDataSeeder extends Seeder
             'Transferencia bancaria', 'Pago en mano', 'Adelanto semanal', 'Vale comida',
             'Ajuste nómina', 'Pago extra', 'Bonificación', 'Pago parcial',
             'Liquidación final', 'Pago mensualidad', 'Transferencia Sabadell',
-            'Transferencia Santander', 'Caja', 'Cheque', 'Bizum'
+            'Transferencia Santander', 'Caja', 'Cheque', 'Bizum',
         ];
 
         for ($i = 0; $i < 60; $i++) {
@@ -200,7 +198,7 @@ class RealisticDataSeeder extends Seeder
                 'payment_date' => now()->subDays(rand(0, 365))->format('Y-m-d'),
                 'payment_type' => $this->weightedRandom($typeWeights),
                 'amount' => round(rand(100, 3000) + rand(0, 99) / 100, 2),
-                'reference' => $references[array_rand($references)] . ' ' . rand(100, 999),
+                'reference' => $references[array_rand($references)].' '.rand(100, 999),
                 'notes' => $this->randomPaymentNote(),
             ]);
         }
@@ -217,6 +215,7 @@ class RealisticDataSeeder extends Seeder
                 return $key;
             }
         }
+
         return array_key_first($weights);
     }
 
@@ -235,6 +234,7 @@ class RealisticDataSeeder extends Seeder
             'En disputa con cliente',
             null,
         ];
+
         return $notes[array_rand($notes)];
     }
 
@@ -254,6 +254,7 @@ class RealisticDataSeeder extends Seeder
             null,
             'Pago completado correctamente',
         ];
+
         return $notes[array_rand($notes)];
     }
 }

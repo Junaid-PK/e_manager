@@ -5,33 +5,46 @@
 <div>
     {{-- Status Filter Bar --}}
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-4 p-4">
-        <div class="flex flex-wrap items-center gap-2">
-            <button wire:click="$set('statusFilter', '')" 
-                class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg transition-colors {{ $statusFilter === '' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600' }}">
-                {{ __('app.all') }}
-                <span class="ml-1.5 px-1.5 py-0.5 text-xs font-semibold rounded-full {{ $statusFilter === '' ? 'bg-emerald-200 text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200' : 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300' }}">{{ $statusCounts['total'] }}</span>
-            </button>
-            
-            <button wire:click="$set('statusFilter', 'new')" 
-                class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg transition-colors {{ $statusFilter === 'new' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600' }}">
-                <span class="w-2 h-2 rounded-full bg-emerald-500 mr-1.5"></span>
-                {{ __('app.new') }}
-                <span class="ml-1.5 px-1.5 py-0.5 text-xs font-semibold rounded-full {{ $statusFilter === 'new' ? 'bg-emerald-200 text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200' : 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300' }}">{{ $statusCounts['new'] }}</span>
-            </button>
-            
-            <button wire:click="$set('statusFilter', 'active')" 
-                class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg transition-colors {{ $statusFilter === 'active' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600' }}">
-                <span class="w-2 h-2 rounded-full bg-gray-400 mr-1.5"></span>
-                {{ __('app.active') }}
-                <span class="ml-1.5 px-1.5 py-0.5 text-xs font-semibold rounded-full {{ $statusFilter === 'active' ? 'bg-emerald-200 text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200' : 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300' }}">{{ $statusCounts['active'] }}</span>
-            </button>
-            
-            <button wire:click="$set('statusFilter', 'removed')" 
-                class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg transition-colors {{ $statusFilter === 'removed' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600' }}">
-                <span class="w-2 h-2 rounded-full bg-red-500 mr-1.5"></span>
-                {{ __('app.removed') }}
-                <span class="ml-1.5 px-1.5 py-0.5 text-xs font-semibold rounded-full {{ $statusFilter === 'removed' ? 'bg-red-200 text-red-800 dark:bg-red-800 dark:text-red-200' : 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300' }}">{{ $statusCounts['removed'] }}</span>
-            </button>
+        <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+            <div class="flex flex-wrap items-center gap-2">
+                <button wire:click="$set('statusFilter', '')" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg transition-colors {{ $statusFilter === '' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600' }}">
+                    {{ __('app.all') }}
+                    <span class="ml-1.5 px-1.5 py-0.5 text-xs font-semibold rounded-full {{ $statusFilter === '' ? 'bg-emerald-200 text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200' : 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300' }}">{{ $statusCounts['total'] }}</span>
+                </button>
+                <button wire:click="$set('statusFilter', 'new')" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg transition-colors {{ $statusFilter === 'new' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600' }}">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 mr-1.5"></span>
+                    {{ __('app.new') }}
+                    <span class="ml-1.5 px-1.5 py-0.5 text-xs font-semibold rounded-full {{ $statusFilter === 'new' ? 'bg-emerald-200 text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200' : 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300' }}">{{ $statusCounts['new'] }}</span>
+                </button>
+                <button wire:click="$set('statusFilter', 'active')" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg transition-colors {{ $statusFilter === 'active' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600' }}">
+                    <span class="w-2 h-2 rounded-full bg-gray-400 mr-1.5"></span>
+                    {{ __('app.active') }}
+                    <span class="ml-1.5 px-1.5 py-0.5 text-xs font-semibold rounded-full {{ $statusFilter === 'active' ? 'bg-emerald-200 text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200' : 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300' }}">{{ $statusCounts['active'] }}</span>
+                </button>
+                <button wire:click="$set('statusFilter', 'removed')" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg transition-colors {{ $statusFilter === 'removed' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600' }}">
+                    <span class="w-2 h-2 rounded-full bg-red-500 mr-1.5"></span>
+                    {{ __('app.removed') }}
+                    <span class="ml-1.5 px-1.5 py-0.5 text-xs font-semibold rounded-full {{ $statusFilter === 'removed' ? 'bg-red-200 text-red-800 dark:bg-red-800 dark:text-red-200' : 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300' }}">{{ $statusCounts['removed'] }}</span>
+                </button>
+            </div>
+
+            <form wire:submit="saveSocialSecurityRate" class="flex flex-wrap items-end gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 px-3 py-2">
+                <span class="self-center mr-1 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ __('app.ss_rates') }}</span>
+                @foreach (['peonSocialSecurityRate' => 'peon', 'expertSocialSecurityRate' => 'expert'] as $field => $role)
+                    <label class="block">
+                        <span class="block mb-1 text-[11px] font-medium text-gray-500 dark:text-gray-400">{{ __('app.'.$role) }}</span>
+                        <span class="relative block">
+                            <input wire:model="{{ $field }}" type="number" min="0" max="100" step="0.01" @cannot('workers.edit') disabled @endcannot class="w-20 rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 py-1 pl-2 pr-6 text-right text-xs text-gray-900 dark:text-gray-100 focus:border-emerald-500 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60">
+                            <span class="pointer-events-none absolute inset-y-0 right-2 flex items-center text-xs text-gray-400">%</span>
+                        </span>
+                    </label>
+                @endforeach
+                @can('workers.edit')
+                    <button type="submit" class="inline-flex items-center rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">{{ __('app.save') }}</button>
+                @endcan
+                @error('peonSocialSecurityRate') <p class="w-full text-xs text-red-500">{{ $message }}</p> @enderror
+                @error('expertSocialSecurityRate') <p class="w-full text-xs text-red-500">{{ $message }}</p> @enderror
+            </form>
         </div>
     </div>
 
@@ -154,6 +167,7 @@
                         <th wire:click="sortBy('nie')" class="sticky top-0 z-10 px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 cursor-pointer whitespace-nowrap">{{ __('app.nie') }} {{ $sortField === 'nie' ? ($sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
                         <th wire:click="sortBy('bank_account')" class="sticky top-0 z-10 px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 cursor-pointer whitespace-nowrap">{{ __('app.bank_account') }} {{ $sortField === 'bank_account' ? ($sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
                         <th wire:click="sortBy('rate')" class="sticky top-0 z-10 px-3 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 cursor-pointer whitespace-nowrap">{{ __('app.rate') }} {{ $sortField === 'rate' ? ($sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
+                        <th wire:click="sortBy('role')" class="sticky top-0 z-10 px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 cursor-pointer whitespace-nowrap">{{ __('app.worker_role') }} {{ $sortField === 'role' ? ($sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
                         <th class="sticky top-0 z-10 px-3 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 w-24">{{ __('app.status') }}</th>
                         <th class="sticky top-0 z-10 px-3 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 w-20">{{ __('app.actions') }}</th>
                     </tr>
@@ -185,6 +199,12 @@
                                 <input wire:model="formRate" type="number" step="0.01" placeholder="{{ __('app.rate') }}" 
                                     class="w-full text-xs text-right border border-emerald-400 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 px-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 tabular-nums"
                                     wire:keydown.enter="saveInline">
+                            </td>
+                            <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700">
+                                <select wire:model="formRole" class="w-full rounded-md border border-emerald-400 bg-white dark:bg-gray-700 py-1 pl-2 pr-7 text-xs text-gray-900 dark:text-gray-100 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
+                                    <option value="peon">{{ __('app.peon') }}</option>
+                                    <option value="expert">{{ __('app.expert') }}</option>
+                                </select>
                             </td>
                             <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700 text-center">
                                 <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
@@ -229,7 +249,7 @@
 
                             @foreach ($fields as $field => $config)
                                 @php
-                                    $displayVal = $config['value'] ?: '—';
+                                    $displayVal = $config['value'] !== '' ? $config['value'] . ($config['suffix'] ?? '') : '—';
                                     $escapedVal = addslashes($config['value']);
                                 @endphp
                                 <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700 whitespace-nowrap group">
@@ -254,6 +274,23 @@
                                     </div>
                                 </td>
                             @endforeach
+
+                            <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700 whitespace-nowrap">
+                                @can('workers.edit')
+                                    <x-custom-select compact
+                                        :options="[
+                                            ['value' => 'peon', 'label' => __('app.peon')],
+                                            ['value' => 'expert', 'label' => __('app.expert')],
+                                        ]"
+                                        :value="$worker->role"
+                                        submit-method="quickUpdateRole"
+                                        :submit-arg="$worker->id"
+                                        :placeholder="__('app.worker_role')"
+                                    />
+                                @else
+                                    <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $worker->role === 'expert' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' }}">{{ __('app.'.$worker->role) }}</span>
+                                @endcan
+                            </td>
 
                             {{-- Status Badge --}}
                             <td class="px-3 py-2 border-r border-gray-100 dark:border-gray-700 text-center">
@@ -292,7 +329,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-4 py-12 text-center">
+                            <td colspan="8" class="px-4 py-12 text-center">
                                 <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-gray-400"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" /></svg>
                                 </div>
@@ -343,10 +380,20 @@
                         @error('formBankAccount') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.rate') }} (€/h)</label>
-                        <input wire:model="formRate" type="number" step="0.01" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500 tabular-nums">
-                        @error('formRate') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.rate') }} (€/h)</label>
+                            <input wire:model="formRate" type="number" min="0" step="0.01" class="block w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500 tabular-nums">
+                            @error('formRate') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ __('app.worker_role') }}</label>
+                            <select wire:model="formRole" class="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:border-emerald-500 focus:ring-emerald-500">
+                                <option value="peon">{{ __('app.peon') }}</option>
+                                <option value="expert">{{ __('app.expert') }}</option>
+                            </select>
+                            @error('formRole') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                        </div>
                     </div>
 
                     <div class="flex items-center justify-end space-x-3 pt-2">
@@ -427,6 +474,7 @@
                                                     <select wire:model="importColumnMap.{{ $idx }}" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-1 pl-2 pr-6">
                                                         <option value="">—</option>
                                                         <option value="full_name">{{ __('app.full_name') }}</option>
+                                                        <option value="role">{{ __('app.worker_role') }}</option>
                                                         <option value="nie">{{ __('app.nie') }}</option>
                                                         <option value="bank_account">{{ __('app.bank_account') }}</option>
                                                         <option value="rate">{{ __('app.rate') }}</option>

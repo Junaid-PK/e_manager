@@ -10,7 +10,6 @@ use App\Models\Expense;
 use App\Models\Invoice;
 use App\Models\MovementType;
 use App\Models\PaymentReminder;
-use App\Models\User;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
@@ -27,6 +26,10 @@ class DashboardPage extends Component
     public string $statsDateFrom = '';
 
     public string $statsDateTo = '';
+
+    public string $statsMonth = '';
+
+    public string $statsYear = '';
 
     public string $filterUserId = '';
 
@@ -71,7 +74,7 @@ class DashboardPage extends Component
             ->limit(5)
             ->get();
         $users = $this->canAccessAllDashboard()
-            ? User::query()->orderBy('name')->get(['id', 'name'])
+            ? auth()->user()->accessibleUserQuery('dashboard')->orderBy('name')->get(['id', 'name'])
             : collect();
 
         return view('livewire.dashboard.dashboard-page', compact(
@@ -111,6 +114,44 @@ class DashboardPage extends Component
         return redirect(URL::temporarySignedRoute('export.download', now()->addMinutes(5), ['file' => $filename]));
     }
 
+    public function updatedStatsMonth(string $value): void
+    {
+        if (! preg_match('/^\d{4}-\d{2}$/', $value)) {
+            return;
+        }
+
+        $month = Carbon::createFromFormat('!Y-m', $value);
+
+        $this->statsYear = '';
+        $this->statsDateFrom = $month->copy()->startOfMonth()->format('Y-m-d');
+        $this->statsDateTo = $month->copy()->endOfMonth()->format('Y-m-d');
+        $this->expandedRows = [];
+    }
+
+    public function updatedStatsYear(string $value): void
+    {
+        if (! preg_match('/^\d{4}$/', $value)) {
+            return;
+        }
+
+        $year = Carbon::createFromDate((int) $value, 1, 1);
+
+        $this->statsMonth = '';
+        $this->statsDateFrom = $year->copy()->startOfYear()->format('Y-m-d');
+        $this->statsDateTo = $year->copy()->endOfYear()->format('Y-m-d');
+        $this->expandedRows = [];
+    }
+
+    public function updatedStatsDateFrom(): void
+    {
+        $this->clearPeriodPreset();
+    }
+
+    public function updatedStatsDateTo(): void
+    {
+        $this->clearPeriodPreset();
+    }
+
     public function quickMarkPaid(int $invoiceId): void
     {
         $invoice = Invoice::findOrFail($invoiceId);
@@ -120,9 +161,10 @@ class DashboardPage extends Component
 
     public function toggleTypeRow(string $typeLabel): void
     {
-        $key = 'type_' . md5($typeLabel);
+        $key = 'type_'.md5($typeLabel);
         if (isset($this->expandedRows[$key])) {
             unset($this->expandedRows[$key]);
+
             return;
         }
 
@@ -154,7 +196,7 @@ class DashboardPage extends Component
         $grouped = [];
         foreach ($rows as $row) {
             $label = (string) $row->category_label;
-            if (!isset($grouped[$label])) {
+            if (! isset($grouped[$label])) {
                 $grouped[$label] = [
                     'label' => $label,
                     'total' => 0,
@@ -175,7 +217,7 @@ class DashboardPage extends Component
 
     public function toggleTypeYearRow(string $typeLabel): void
     {
-        $key = 'type_year_' . md5($typeLabel);
+        $key = 'type_year_'.md5($typeLabel);
         if (isset($this->expandedRows[$key])) {
             unset($this->expandedRows[$key]);
 
@@ -210,7 +252,7 @@ class DashboardPage extends Component
         $grouped = [];
         foreach ($rows as $row) {
             $label = (string) $row->category_label;
-            if (!isset($grouped[$label])) {
+            if (! isset($grouped[$label])) {
                 $grouped[$label] = [
                     'label' => $label,
                     'total' => 0,
@@ -231,9 +273,10 @@ class DashboardPage extends Component
 
     public function toggleCategoryRow(string $categoryLabel): void
     {
-        $key = 'category_' . md5($categoryLabel);
+        $key = 'category_'.md5($categoryLabel);
         if (isset($this->expandedRows[$key])) {
             unset($this->expandedRows[$key]);
+
             return;
         }
 
@@ -264,7 +307,7 @@ class DashboardPage extends Component
 
         foreach ($expenseRows as $row) {
             $label = (string) $row->label;
-            if (!isset($grouped[$label])) {
+            if (! isset($grouped[$label])) {
                 $grouped[$label] = [
                     'label' => $label,
                     'total' => 0,
@@ -278,7 +321,7 @@ class DashboardPage extends Component
 
         foreach ($movementRows as $row) {
             $label = (string) $row->label;
-            if (!isset($grouped[$label])) {
+            if (! isset($grouped[$label])) {
                 $grouped[$label] = [
                     'label' => $label,
                     'total' => 0,
@@ -302,9 +345,10 @@ class DashboardPage extends Component
 
     public function toggleExecutiveRow(string $rowKey): void
     {
-        $key = 'executive_' . $rowKey;
+        $key = 'executive_'.$rowKey;
         if (isset($this->expandedRows[$key])) {
             unset($this->expandedRows[$key]);
+
             return;
         }
 
@@ -365,7 +409,7 @@ class DashboardPage extends Component
         $grouped = [];
         foreach ($rows as $row) {
             $label = (string) $row->label;
-            if (!isset($grouped[$label])) {
+            if (! isset($grouped[$label])) {
                 $grouped[$label] = [
                     'label' => $label,
                     'total' => 0,
@@ -398,6 +442,13 @@ class DashboardPage extends Component
         }
 
         return ['from' => $from, 'to' => $to];
+    }
+
+    private function clearPeriodPreset(): void
+    {
+        $this->statsMonth = '';
+        $this->statsYear = '';
+        $this->expandedRows = [];
     }
 
     private function getReportMonths(Carbon $from, Carbon $to): array

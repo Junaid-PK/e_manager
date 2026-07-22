@@ -58,6 +58,11 @@ class ImportWorkerAction
                 $nie = trim($mapped['nie'] ?? '');
                 $bankAccount = trim($mapped['bank_account'] ?? '');
                 $rate = $this->parseRate($mapped['rate'] ?? null);
+                $role = mb_strtolower(trim($mapped['role'] ?? 'peon'));
+                $role = match ($role) {
+                    'expert', 'experto' => 'expert',
+                    default => 'peon',
+                };
 
                 // Check if this row is a duplicate (same NIE or bank account as an existing worker)
                 $existingWorker = $this->findExistingWorker($nie, $bankAccount);
@@ -86,6 +91,7 @@ class ImportWorkerAction
                 // New worker
                 $createData = [
                     'full_name' => $fullName,
+                    'role' => $role,
                     'nie' => $nie ?: null,
                     'bank_account' => $bankAccount ?: null,
                     'import_status' => 'new',

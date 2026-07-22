@@ -22,8 +22,10 @@ class WorkerExport implements FromCollection, WithHeadings, WithMapping
     {
         return [
             __('app.full_name'),
+            __('app.worker_role'),
             __('app.nie'),
             __('app.bank_account'),
+            __('app.rate'),
             __('app.created_at'),
         ];
     }
@@ -32,8 +34,10 @@ class WorkerExport implements FromCollection, WithHeadings, WithMapping
     {
         return [
             $worker->full_name,
+            __('app.'.$worker->role),
             $worker->nie ?? '',
             $worker->bank_account ?? '',
+            $worker->rate,
             $worker->created_at?->format('Y-m-d H:i:s') ?? '',
         ];
     }

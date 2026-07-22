@@ -1,6 +1,10 @@
 <?php
 
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Models\Role;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
@@ -10,6 +14,26 @@ Route::middleware('guest')->group(function () {
 
     Volt::route('login', 'pages.auth.login')
         ->name('login');
+
+    Route::post('developer-login', function () {
+        abort_unless(app()->environment('local'), 404);
+
+        $user = User::firstOrCreate(
+            ['email' => 'developer@example.com'],
+            [
+                'name' => 'Developer',
+                'password' => Hash::make(str()->random(32)),
+            ],
+        );
+
+        $adminRole = Role::firstOrCreate(['name' => 'admin']);
+        $user->roles()->syncWithoutDetaching([$adminRole->id]);
+
+        Auth::login($user);
+        request()->session()->regenerate();
+
+        return redirect()->intended(route('dashboard', absolute: false));
+    })->name('developer-login');
 
     Volt::route('forgot-password', 'pages.auth.forgot-password')
         ->name('password.request');

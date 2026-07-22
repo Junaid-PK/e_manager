@@ -10,6 +10,7 @@ class Worker extends Model
 {
     protected $fillable = [
         'full_name',
+        'role',
         'nie',
         'bank_account',
         'rate',

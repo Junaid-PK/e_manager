@@ -14,6 +14,7 @@ use App\Services\ProjectMonthImportService;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
@@ -64,7 +65,11 @@ class ProjectMonthPage extends Component
         return [
             'formPeriodId' => 'required|exists:monthly_periods,id',
             'formClientId' => 'required|exists:clients,id',
-            'formProjectId' => 'required|exists:projects,id',
+            'formProjectId' => [
+                'required',
+                Rule::exists('projects', 'id')
+                    ->where(fn ($query) => $query->where('client_id', $this->formClientId)),
+            ],
             'formSheetCode' => 'nullable|string|max:50',
             'formEstimatedInvoice' => 'nullable|numeric|min:0',
             'formTotalExpenses' => 'nullable|numeric|min:0',
@@ -85,6 +90,12 @@ class ProjectMonthPage extends Component
     public function updatedFilterProjectId(): void
     {
         $this->resetPage();
+    }
+
+    public function updatedFormClientId(): void
+    {
+        $this->formProjectId = '';
+        $this->resetValidation('formProjectId');
     }
 
     public function create(): void
@@ -326,6 +337,9 @@ class ProjectMonthPage extends Component
             'periods' => MonthlyPeriod::orderByDesc('year')->orderByDesc('month')->get(),
             'clients' => Client::orderBy('name')->get(),
             'projects' => Project::orderBy('name')->get(),
+            'formProjects' => $this->formClientId
+                ? Project::where('client_id', $this->formClientId)->orderBy('name')->get()
+                : collect(),
         ])->layout('layouts.app');
     }
 
